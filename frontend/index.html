@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spark Log Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg:        #0b0f14;
+      --surface:   #111720;
+      --surface2:  #18202c;
+      --border:    #1f2d3d;
+      --border2:   #2a3d52;
+      --accent:    #e8732a;
+      --accent2:   #ff9f5a;
+      --blue:      #3d9be9;
+      --green:     #3dbd6e;
+      --red:       #e85858;
+      --yellow:    #e8c33a;
+      --text:      #d4dde8;
+      --text-dim:  #6b7f96;
+      --text-mute: #3a4f62;
+      --mono:      "IBM Plex Mono", monospace;
+      --sans:      "IBM Plex Sans", sans-serif;
+      --radius:    6px;
+      --transition: 180ms ease;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid noise texture overlay ────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+      opacity: 0.18;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .shell {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      padding: 36px 0 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 20px;
+    }
+    .logo {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: var(--accent);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: grid; place-items: center;
+    }
+    .logo svg { width: 22px; height: 22px; }
+    .header-text h1 {
+      font-family: var(--mono);
+      font-size: 1.25rem; font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+    .header-text p {
+      font-size: 0.8rem; color: var(--text-dim);
+      margin-top: 2px; letter-spacing: 0.03em;
+    }
+    .version-badge {
+      margin-left: auto;
+      font-family: var(--mono); font-size: 0.7rem;
+      color: var(--accent); border: 1px solid var(--accent);
+      padding: 3px 8px; border-radius: 2px;
+      opacity: 0.7;
+    }
+
+    /* ── Section titles ────────────────────────────────────── */
+    .section-label {
+      font-family: var(--mono); font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after {
+      content: ""; flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Upload Panel ──────────────────────────────────────── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+    @media (max-width: 720px) { .upload-grid { grid-template-columns: 1fr; } }
+
+    .drop-zone {
+      background: var(--surface);
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: #14202e;
+    }
+    .drop-zone.has-file { border-style: solid; border-color: var(--green); }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .drop-icon {
+      font-size: 2rem; line-height: 1; margin-bottom: 12px;
+      display: block;
+    }
+    .drop-title {
+      font-family: var(--mono); font-size: 0.82rem;
+      font-weight: 500; color: var(--text); margin-bottom: 6px;
+    }
+    .drop-hint { font-size: 0.75rem; color: var(--text-dim); }
+    .file-name {
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--green); margin-top: 10px;
+      word-break: break-all;
+    }
+
+    /* ── Options row ────────────────────────────────────────── */
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px; align-items: end;
+      margin-top: 16px;
+    }
+    @media (max-width: 900px) { .options-row { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .options-row { grid-template-columns: 1fr; } }
+
+    .field label {
+      display: block;
+      font-family: var(--mono); font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .field select, .field input[type="text"], .field input[type="password"] {
+      width: 100%; background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius); padding: 9px 12px;
+      font-family: var(--mono); font-size: 0.82rem;
+      color: var(--text); outline: none;
+      transition: border-color var(--transition);
+    }
+    .field select:focus,
+    .field input:focus { border-color: var(--accent); }
+    .field select option { background: var(--surface); }
+
+    .toggle-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0;
+    }
+    .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--border2); border-radius: 20px;
+      transition: background var(--transition);
+    }
+    .toggle input:checked ~ .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #fff; border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .toggle input:checked ~ .toggle-track .toggle-thumb { transform: translateX(16px); }
+    .toggle-label { font-size: 0.8rem; color: var(--text-dim); }
+
+    /* ── Submit button ──────────────────────────────────────── */
+    .btn-analyze {
+      padding: 10px 28px;
+      background: var(--accent);
+      border: none; border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.82rem;
+      font-weight: 600; letter-spacing: 0.04em;
+      color: #fff; cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition), transform 80ms;
+    }
+    .btn-analyze:hover { background: var(--accent2); }
+    .btn-analyze:active { transform: scale(0.98); }
+    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Status bar ─────────────────────────────────────────── */
+    .status-bar {
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      font-family: var(--mono); font-size: 0.78rem;
+      opacity: 0; transform: translateY(-6px);
+      transition: opacity 300ms, transform 300ms;
+    }
+    .status-bar.visible { opacity: 1; transform: none; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--text-mute);
+    }
+    .status-dot.pending { background: var(--yellow); animation: pulse 1.4s infinite; }
+    .status-dot.running { background: var(--blue); animation: pulse 0.8s infinite; }
+    .status-dot.done    { background: var(--green); }
+    .status-dot.error   { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.35; }
+    }
+    .status-msg { color: var(--text-dim); flex: 1; }
+    .status-elapsed {
+      color: var(--text-mute); font-size: 0.7rem;
+      margin-left: auto;
+    }
+
+    /* ── Progress track ─────────────────────────────────────── */
+    .progress-track {
+      height: 2px; background: var(--border);
+      margin-top: 8px; border-radius: 1px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: var(--accent);
+      width: 0%; transition: width 400ms ease;
+      border-radius: 1px;
+    }
+
+    /* ── Results section ─────────────────────────────────────── */
+    #results {
+      margin-top: 48px;
+      opacity: 0; transform: translateY(12px);
+      transition: opacity 400ms, transform 400ms;
+    }
+    #results.visible { opacity: 1; transform: none; }
+
+    /* App Summary cards ─────────────────────────────────────── */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .kpi-label {
+      font-family: var(--mono); font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-family: var(--mono); font-size: 1.1rem;
+      font-weight: 600; color: #fff;
+    }
+    .kpi-value.accent  { color: var(--accent); }
+    .kpi-value.green   { color: var(--green); }
+    .kpi-value.yellow  { color: var(--yellow); }
+    .kpi-value.red     { color: var(--red); }
+
+    /* Stage table ───────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden; overflow-x: auto;
+      margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    thead tr {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border2);
+    }
+    th {
+      font-family: var(--mono); font-size: 0.65rem;
+      font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim);
+      padding: 10px 14px; text-align: left;
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); color: var(--text);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag-skew {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(232,115,42,0.15);
+      color: var(--accent2); border: 1px solid rgba(232,115,42,0.3);
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 3px;
+    }
+    .bar-cell { min-width: 100px; }
+    .mini-bar {
+      height: 4px; background: var(--border2);
+      border-radius: 2px; overflow: hidden; margin-top: 4px;
+    }
+    .mini-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--blue); transition: width 600ms ease;
+    }
+
+    /* LLM Analysis panel ────────────────────────────────────── */
+    .analysis-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .analysis-panel .inner {
+      font-size: 0.85rem; line-height: 1.75;
+      color: var(--text);
+    }
+    .analysis-panel .inner h1,
+    .analysis-panel .inner h2,
+    .analysis-panel .inner h3 {
+      font-family: var(--mono); color: #fff;
+      margin: 1.2em 0 0.5em;
+    }
+    .analysis-panel .inner h2 { font-size: 0.95rem; color: var(--accent2); }
+    .analysis-panel .inner h3 { font-size: 0.85rem; color: var(--blue); }
+    .analysis-panel .inner code, .analysis-panel .inner pre {
+      font-family: var(--mono); font-size: 0.78rem;
+    }
+    .analysis-panel .inner pre {
+      background: var(--bg); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 14px 16px;
+      overflow-x: auto; margin: 10px 0;
+      line-height: 1.6;
+    }
+    .analysis-panel .inner code:not(pre code) {
+      background: rgba(61,155,233,0.12); color: var(--blue);
+      padding: 1px 5px; border-radius: 3px;
+    }
+    .analysis-panel .inner strong { color: #fff; }
+    .analysis-panel .inner ul, .analysis-panel .inner ol {
+      padding-left: 1.5em; margin: 0.5em 0;
+    }
+    .analysis-panel .inner li { margin: 0.25em 0; }
+    .analysis-panel .inner hr {
+      border: none; border-top: 1px solid var(--border);
+      margin: 1.5em 0;
+    }
+
+    /* Download bar ──────────────────────────────────────────── */
+    .download-bar {
+      display: flex; gap: 10px; margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .btn-dl {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--text-dim); cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+      text-decoration: none;
+    }
+    .btn-dl:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-dl svg { width: 13px; height: 13px; }
+
+    /* Error panel ───────────────────────────────────────────── */
+    .error-panel {
+      background: rgba(232,88,88,0.08);
+      border: 1px solid rgba(232,88,88,0.3);
+      border-radius: var(--radius); padding: 16px 20px;
+      font-family: var(--mono); font-size: 0.8rem;
+      color: var(--red); margin-top: 16px;
+    }
+
+    /* Scrollbar ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Spark Log Analyzer</h1>
+      <p>Event log reduction · Bottleneck detection · AI diagnostics</p>
+    </div>
+    <span class="version-badge">v2.0</span>
+  </header>
+
+  <!-- Upload section -->
+  <div style="margin-top: 40px">
+    <div class="section-label">01 — Upload</div>
+
+    <div class="upload-grid">
+      <!-- ZIP drop zone -->
+      <div class="drop-zone" id="zone-zip" ondragover="onDragOver(event,'zip')" ondragleave="onDragLeave('zip')" ondrop="onDrop(event,'zip')">
+        <input type="file" id="input-zip" accept=".zip" onchange="onFileChange('zip')">
+        <span class="drop-icon">📦</span>
+        <div class="drop-title">Event Log ZIP</div>
+        <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.zip — Spark event logs</em></div>
+        <div class="file-name" id="name-zip"></div>
+      </div>
+
+      <!-- PySpark files drop zone -->
+      <div class="drop-zone" id="zone-py" ondragover="onDragOver(event,'py')" ondragleave="onDragLeave('py')" ondrop="onDrop(event,'py')">
+        <input type="file" id="input-py" accept=".py" multiple onchange="onFileChange('py')">
+        <span class="drop-icon">🐍</span>
+        <div class="drop-title">PySpark Source Files <span style="opacity:.5;font-size:.75em">(optional)</span></div>
+        <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.py — job source code</em></div>
+        <div class="file-name" id="name-py"></div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="options-row" style="margin-top:16px">
+      <div class="field">
+        <label>LLM Provider</label>
+        <select id="sel-provider">
+          <option value="">— none —</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" id="input-key" placeholder="sk-… or env var used" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Output Mode</label>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="chk-compact">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+          <span class="toggle-label">Compact report</span>
+        </div>
+      </div>
+      <button class="btn-analyze" id="btn-submit" onclick="submitJob()" disabled>
+        Analyze →
+      </button>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-msg" id="status-msg">Idle</span>
+      <span class="status-elapsed" id="status-elapsed"></span>
+    </div>
+    <div class="progress-track" id="progress-track" style="display:none">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="error-panel" id="error-panel" style="display:none"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="section-label" style="margin-top:48px">02 — Application Summary</div>
+    <div class="summary-cards" id="kpi-cards"></div>
+
+    <div class="section-label">03 — Stage Breakdown</div>
+    <div class="table-wrap">
+      <table id="stage-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Stage Name</th><th>Tasks</th>
+            <th>Duration</th><th>Input</th>
+            <th>Shuffle Read</th><th>Shuffle Write</th>
+            <th>Skew Ratio</th><th>p95 Task</th>
+          </tr>
+        </thead>
+        <tbody id="stage-tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="llm-section" style="display:none">
+      <div class="section-label">04 — AI Analysis</div>
+      <div class="analysis-panel">
+        <div class="inner" id="llm-inner"></div>
+      </div>
+    </div>
+
+    <div class="section-label">05 — Export</div>
+    <div class="download-bar" id="dl-bar"></div>
+
+  </div><!-- /results -->
+
+</div><!-- /shell -->
+
+<script>
+/* ── State ──────────────────────────────────────────── */
+let currentJobId = null;
+let pollTimer    = null;
+let startTs      = null;
+let elapsedTimer = null;
+let zipFile      = null;
+let pyFiles      = [];
+
+/* ── File handlers ──────────────────────────────────── */
+function onFileChange(type) {
+  if (type === 'zip') {
+    const f = document.getElementById('input-zip').files[0];
+    if (f) { zipFile = f; updateZoneUI('zip', f.name); }
+  } else {
+    pyFiles = Array.from(document.getElementById('input-py').files);
+    updateZoneUI('py', pyFiles.map(f => f.name).join(', ') || '');
+  }
+  checkReady();
+}
+function updateZoneUI(type, name) {
+  const zone = document.getElementById('zone-' + type);
+  const label = document.getElementById('name-' + type);
+  if (name) { zone.classList.add('has-file'); label.textContent = '✓ ' + name; }
+  else       { zone.classList.remove('has-file'); label.textContent = ''; }
+}
+function onDragOver(e, type) {
+  e.preventDefault();
+  document.getElementById('zone-' + type).classList.add('drag-over');
+}
+function onDragLeave(type) {
+  document.getElementById('zone-' + type).classList.remove('drag-over');
+}
+function onDrop(e, type) {
+  e.preventDefault();
+  onDragLeave(type);
+  const files = e.dataTransfer.files;
+  if (!files.length) return;
+  if (type === 'zip') {
+    if (files[0].name.endsWith('.zip')) {
+      zipFile = files[0];
+      updateZoneUI('zip', zipFile.name);
+    }
+  } else {
+    pyFiles = Array.from(files).filter(f => f.name.endsWith('.py'));
+    if (pyFiles.length) updateZoneUI('py', pyFiles.map(f => f.name).join(', '));
+  }
+  checkReady();
+}
+function checkReady() {
+  document.getElementById('btn-submit').disabled = !zipFile;
+}
+
+/* ── Submit ─────────────────────────────────────────── */
+async function submitJob() {
+  if (!zipFile) return;
+  resetUI();
+
+  const fd = new FormData();
+  fd.append('log_zip', zipFile, zipFile.name);
+  pyFiles.forEach(f => fd.append('pyspark_files', f, f.name));
+  fd.append('compact',      document.getElementById('chk-compact').checked);
+  fd.append('llm_provider', document.getElementById('sel-provider').value || '');
+  fd.append('api_key',      document.getElementById('input-key').value || '');
+
+  setStatus('pending', 'Uploading…');
+  startTs = Date.now();
+  startElapsed();
+  showProgressBar();
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || 'Upload failed');
+    }
+    const data = await res.json();
+    currentJobId = data.job_id;
+    setStatus('running', 'Processing event log…');
+    animateProgress(15, 75, 12000);
+    startPolling();
+  } catch (e) {
+    showError(e.message);
+    setStatus('error', 'Upload failed');
+  }
+}
+
+function startPolling() {
+  pollTimer = setInterval(async () => {
+    if (!currentJobId) return;
+    try {
+      const res = await fetch('/api/status/' + currentJobId);
+      const data = await res.json();
+      if (data.status === 'done') {
+        clearInterval(pollTimer);
+        animateProgress(75, 100, 600);
+        setTimeout(() => {
+          setStatus('done', 'Analysis complete');
+          stopElapsed();
+          renderResults(data);
+          hideProgressBar();
+        }, 650);
+      } else if (data.status === 'error') {
+        clearInterval(pollTimer);
+        showError(data.error || 'Unknown error during processing');
+        setStatus('error', 'Processing failed');
+        stopElapsed();
+        hideProgressBar();
+      } else if (data.status === 'running') {
+        setStatus('running', 'Analyzing stages & calling LLM…');
+      }
+    } catch { /* network hiccup — keep polling */ }
+  }, 1500);
+}
+
+/* ── Render Results ─────────────────────────────────── */
+function renderResults(data) {
+  // KPI cards
+  const s = data.summary;
+  if (s) {
+    const cards = [
+      { label: 'App', value: s.app_name, cls: 'accent' },
+      { label: 'Duration', value: fmtMs(s.total_duration_ms), cls: '' },
+      { label: 'Stages', value: s.num_stages, cls: '' },
+      { label: 'Tasks', value: s.num_tasks.toLocaleString(), cls: '' },
+      { label: 'Executors', value: s.executor_count, cls: 'green' },
+      { label: 'Input', value: fmtBytes(s.total_input_bytes), cls: '' },
+      { label: 'Shuffle Read', value: fmtBytes(s.total_shuffle_read_bytes), cls: s.total_shuffle_read_bytes > 1e9 ? 'yellow' : '' },
+      { label: 'Spark', value: s.spark_version, cls: '' },
+    ];
+    const container = document.getElementById('kpi-cards');
+    container.innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value ${c.cls}">${c.value}</div>
+      </div>
+    `).join('');
+
+    // Stage table
+    if (s.stages && s.stages.length) {
+      const maxDur = Math.max(...s.stages.map(st => st.duration_ms || 0));
+      document.getElementById('stage-tbody').innerHTML = s.stages.map(st => {
+        const pct = maxDur > 0 ? Math.round((st.duration_ms / maxDur) * 100) : 0;
+        const skewTag = st.skew_ratio > 3
+          ? `<span class="tag-skew">⚠ ${st.skew_ratio}×</span>`
+          : (st.skew_ratio ? st.skew_ratio + '×' : '—');
+        return `<tr>
+          <td>${st.stage_id}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(st.name)}">${esc(st.name)}</td>
+          <td>${st.num_tasks}</td>
+          <td class="bar-cell">
+            ${fmtMs(st.duration_ms)}
+            <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+          </td>
+          <td>${fmtBytes(st.input_bytes)}</td>
+          <td>${fmtBytes(st.shuffle_read_bytes)}</td>
+          <td>${fmtBytes(st.shuffle_write_bytes)}</td>
+          <td>${skewTag}</td>
+          <td>${st.task_duration_p95_ms != null ? fmtMs(st.task_duration_p95_ms) : '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // LLM analysis
+  if (data.llm_analysis && data.llm_analysis.trim()) {
+    document.getElementById('llm-section').style.display = '';
+    document.getElementById('llm-inner').innerHTML = mdToHtml(data.llm_analysis);
+  }
+
+  // Download buttons
+  const dlBar = document.getElementById('dl-bar');
+  dlBar.innerHTML = `
+    <a class="btn-dl" href="/api/download/${currentJobId}/md">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Markdown
+    </a>
+    <a class="btn-dl" href="/api/download/${currentJobId}/json">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download JSON
+    </a>
+  `;
+
+  // Reveal
+  const el = document.getElementById('results');
+  el.classList.add('visible');
+}
+
+/* ── Minimal Markdown → HTML ────────────────────────── */
+function mdToHtml(md) {
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // code blocks
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`)
+    // inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // hr
+    .replace(/^---$/gm, '<hr>')
+    // bullet lists
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    // numbered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // paragraphs
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/^([^<\n].+)$/gm, (line) =>
+      line.startsWith('<') ? line : line)
+    .replace(/^(?!<)(.+)$/gm, '$1')
+    ;
+}
+
+/* ── UI helpers ─────────────────────────────────────── */
+function setStatus(state, msg) {
+  const bar = document.getElementById('status-bar');
+  bar.classList.add('visible');
+  document.getElementById('status-dot').className = 'status-dot ' + state;
+  document.getElementById('status-msg').textContent = msg;
+}
+function showError(msg) {
+  const el = document.getElementById('error-panel');
+  el.textContent = '✗ ' + msg;
+  el.style.display = '';
+}
+function resetUI() {
+  clearInterval(pollTimer);
+  clearInterval(elapsedTimer);
+  document.getElementById('error-panel').style.display = 'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('kpi-cards').innerHTML = '';
+  document.getElementById('stage-tbody').innerHTML = '';
+  document.getElementById('llm-inner').innerHTML = '';
+  document.getElementById('llm-section').style.display = 'none';
+  document.getElementById('dl-bar').innerHTML = '';
+  document.getElementById('status-elapsed').textContent = '';
+}
+function showProgressBar() {
+  document.getElementById('progress-track').style.display = '';
+  setProgressWidth(0);
+}
+function hideProgressBar() {
+  setTimeout(() => { document.getElementById('progress-track').style.display = 'none'; }, 800);
+}
+function setProgressWidth(w) {
+  document.getElementById('progress-fill').style.width = w + '%';
+}
+function animateProgress(from, to, ms) {
+  const step = (to - from) / (ms / 60);
+  let cur = from;
+  const timer = setInterval(() => {
+    cur = Math.min(cur + step, to);
+    setProgressWidth(cur);
+    if (cur >= to) clearInterval(timer);
+  }, 60);
+}
+function startElapsed() {
+  elapsedTimer = setInterval(() => {
+    const s = ((Date.now() - startTs) / 1000).toFixed(1);
+    document.getElementById('status-elapsed').textContent = s + 's';
+  }, 200);
+}
+function stopElapsed() { clearInterval(elapsedTimer); }
+
+/* ── Formatting ─────────────────────────────────────── */
+function fmtMs(ms) {
+  if (!ms) return '0 ms';
+  if (ms < 1000) return ms + ' ms';
+  if (ms < 60000) return (ms / 1000).toFixed(1) + ' s';
+  return (ms / 60000).toFixed(1) + ' min';
+}
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }
+  return b.toFixed(1) + ' ' + units[i];
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
