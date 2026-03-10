@@ -39,6 +39,9 @@ class Settings(BaseSettings):
 
     # Feature flags
     max_zip_mb: int = 500
+    max_uncompressed_mb: int = 1000  # Max uncompressed size (2x compressed)
+    max_files_in_zip: int = 1000     # Max number of files in ZIP
+    compression_ratio_limit: int = 100  # Max compression ratio
 
     # Celery
     celery_broker_url: str = "redis://localhost:6379/0"

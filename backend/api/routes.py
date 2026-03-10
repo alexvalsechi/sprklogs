@@ -7,11 +7,14 @@ from __future__ import annotations
 import uuid
 import asyncio
 import logging
+import hashlib
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, UploadFile, HTTPException
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from backend.tasks import process_log_task
 from backend.models.job import JobStatus, JobResult
@@ -21,12 +24,16 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+limiter = Limiter(key_func=get_remote_address)
+
 # In-memory job store (replace with Redis for production)
 _jobs: dict[str, JobResult] = {}
 
 
 @router.post("/upload", response_model=dict, status_code=202)
+@limiter.limit("5/hour")
 async def upload_log(
+    request: Request,
     log_zip: UploadFile = File(..., description="Spark event log ZIP file"),
     pyspark_files: list[UploadFile] = File(default=[], description="Optional .py job files"),
     compact: bool = Form(default=False),
@@ -43,19 +50,36 @@ async def upload_log(
     - OAuth: user_id + provider (token retrieved from session)
     - BYOK: llm_provider + api_key (legacy, less secure)
     """
-    logger.info(f"Upload request received: filename={log_zip.filename}, size={getattr(log_zip, 'size', 'unknown')}")
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"Upload request received: filename={log_zip.filename}, size={getattr(log_zip, 'size', 'unknown')}, ip={client_ip}")
     
     if not log_zip.filename.endswith(".zip"):
         logger.error(f"Invalid file extension: {log_zip.filename}")
         raise HTTPException(status_code=422, detail="log_zip must be a .zip file")
+
+    # Read file bytes
+    zip_bytes = await log_zip.read()
+    
+    # Validate file size
+    zip_size_mb = len(zip_bytes) / (1024 * 1024)
+    if zip_size_mb > settings.max_zip_mb:
+        logger.warning(f"ZIP file too large: {zip_size_mb:.2f} MB > {settings.max_zip_mb} MB, ip={client_ip}")
+        raise HTTPException(status_code=413, detail=f"ZIP file too large. Maximum size is {settings.max_zip_mb} MB")
+    
+    # Validate ZIP magic number
+    if len(zip_bytes) < 4 or zip_bytes[:4] != b'PK\x03\x04':
+        logger.warning(f"Invalid ZIP file: magic number check failed, ip={client_ip}")
+        raise HTTPException(status_code=422, detail="Invalid ZIP file format")
+    
+    # Log file hash for monitoring
+    file_hash = hashlib.sha256(zip_bytes).hexdigest()[:16]
+    logger.info(f"ZIP validated: size={zip_size_mb:.2f} MB, hash={file_hash}, ip={client_ip}")
 
     job_id = str(uuid.uuid4())
     _jobs[job_id] = JobResult(job_id=job_id, status=JobStatus.PENDING)
     
     logger.info(f"Created job {job_id} for user {user_id} with provider {provider}")
 
-    # Read file bytes
-    zip_bytes = await log_zip.read()
     py_files: dict[str, bytes] = {}
     for f in pyspark_files:
         if f.filename:
@@ -117,22 +141,29 @@ def download_report(job_id: str, format: str):
     if not job or job.status != JobStatus.DONE:
         raise HTTPException(status_code=404, detail="Report not ready")
 
-    tmp = Path("/tmp") / f"{job_id}.{format}"
-    if format == "md":
-        # Combine reduced report and LLM analysis
-        content = job.reduced_report or ""
-        if job.llm_analysis and job.llm_analysis.strip():
-            content += "\n\n---\n\n## AI Analysis\n\n" + job.llm_analysis
-        tmp.write_text(content)
-        media = "text/markdown"
-    elif format == "json":
-        import json
-        tmp.write_text(json.dumps({"reduced": job.reduced_report, "analysis": job.llm_analysis}, ensure_ascii=False, indent=2))
-        media = "application/json"
-    else:
-        raise HTTPException(status_code=400, detail="format must be md or json")
+    tmp_dir = Path(settings.upload_tmp_dir)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp = tmp_dir / f"{job_id}.{format}"
+    try:
+        if format == "md":
+            # Combine reduced report and LLM analysis
+            content = job.reduced_report or ""
+            if job.llm_analysis and job.llm_analysis.strip():
+                content += "\n\n---\n\n## AI Analysis\n\n" + job.llm_analysis
+            tmp.write_text(content)
+            media = "text/markdown"
+        elif format == "json":
+            import json
+            tmp.write_text(json.dumps({"reduced": job.reduced_report, "analysis": job.llm_analysis}, ensure_ascii=False, indent=2))
+            media = "application/json"
+        else:
+            raise HTTPException(status_code=400, detail="format must be md or json")
 
-    return FileResponse(str(tmp), media_type=media, filename=f"spark_report_{job_id}.{format}")
+        return FileResponse(str(tmp), media_type=media, filename=f"spark_report_{job_id}.{format}")
+    finally:
+        # Clean up temporary file after response
+        if tmp.exists():
+            tmp.unlink()
 
 
 @router.get("/health")

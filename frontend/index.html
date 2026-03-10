@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spark Log Analyzer</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -64,12 +66,15 @@
       display: flex; align-items: center; gap: 20px;
     }
     .logo {
-      width: 44px; height: 44px; flex-shrink: 0;
-      background: var(--accent);
-      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-      display: grid; place-items: center;
+      flex-shrink: 0;
+      display: flex; align-items: center;
     }
-    .logo svg { width: 22px; height: 22px; }
+    .logo img {
+      width: 96px; height: 96px;
+    }
+    .header-text {
+      display: flex; flex-direction: column; justify-content: center;
+    }
     .header-text h1 {
       font-family: var(--mono);
       font-size: 1.25rem; font-weight: 600;
@@ -204,10 +209,31 @@
       color: #fff; cursor: pointer;
       white-space: nowrap;
       transition: background var(--transition), transform 80ms;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     .btn-analyze:hover { background: var(--accent2); }
     .btn-analyze:active { transform: scale(0.98); }
     .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    /* Loading spinner animation */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .btn-analyze .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    .btn-analyze .spinner.hidden {
+      display: none;
+    }
 
     /* ── OAuth buttons ──────────────────────────────────────── */
     .btn-oauth {
@@ -363,6 +389,27 @@
       background: var(--blue); transition: width 600ms ease;
     }
 
+    /* Table expand/collapse ────────────────────────────── */
+    tbody tr.row-hidden { display: none; }
+    .expand-btn {
+      margin-top: 14px;
+      padding: 9px 18px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.78rem;
+      color: var(--text-dim); cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    .expand-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .stages-actions {
+      margin-top: 12px;
+      margin-bottom: 26px;
+    }
+
     /* LLM Analysis panel ────────────────────────────────────── */
     .analysis-panel {
       background: var(--surface);
@@ -381,6 +428,7 @@
       font-family: var(--mono); color: #fff;
       margin: 1.2em 0 0.5em;
     }
+    .analysis-panel .inner h1 { font-size: 1rem; }
     .analysis-panel .inner h2 { font-size: 0.95rem; color: var(--accent2); }
     .analysis-panel .inner h3 { font-size: 0.85rem; color: var(--blue); }
     .analysis-panel .inner code, .analysis-panel .inner pre {
@@ -404,6 +452,33 @@
     .analysis-panel .inner hr {
       border: none; border-top: 1px solid var(--border);
       margin: 1.5em 0;
+    }
+    .analysis-panel .inner table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.8rem;
+      table-layout: fixed;
+    }
+    .analysis-panel .inner th,
+    .analysis-panel .inner td {
+      border: 1px solid var(--border2);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .analysis-panel .inner th {
+      color: #fff;
+      background: rgba(255,255,255,0.03);
+      font-weight: 600;
+    }
+    .analysis-panel .inner table code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     /* Download bar ──────────────────────────────────────────── */
@@ -450,9 +525,7 @@
   <!-- Header -->
   <header>
     <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
+      <img src="favicon-96x96.png" alt="Spark Log Analyzer Logo" width="96" height="96" />
     </div>
     <div class="header-text">
       <h1>Spark Log Analyzer</h1>
@@ -546,15 +619,10 @@
     </div>
 
     <div style="margin-top:24px; text-align:center;">
-      <button id="btn-submit" class="btn-analyze" onclick="submitJob()" disabled>Analyze →</button>
-    </div>
-
-    <!-- History section -->
-    <div style="margin-top: 32px;">
-      <div class="section-label" id="history-label">Histórico</div>
-      <div id="history-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
-        <div id="history-list"></div>
-      </div>
+      <button id="btn-submit" class="btn-analyze" onclick="submitJob()" disabled>
+        <span class="spinner hidden" id="btn-spinner"></span>
+        <span id="btn-text">Analyze →</span>
+      </button>
     </div>
 
     <div class="status-bar" id="status-bar">
@@ -567,6 +635,7 @@
     </div>
 
     <div class="error-panel" id="error-panel" style="display:none"></div>
+
   </div>
 
   <!-- Results -->
@@ -589,6 +658,9 @@
         <tbody id="stage-tbody"></tbody>
       </table>
     </div>
+    <div class="stages-actions">
+      <button id="expand-stages-btn" class="expand-btn" style="display:none;" onclick="toggleExpandStages()"></button>
+    </div>
 
     <div id="llm-section" style="display:none">
       <div class="section-label">04 — AI Analysis</div>
@@ -601,6 +673,14 @@
     <div class="download-bar" id="dl-bar"></div>
 
   </div><!-- /results -->
+
+  <!-- History section -->
+  <div style="margin-top: 32px;">
+    <div class="section-label" id="history-label">Histórico</div>
+    <div id="history-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+      <div id="history-list"></div>
+    </div>
+  </div>
 
 </div><!-- /shell -->
 
@@ -623,6 +703,8 @@ let currentSortColumn = null;
 let currentSortDirection = 'asc';
 let originalStages = [];
 let analysisHistory = [];
+let stagesTableExpanded = false;
+let totalStagesCount = 0;
 const translations = {
   en: {
     authLabel: '00 — Authentication (Optional)',
@@ -645,7 +727,8 @@ const translations = {
     statusComplete: 'Analysis complete',
     statusError: 'Error',
     historyLabel: 'History',
-    noHistory: 'No previous analyses.'
+    noHistory: 'No previous analyses.',
+    processedAtLabel: 'Processed at'
   },
   pt: {
     authLabel: '00 — Autenticação (Opcional)',
@@ -668,7 +751,8 @@ const translations = {
     statusComplete: 'Análise concluída',
     statusError: 'Erro',
     historyLabel: 'Histórico',
-    noHistory: 'Nenhuma análise anterior.'
+    noHistory: 'Nenhuma análise anterior.',
+    processedAtLabel: 'Processado em'
   }
 };
 
@@ -721,8 +805,8 @@ function updateLanguage() {
   const pyDropTitle = document.querySelector('#zone-py .drop-title');
   if (pyDropTitle) pyDropTitle.innerHTML = t.pysparkFiles + ' <span style="opacity:.5;font-size:.75em">(optional)</span>';
 
-  const submitBtn = document.getElementById('btn-submit');
-  if (submitBtn) submitBtn.textContent = t.analyzeButton;
+  const submitBtnText = document.getElementById('btn-text');
+  if (submitBtnText) submitBtnText.textContent = t.analyzeButton;
 }
 
 function setStatus(status, msg) {
@@ -800,12 +884,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('zone-zip element not found!');
   }
 
-  // Add test button dynamically
-  const testBtn = document.createElement('button');
-  testBtn.textContent = 'Test File Input';
-  testBtn.style.cssText = 'padding: 8px 16px; background: #666; border: none; border-radius: 4px; color: white; cursor: pointer; margin-top: 10px;';
-  testBtn.onclick = testFileInput;
-  document.querySelector('div[style*="text-align:center"]').appendChild(testBtn);
 });
 
 /* ── File handlers ──────────────────────────────────── */
@@ -819,6 +897,13 @@ function onFileChange(type) {
     if (f) { 
       zipFile = f; 
       updateZoneUI('zip', f.name);
+      
+      // Warn if file is large (>400 MB)
+      const sizeMB = f.size / (1024 * 1024);
+      if (sizeMB > 400) {
+        alert(`Warning: Large file detected (${sizeMB.toFixed(1)} MB). Upload may take time and consume server resources.`);
+      }
+      
       console.log('ZIP file stored and UI updated');
     } else {
       console.log('No file selected');
@@ -887,19 +972,6 @@ function checkReady() {
   const isReady = !!zipFile;
   console.log('Button should be enabled:', isReady);
   btn.disabled = !isReady;
-}
-
-// Test function to manually trigger file selection
-function testFileInput() {
-  console.log('Test button clicked');
-  const input = document.getElementById('input-zip');
-  console.log('Input element:', input);
-  if (input) {
-    console.log('Calling click() on input');
-    input.click();
-  } else {
-    console.error('Input not found');
-  }
 }
 
 /* ── OAuth2 ─────────────────────────────────────────── */
@@ -989,7 +1061,8 @@ function renderHistory() {
   container.innerHTML = analysisHistory.map((item) => `
     <div style="border-bottom: 1px solid var(--border); padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <strong>${item.appName || 'App'}</strong> - ${new Date(item.timestamp).toLocaleString()}
+        <strong>${item.appName || 'App'}</strong>
+        <br><small style="color: var(--text-dim);">${t.processedAtLabel}: ${item.processedAtLocal || new Date(item.timestamp || Date.now()).toLocaleString()}</small>
         <br><small style="color: var(--text-dim);">Duração: ${item.duration}, Stages: ${item.numStages}</small>
       </div>
       <div>
@@ -1004,6 +1077,12 @@ function renderHistory() {
 async function submitJob() {
   if (!zipFile) return;
   resetUI();
+  
+  // Disable button and show spinner
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = true;
+  spinner.classList.remove('hidden');
 
   const fd = new FormData();
   fd.append('log_zip', zipFile, zipFile.name);
@@ -1047,6 +1126,17 @@ function startPolling() {
     if (!currentJobId) return;
     try {
       const res = await fetch('/api/status/' + currentJobId);
+      if (!res.ok) {
+        if (res.status === 429) {
+          setStatus('running', 'Server busy (rate limit). Retrying...');
+          return;
+        }
+        if (res.status >= 500) {
+          setStatus('running', 'Server processing... retrying status check');
+          return;
+        }
+        throw new Error('Status check failed: ' + res.status);
+      }
       const data = await res.json();
       if (data.status === 'done') {
         clearInterval(pollTimer);
@@ -1066,7 +1156,9 @@ function startPolling() {
       } else if (data.status === 'running') {
         setStatus('running', 'Analyzing stages & calling LLM…');
       }
-    } catch { /* network hiccup — keep polling */ }
+    } catch {
+      setStatus('running', 'Network hiccup... retrying');
+    }
   }, 1500);
 }
 
@@ -1133,22 +1225,31 @@ function renderResults(data) {
   const analysis = {
     jobId: currentJobId,
     timestamp: Date.now(),
+    processedAtLocal: new Date().toLocaleString(),
     appName: s.app_name,
     duration: fmtMs(s.total_duration_ms),
     numStages: s.num_stages,
     numTasks: s.num_tasks
   };
   saveHistory(analysis);
+  
+  // Re-enable button and hide spinner for potential re-analysis
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = false;
+  spinner.classList.add('hidden');
 }
 
 function renderStageTable(stages) {
   const maxDur = Math.max(...stages.map(st => st.duration_ms || 0));
-  document.getElementById('stage-tbody').innerHTML = stages.map(st => {
+  totalStagesCount = stages.length;
+  document.getElementById('stage-tbody').innerHTML = stages.map((st, idx) => {
     const pct = maxDur > 0 ? Math.round((st.duration_ms / maxDur) * 100) : 0;
     const skewTag = st.skew_ratio > 3
       ? `<span class="tag-skew" title="High skew ratio (${st.skew_ratio}×): This stage has uneven task distribution, which can cause performance issues. Tasks may take significantly different times to complete, leading to wasted resources and longer overall job duration.">⚠ ${st.skew_ratio}×</span>`
       : (st.skew_ratio ? st.skew_ratio + '×' : '—');
-    return `<tr>
+    const rowClass = !stagesTableExpanded && idx >= 5 ? 'row-hidden' : '';
+    return `<tr class="${rowClass}">
       <td>${st.stage_id}</td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(st.name)}">${esc(st.name)}</td>
       <td>${st.num_tasks}</td>
@@ -1163,6 +1264,37 @@ function renderStageTable(stages) {
       <td>${st.task_duration_p95_ms != null ? fmtMs(st.task_duration_p95_ms) : '—'}</td>
     </tr>`;
   }).join('');
+  
+  updateExpandButton();
+}
+
+function updateExpandButton() {
+  const btn = document.getElementById('expand-stages-btn');
+  if (totalStagesCount <= 5) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  if (stagesTableExpanded) {
+    btn.textContent = '▼ Collapse (' + totalStagesCount + ' stages)';
+  } else {
+    btn.textContent = '▶ Show all ' + totalStagesCount + ' stages';
+  }
+}
+
+function toggleExpandStages() {
+  stagesTableExpanded = !stagesTableExpanded;
+  const rows = document.querySelectorAll('#stage-tbody tr');
+  rows.forEach((row, idx) => {
+    if (idx >= 5) {
+      if (stagesTableExpanded) {
+        row.classList.remove('row-hidden');
+      } else {
+        row.classList.add('row-hidden');
+      }
+    }
+  });
+  updateExpandButton();
 }
 
 function sortTable(column) {
@@ -1202,15 +1334,105 @@ function sortTable(column) {
   });
   
   renderStageTable(sortedStages);
+  updateExpandButton();
 }
 
 /* ── Minimal Markdown → HTML ────────────────────────── */
-function mdToHtml(md) {
+function parseTableRow(line) {
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+}
+
+function isSeparatorRow(line) {
+  const cells = parseTableRow(line);
+  return cells.length > 0 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+}
+
+function normalizeLooseTableRows(md) {
   return md
+    .split(/\r?\n/)
+    .map((line) => {
+      if (!line.trim().startsWith('|') || !line.includes(' || ')) {
+        return line;
+      }
+      // Split rows that were concatenated in a single line using markdown separators.
+      const parts = line.split(/\s\|\|\s/g).map(p => p.trim()).filter(Boolean);
+      return parts.map((part) => (part.startsWith('|') ? part : `| ${part}`)).join('\n');
+    })
+    .join('\n');
+}
+
+function renderMarkdownTables(md) {
+  const lines = md.split(/\r?\n/);
+  const out = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const headerLine = lines[i] || '';
+    const separatorLine = lines[i + 1] || '';
+
+    const isTableStart = headerLine.trim().startsWith('|')
+      && separatorLine.trim().startsWith('|')
+      && isSeparatorRow(separatorLine);
+
+    if (!isTableStart) {
+      const isLooseRowTable = headerLine.trim().startsWith('|')
+        && !separatorLine.trim().startsWith('|')
+        && parseTableRow(headerLine).length >= 2;
+
+      if (!isLooseRowTable) {
+        out.push(headerLine);
+        continue;
+      }
+
+      const looseRows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && !isSeparatorRow(lines[i])) {
+        const row = parseTableRow(lines[i]);
+        if (row.length >= 2) {
+          looseRows.push([row[0], row.slice(1).join(' | ')]);
+        }
+        i++;
+      }
+      i -= 1;
+
+      const thead = '<thead><tr><th>Field</th><th>Detail</th></tr></thead>';
+      const tbody = `<tbody>${looseRows.map(row => `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</tbody>`;
+      out.push(`<table>${thead}${tbody}</table>`);
+      continue;
+    }
+
+    const headerCells = parseTableRow(headerLine);
+    const rows = [];
+    i += 2;
+
+    while (i < lines.length && lines[i].trim().startsWith('|')) {
+      rows.push(parseTableRow(lines[i]));
+      i++;
+    }
+
+    i -= 1;
+
+    const thead = `<thead><tr>${headerCells.map(cell => `<th>${cell}</th>`).join('')}</tr></thead>`;
+    const tbody = rows.length
+      ? `<tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`
+      : '';
+    out.push(`<table>${thead}${tbody}</table>`);
+  }
+
+  return out.join('\n');
+}
+
+function mdToHtml(md) {
+  let html = normalizeLooseTableRows(md)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    // code blocks
-    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`)
+    ;
+
+  const codeBlocks = [];
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const token = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(`<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`);
+    return token;
+  });
+
+  html = renderMarkdownTables(html)
     // inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     // headings
@@ -1232,6 +1454,12 @@ function mdToHtml(md) {
       line.startsWith('<') ? line : line)
     .replace(/^(?!<)(.+)$/gm, '$1')
     ;
+
+  codeBlocks.forEach((block, idx) => {
+    html = html.replace(`__CODE_BLOCK_${idx}__`, block);
+  });
+
+  return html;
 }
 
 /* ── UI helpers ─────────────────────────────────────── */
@@ -1243,6 +1471,13 @@ function showError(msg) {
 function resetUI() {
   clearInterval(pollTimer);
   clearInterval(elapsedTimer);
+  
+  // Enable button and hide spinner
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = false;
+  spinner.classList.add('hidden');
+  
   document.getElementById('error-panel').style.display = 'none';
   document.getElementById('results').classList.remove('visible');
   document.getElementById('kpi-cards').innerHTML = '';
@@ -1255,6 +1490,8 @@ function resetUI() {
   currentSortColumn = null;
   currentSortDirection = 'asc';
   originalStages = [];
+  stagesTableExpanded = false;
+  totalStagesCount = 0;
   document.querySelectorAll('#stage-table th.sortable').forEach(th => {
     th.classList.remove('sorted-asc', 'sorted-desc');
   });

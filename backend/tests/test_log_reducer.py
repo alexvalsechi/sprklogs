@@ -148,6 +148,32 @@ class TestMarkdownRenderer:
         assert "# Spark Log Report" in md
         assert "Stage Breakdown" in md
 
+
+class TestZipBombProtection:
+    def test_rejects_too_many_files(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for i in range(2000):  # More than max_files_in_zip (1000)
+                zf.writestr(f"file{i}.json", '{"Event": "SparkListenerApplicationStart"}')
+        zip_bytes = buf.getvalue()
+        
+        from backend.services.log_reducer import _iter_events
+        with pytest.raises(ValueError, match="too many files"):
+            list(_iter_events(zip_bytes))
+
+    def test_rejects_high_compression_ratio(self):
+        # Create a file with high compression ratio (simulate ZIP bomb)
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            # Write a large amount of compressible data
+            large_data = b'0' * 1000000  # 1 MB of zeros, compresses to ~1 KB
+            zf.writestr("bomb.txt", large_data)
+        zip_bytes = buf.getvalue()
+        
+        from backend.services.log_reducer import _iter_events
+        with pytest.raises(ValueError, match="suspicious compression ratio"):
+            list(_iter_events(zip_bytes))
+
     def test_json_renderer(self, sample_summary):
         r = JsonRenderer()
         out = r.render(sample_summary)

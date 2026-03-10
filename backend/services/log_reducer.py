@@ -21,8 +21,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Iterator, Optional
 
 from backend.models.job import AppSummary, StageMetrics
+from backend.utils.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 # ─── Iterator ────────────────────────────────────────────────────────────────
@@ -30,27 +32,56 @@ logger = logging.getLogger(__name__)
 def _iter_events(zip_bytes: bytes) -> Iterator[dict]:
     """Yield parsed JSON events from every file inside the ZIP."""
     logger.info(f"Processing ZIP with {len(zip_bytes)} bytes")
+    
+    # ZIP bomb protection
+    uncompressed_size = 0
+    file_count = 0
+    
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        file_count = 0
-        event_count = 0
-        for name in zf.namelist():
+        # Check number of files
+        namelist = zf.namelist()
+        if len(namelist) > settings.max_files_in_zip:
+            raise ValueError(f"ZIP contains too many files: {len(namelist)} > {settings.max_files_in_zip}")
+        
+        for name in namelist:
             if name.endswith("/"):
                 continue
             file_count += 1
-            logger.debug(f"Processing file: {name}")
+            
+            # Check individual file size
             with zf.open(name) as fh:
-                for raw_line in fh:
+                file_data = fh.read()
+                uncompressed_size += len(file_data)
+                
+                # Check compression ratio
+                compressed_size = zf.getinfo(name).compress_size
+                if compressed_size > 0:
+                    ratio = len(file_data) / compressed_size
+                    if ratio > settings.compression_ratio_limit:
+                        raise ValueError(f"File {name} has suspicious compression ratio: {ratio:.1f} > {settings.compression_ratio_limit}")
+                
+                # Process lines
+                for raw_line in io.BytesIO(file_data):
                     line = raw_line.strip()
                     if not line:
                         continue
                     try:
                         event = json.loads(line)
-                        event_count += 1
+                        # Basic content validation - check for Spark event structure
+                        if not isinstance(event, dict) or "Event" not in event:
+                            logger.warning(f"Skipping non-Spark event in {name}: {event}")
+                            continue
                         yield event
                     except json.JSONDecodeError as e:
                         logger.warning(f"Skipping malformed JSON line in {name}: {e}")
                         pass  # skip malformed lines
-        logger.info(f"Processed {file_count} files, yielded {event_count} events")
+        
+        # Check total uncompressed size
+        uncompressed_mb = uncompressed_size / (1024 * 1024)
+        if uncompressed_mb > settings.max_uncompressed_mb:
+            raise ValueError(f"Uncompressed ZIP size too large: {uncompressed_mb:.2f} MB > {settings.max_uncompressed_mb} MB")
+    
+    logger.info(f"Processed {file_count} files, total uncompressed size: {uncompressed_mb:.2f} MB, yielded events")
 
 
 # ─── Chain of Responsibility ──────────────────────────────────────────────────
