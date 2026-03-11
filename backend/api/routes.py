@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import uuid
 import logging
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Request
-from fastapi.responses import FileResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -102,7 +100,9 @@ def get_status(job_id: str):
         elif task_result.state == "SUCCESS":
             result = task_result.result
             job.status = JobStatus.DONE
-            job.reduced_report = result["reduced_report"]
+            # reduced_report is NOT stored server-side — the desktop already
+            # holds the original locally and builds the final Markdown there.
+            job.reduced_report = None
             job.llm_analysis = result["llm_analysis"]
             if result.get("summary"):
                 from backend.models.job import AppSummary
@@ -112,38 +112,6 @@ def get_status(job_id: str):
             job.error = str(task_result.info)
 
     return job
-
-
-@router.get("/download/{job_id}/{format}")
-def download_report(job_id: str, format: str):
-    """Download the reduced report as markdown or json."""
-    job = _jobs.get(job_id)
-    if not job or job.status != JobStatus.DONE:
-        raise HTTPException(status_code=404, detail="Report not ready")
-
-    tmp_dir = Path(settings.upload_tmp_dir)
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    tmp = tmp_dir / f"{job_id}.{format}"
-    try:
-        if format == "md":
-            # Combine reduced report and LLM analysis
-            content = job.reduced_report or ""
-            if job.llm_analysis and job.llm_analysis.strip():
-                content += "\n\n---\n\n## AI Analysis\n\n" + job.llm_analysis
-            tmp.write_text(content)
-            media = "text/markdown"
-        elif format == "json":
-            import json
-            tmp.write_text(json.dumps({"reduced": job.reduced_report, "analysis": job.llm_analysis}, ensure_ascii=False, indent=2))
-            media = "application/json"
-        else:
-            raise HTTPException(status_code=400, detail="format must be md or json")
-
-        return FileResponse(str(tmp), media_type=media, filename=f"spark_report_{job_id}.{format}")
-    finally:
-        # Clean up temporary file after response
-        if tmp.exists():
-            tmp.unlink()
 
 
 @router.get("/health")

@@ -279,7 +279,14 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; } 50% { opacity: 0.35; }
     }
-    .status-msg { color: var(--text-dim); flex: 1; }
+    @keyframes step-slide {
+      0%   { opacity: 0; transform: translateY(5px); }
+      14%  { opacity: 1; transform: translateY(0); }
+      86%  { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-4px); }
+    }
+    .status-msg { color: var(--text-dim); flex: 1; transition: none; }
+    .status-msg.stepping { animation: step-slide 2.4s ease both; }
     .status-elapsed {
       color: var(--text-mute); font-size: 0.7rem;
       margin-left: auto;
@@ -699,6 +706,7 @@ let pyFiles      = [];
 let currentOAuthUser = null;
 let currentOAuthProvider = null;
 let currentLang = 'en';
+let statusCycleTimer = null;
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
 let originalStages = [];
@@ -1073,6 +1081,78 @@ function renderHistory() {
   `).join('');
 }
 
+/* ── Status step cycle ─────────────────────────────── */
+const pipelineMessages = {
+  en: [
+    'Preparing upload…',
+    'Sending ZIP to server…',
+    'Uploading event log…',
+    'Unpacking log files…',
+    'Reading Spark events…',
+    'Identifying stages & tasks…',
+    'Computing performance metrics…',
+    'Detecting bottlenecks & data skew…',
+    'Preparing AI analysis context…',
+    'Sending context to LLM…',
+    'Waiting for AI response…',
+    'Analyzing stage performance…',
+    'Generating optimization suggestions…',
+    'Formatting final report…',
+  ],
+  pt: [
+    'Preparando envio…',
+    'Enviando ZIP para o servidor…',
+    'Fazendo upload do log…',
+    'Descompactando arquivos de log…',
+    'Lendo eventos do Spark…',
+    'Identificando stages e tarefas…',
+    'Calculando métricas de performance…',
+    'Detectando gargalos e skew de dados…',
+    'Preparando contexto para análise IA…',
+    'Enviando contexto para a LLM…',
+    'Aguardando resposta da inteligência artificial…',
+    'Analisando performance dos stages…',
+    'Gerando sugestões de otimização…',
+    'Formatando relatório final…',
+  ]
+};
+
+function startStatusCycle(dotStatus) {
+  stopStatusCycle();
+  const lang = pipelineMessages[currentLang] ? currentLang : 'en';
+  const msgs = pipelineMessages[lang];
+  let idx = 0;
+  const el = document.getElementById('status-msg');
+  const dot = document.getElementById('status-dot');
+  const bar = document.getElementById('status-bar');
+  if (bar) bar.classList.add('visible');
+  if (dot) dot.className = 'status-dot ' + (dotStatus || 'pending');
+  function showStep() {
+    if (!el) return;
+    el.classList.remove('stepping');
+    void el.offsetWidth;
+    el.textContent = msgs[idx % msgs.length];
+    el.classList.add('stepping');
+    idx++;
+  }
+  showStep();
+  statusCycleTimer = setInterval(showStep, 2500);
+}
+
+function stopStatusCycle() {
+  if (statusCycleTimer) {
+    clearInterval(statusCycleTimer);
+    statusCycleTimer = null;
+  }
+  const el = document.getElementById('status-msg');
+  if (el) el.classList.remove('stepping');
+}
+
+function updateStatusDot(status) {
+  const dot = document.getElementById('status-dot');
+  if (dot) dot.className = 'status-dot ' + status;
+}
+
 /* ── Submit ─────────────────────────────────────────── */
 async function submitJob() {
   if (!zipFile) return;
@@ -1099,7 +1179,7 @@ async function submitJob() {
     fd.append('api_key',      document.getElementById('input-key').value || '');
   }
 
-  setStatus('pending', 'Uploading…');
+  startStatusCycle('pending');
   startTs = Date.now();
   startElapsed();
   showProgressBar();
@@ -1112,10 +1192,11 @@ async function submitJob() {
     }
     const data = await res.json();
     currentJobId = data.job_id;
-    setStatus('running', 'Processing event log…');
+    updateStatusDot('running');
     animateProgress(15, 75, 12000);
     startPolling();
   } catch (e) {
+    stopStatusCycle();
     showError(e.message);
     setStatus('error', 'Upload failed');
   }
@@ -1128,11 +1209,11 @@ function startPolling() {
       const res = await fetch('/api/status/' + currentJobId);
       if (!res.ok) {
         if (res.status === 429) {
-          setStatus('running', 'Server busy (rate limit). Retrying...');
+          updateStatusDot('running');
           return;
         }
         if (res.status >= 500) {
-          setStatus('running', 'Server processing... retrying status check');
+          updateStatusDot('running');
           return;
         }
         throw new Error('Status check failed: ' + res.status);
@@ -1142,6 +1223,7 @@ function startPolling() {
         clearInterval(pollTimer);
         animateProgress(75, 100, 600);
         setTimeout(() => {
+          stopStatusCycle();
           setStatus('done', 'Analysis complete');
           stopElapsed();
           renderResults(data);
@@ -1149,15 +1231,16 @@ function startPolling() {
         }, 650);
       } else if (data.status === 'error') {
         clearInterval(pollTimer);
+        stopStatusCycle();
         showError(data.error || 'Unknown error during processing');
         setStatus('error', 'Processing failed');
         stopElapsed();
         hideProgressBar();
       } else if (data.status === 'running') {
-        setStatus('running', 'Analyzing stages & calling LLM…');
+        updateStatusDot('running');
       }
     } catch {
-      setStatus('running', 'Network hiccup... retrying');
+      updateStatusDot('running');
     }
   }, 1500);
 }
@@ -1469,8 +1552,10 @@ function showError(msg) {
   el.style.display = '';
 }
 function resetUI() {
+  stopStatusCycle();
   clearInterval(pollTimer);
   clearInterval(elapsedTimer);
+  document.getElementById('status-bar').classList.remove('visible');
   
   // Enable button and hide spinner
   const btn = document.getElementById('btn-submit');

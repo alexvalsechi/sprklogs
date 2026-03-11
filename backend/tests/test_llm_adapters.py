@@ -82,6 +82,7 @@ class TestLLMAnalyzer:
     def test_language_switch(self, minimal_summary):
         """Prompt should reflect requested language."""
         prompts = []
+
         class CapturingAdapter(BaseLLMAdapter):
             def _complete(self, prompt: str) -> str:
                 prompts.append(prompt)
@@ -89,7 +90,10 @@ class TestLLMAnalyzer:
 
         analyzer = LLMAnalyzer(adapter=CapturingAdapter())
         analyzer.analyze("# Report", minimal_summary, language="pt")
-        assert "Você é um engenheiro" in prompts[0]
+
+        # Validate Portuguese prompt selection without coupling to stale wording.
+        assert "Você analisa logs da Spark UI" in prompts[0]
+        assert "You analyze Spark UI logs" not in prompts[0]
 
     def test_retry_on_failure(self, minimal_summary):
         """Adapter that fails twice then succeeds should still return result."""

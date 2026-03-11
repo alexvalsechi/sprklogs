@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spark Log Analyzer</title>
+  <title>SprkLogs</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="apple-touch-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;1,9..40,200;1,9..40,300&family=Inconsolata:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
   <script>
     // Disable automatic page-wide Mermaid rendering; we render only inside the doc modal.
@@ -18,92 +20,121 @@
   <style>
     /* ── Design tokens ─────────────────────────────────────── */
     :root {
-      --bg:        #0b0f14;
-      --surface:   #111720;
-      --surface2:  #18202c;
-      --border:    #1f2d3d;
-      --border2:   #2a3d52;
-      --accent:    #e8732a;
-      --accent2:   #ff9f5a;
-      --blue:      #3d9be9;
-      --green:     #3dbd6e;
-      --red:       #e85858;
+      --bg:        #000000;
+      --bg-solid:  #000000;
+      --surface:   #0f0f0f;
+      --surface2:  #161616;
+      --border:    rgba(255,255,255,0.08);
+      --border2:   rgba(255,255,255,0.14);
+      --accent:    #e35914;
+      --accent2:   #f07b3e;
+      --accent-dim: rgba(227,89,20,0.12);
+      --blue:      #6ea7ff;
+      --green:     #4bc47e;
+      --red:       #ef6b6b;
       --yellow:    #e8c33a;
-      --text:      #d4dde8;
-      --text-dim:  #6b7f96;
-      --text-mute: #3a4f62;
-      --mono:      "IBM Plex Mono", monospace;
-      --sans:      "IBM Plex Sans", sans-serif;
-      --radius:    6px;
+      --text:      #ffffff;
+      --text-dim:  rgba(255,255,255,0.62);
+      --text-mute: rgba(255,255,255,0.38);
+      --mono:      "Inconsolata", monospace;
+      --sans:      "DM Sans", sans-serif;
+      --serif:     "Instrument Serif", serif;
+      --radius:    2px;
       --transition: 180ms ease;
     }
 
     /* ── Reset ─────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 15px; scroll-behavior: smooth; }
+    html {
+      font-size: 15px;
+      scroll-behavior: smooth;
+      height: 100%;
+      background: var(--bg-solid);
+    }
     body {
       font-family: var(--sans);
-      background: var(--bg);
+      font-weight: 300;
+      background: var(--bg-solid);
+      background-image:
+        radial-gradient(circle at 78% 22%, rgba(227, 89, 20, 0.16) 0%, rgba(227, 89, 20, 0) 34%),
+        linear-gradient(180deg, #030303 0%, #000000 46%, #010101 100%);
       color: var(--text);
       min-height: 100vh;
+      height: 100%;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
     }
 
-    /* ── Grid noise texture overlay ────────────────────────── */
-    body::before {
+    /* Removed grid overlay to keep fully clean opaque background. */
+
+    body::after {
       content: "";
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
-        repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
-      opacity: 0.18;
+      position: fixed;
+      inset: -18% -8% auto;
+      height: 58vh;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(227, 89, 20, 0.18) 0%, rgba(227, 89, 20, 0) 68%);
+      filter: blur(24px);
+      opacity: 0.9;
     }
 
     /* ── Layout ────────────────────────────────────────────── */
     .shell {
       position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      padding: 0 24px 80px;
+      max-width: 1240px; margin: 0 auto;
+      padding: 0 40px 88px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.96) 100%);
+      border-left: 1px solid rgba(255, 255, 255, 0.04);
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     /* ── Header ────────────────────────────────────────────── */
     header {
-      padding: 36px 0 32px;
+      padding: 22px 0;
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.94);
+      backdrop-filter: blur(8px);
     }
     .logo {
       flex-shrink: 0;
       display: flex; align-items: center;
     }
     .logo img {
-      width: 96px; height: 96px;
+      width: 40px; height: 40px; border-radius: 4px;
     }
     .header-text {
       display: flex; flex-direction: column; justify-content: center;
     }
     .header-text h1 {
-      font-family: var(--mono);
-      font-size: 1.25rem; font-weight: 600;
-      letter-spacing: -0.01em;
+      font-family: var(--serif);
+      font-size: clamp(1.7rem, 2vw, 2.2rem);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.02em;
       color: #fff;
     }
     .header-text p {
-      font-size: 0.8rem; color: var(--text-dim);
-      margin-top: 2px; letter-spacing: 0.03em;
+      font-size: 0.85rem; color: var(--text-dim);
+      margin-top: 6px; letter-spacing: 0.01em;
     }
     .version-badge {
       margin-left: auto;
-      font-family: var(--mono); font-size: 0.7rem;
+      font-family: var(--mono); font-size: 0.75rem;
       color: var(--accent); border: 1px solid var(--accent);
-      padding: 3px 8px; border-radius: 2px;
-      opacity: 0.7;
+      padding: 4px 10px; border-radius: 2px;
+      opacity: 0.85;
     }
 
     /* ── Section titles ────────────────────────────────────── */
     .section-label {
-      font-family: var(--mono); font-size: 0.68rem;
-      font-weight: 600; letter-spacing: 0.12em;
+      font-family: var(--mono); font-size: 0.72rem;
+      font-weight: 400; letter-spacing: 0.12em;
       text-transform: uppercase; color: var(--text-dim);
       margin-bottom: 14px;
       display: flex; align-items: center; gap: 10px;
@@ -123,8 +154,8 @@
     @media (max-width: 720px) { .upload-grid { grid-template-columns: 1fr; } }
 
     .drop-zone {
-      background: var(--surface);
-      border: 1.5px dashed var(--border2);
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px dashed var(--border2);
       border-radius: var(--radius);
       padding: 40px 24px;
       text-align: center;
@@ -132,18 +163,27 @@
       transition: border-color var(--transition), background var(--transition);
       position: relative;
       overflow: hidden;
+      backdrop-filter: blur(8px);
     }
     .drop-zone:hover, .drop-zone.drag-over {
       border-color: var(--accent);
-      background: #14202e;
+      background: rgba(227, 89, 20, 0.08);
     }
     .drop-zone.has-file { border-style: solid; border-color: var(--green); }
     .drop-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer;
     }
     .drop-icon {
-      font-size: 2rem; line-height: 1; margin-bottom: 12px;
-      display: block;
+      display: inline-block;
+      min-width: 46px;
+      padding: 3px 10px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
     }
     .drop-title {
       font-family: var(--mono); font-size: 0.82rem;
@@ -159,7 +199,7 @@
     /* ── Options row ────────────────────────────────────────── */
     .options-row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto;
+      grid-template-columns: 1fr;
       gap: 12px; align-items: end;
       margin-top: 16px;
     }
@@ -207,22 +247,54 @@
     .toggle-label { font-size: 0.8rem; color: var(--text-dim); }
 
     /* ── Submit button ──────────────────────────────────────── */
+    @keyframes btn-shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
     .btn-analyze {
-      padding: 10px 28px;
-      background: var(--accent);
-      border: none; border-radius: var(--radius);
-      font-family: var(--mono); font-size: 0.82rem;
-      font-weight: 600; letter-spacing: 0.04em;
-      color: #fff; cursor: pointer;
+      position: relative;
+      padding: 13px 40px;
+      background: linear-gradient(100deg, #b84208 0%, #e35914 40%, #f07b3e 60%, #b84208 100%);
+      background-size: 200% auto;
+      border: none;
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #fff;
+      cursor: pointer;
       white-space: nowrap;
-      transition: background var(--transition), transform 80ms;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 0 18px rgba(227, 89, 20, 0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: box-shadow 0.2s, transform 80ms, opacity 0.2s;
+      overflow: hidden;
     }
-    .btn-analyze:hover { background: var(--accent2); }
-    .btn-analyze:active { transform: scale(0.98); }
-    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-analyze::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(100deg,
+        transparent 0%,
+        rgba(255,255,255,0.18) 40%,
+        transparent 60%);
+      background-size: 200% auto;
+      animation: btn-shimmer 2.8s linear infinite;
+      pointer-events: none;
+    }
+    .btn-analyze:hover {
+      box-shadow: 0 0 32px rgba(227, 89, 20, 0.65), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .btn-analyze:active { transform: scale(0.97); }
+    .btn-analyze:disabled {
+      opacity: 0.32;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-analyze:disabled::after { animation: none; }
     
     /* Loading spinner animation */
     @keyframes spin {
@@ -230,8 +302,8 @@
       to { transform: rotate(360deg); }
     }
     .btn-analyze .spinner {
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
       border: 2px solid rgba(255, 255, 255, 0.3);
       border-top: 2px solid #fff;
       border-radius: 50%;
@@ -245,26 +317,245 @@
     /* ── OAuth buttons ──────────────────────────────────────── */
     .btn-oauth {
       padding: 10px 16px;
-      background: var(--surface2);
+      background: transparent;
       border: 1px solid var(--border2);
       border-radius: var(--radius);
-      font-family: var(--sans); font-size: 0.9rem;
+      font-family: var(--mono); font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       color: var(--text); cursor: pointer;
       transition: all var(--transition);
       white-space: nowrap;
     }
     .btn-oauth:hover {
-      background: var(--border2);
+      background: rgba(227, 89, 20, 0.12);
       border-color: var(--accent);
     }
     .btn-oauth:active {
       transform: scale(0.95);
     }
 
+    .btn-oauth.oauth-openai {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .oauth-icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .provider-picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .auth-subtitle {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .auth-helper {
+      font-size: 0.84rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .byok-wrap {
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-top: 14px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(8px);
+    }
+
+    .oauth-wrap {
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(8px);
+    }
+
+    .auth-panels {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.4fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .byok-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .provider-option {
+      display: block;
+      cursor: pointer;
+    }
+
+    .provider-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .provider-card {
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 10px;
+      min-height: 88px;
+      display: grid;
+      gap: 6px;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+    }
+
+    .api-key-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 40px 12px 12px;
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      align-self: stretch;
+      box-sizing: border-box;
+    }
+
+    .api-key-input:focus {
+      border-color: var(--accent);
+    }
+
+    .api-key-wrap {
+      position: relative;
+    }
+
+    .btn-eye {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color var(--transition);
+      line-height: 0;
+    }
+    .btn-eye:hover { color: var(--text); }
+    .btn-eye svg { width: 16px; height: 16px; }
+
+    .provider-option:hover .provider-card {
+      border-color: var(--accent);
+      background: rgba(227, 89, 20, 0.08);
+    }
+
+    .provider-option input:checked + .provider-card {
+      border-color: var(--accent);
+      background: rgba(227, 89, 20, 0.12);
+    }
+
+    .provider-head {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+
+    .provider-logo {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .provider-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .provider-key-action {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      text-decoration: none;
+      background: rgba(255,255,255,0.02);
+      transition: border-color var(--transition), color var(--transition), background var(--transition);
+    }
+
+    .provider-key-action:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+      background: rgba(227, 89, 20, 0.12);
+    }
+
+    .provider-key-action::after {
+      content: attr(data-tip);
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 6px);
+      background: #000;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.03em;
+      padding: 4px 7px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity var(--transition), transform var(--transition);
+    }
+
+    .provider-key-action:hover::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     /* ── Status bar ─────────────────────────────────────────── */
     .status-bar {
       margin-top: 20px;
-      background: var(--surface);
+      background: rgba(15, 15, 15, 0.9);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px 18px;
@@ -272,6 +563,7 @@
       font-family: var(--mono); font-size: 0.78rem;
       opacity: 0; transform: translateY(-6px);
       transition: opacity 300ms, transform 300ms;
+      backdrop-filter: blur(6px);
     }
     .status-bar.visible { opacity: 1; transform: none; }
     .status-dot {
@@ -286,7 +578,14 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; } 50% { opacity: 0.35; }
     }
-    .status-msg { color: var(--text-dim); flex: 1; }
+    @keyframes step-slide {
+      0%   { opacity: 0; transform: translateY(5px); }
+      14%  { opacity: 1; transform: translateY(0); }
+      86%  { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-4px); }
+    }
+    .status-msg { color: var(--text-dim); flex: 1; transition: none; }
+    .status-msg.stepping { animation: step-slide 2.4s ease both; }
     .status-elapsed {
       color: var(--text-mute); font-size: 0.7rem;
       margin-left: auto;
@@ -318,10 +617,11 @@
       gap: 10px; margin-bottom: 24px;
     }
     .kpi-card {
-      background: var(--surface);
+      background: rgba(15, 15, 15, 0.9);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px 16px;
+      backdrop-filter: blur(6px);
     }
     .kpi-label {
       font-family: var(--mono); font-size: 0.65rem;
@@ -339,11 +639,12 @@
 
     /* Stage table ───────────────────────────────────────────── */
     .table-wrap {
-      background: var(--surface);
+      background: rgba(15, 15, 15, 0.9);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: hidden; overflow-x: auto;
+      overflow-x: auto;
       margin-bottom: 24px;
+      backdrop-filter: blur(6px);
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
     thead tr {
@@ -385,6 +686,45 @@
       color: var(--accent2); border: 1px solid rgba(232,115,42,0.3);
       font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em;
       padding: 2px 6px; border-radius: 3px;
+      position: relative;
+      cursor: default;
+    }
+    .tag-skew .tip-box {
+      position: absolute;
+      bottom: calc(100% + 7px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: #0a0a0a;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      line-height: 1.55;
+      padding: 7px 10px;
+      border-radius: 4px;
+      white-space: normal;
+      width: 240px;
+      text-align: left;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      z-index: 9999;
+    }
+    .tag-skew .tip-box::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--border2);
+    }
+    .tag-skew:hover .tip-box {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
     .bar-cell { min-width: 100px; }
     .mini-bar {
@@ -419,11 +759,12 @@
 
     /* LLM Analysis panel ────────────────────────────────────── */
     .analysis-panel {
-      background: var(--surface);
+      background: rgba(15, 15, 15, 0.9);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px 28px;
       margin-bottom: 24px;
+      backdrop-filter: blur(6px);
     }
     .analysis-panel .inner {
       font-size: 0.85rem; line-height: 1.75;
@@ -598,8 +939,43 @@
       border-radius: 8px;
       padding: 10px;
       margin: 10px 0;
-      overflow-x: auto;
+      overflow: hidden;
+      position: relative;
+      min-height: 120px;
+      cursor: grab;
     }
+    .doc-body .doc-mermaid.dragging { cursor: grabbing; }
+    .mermaid-svg-wrap {
+      transform-origin: 0 0;
+      display: block;
+      will-change: transform;
+    }
+    .mermaid-controls {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+      z-index: 5;
+    }
+    .mermaid-ctrl-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      border-radius: 4px;
+      width: 26px;
+      height: 26px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .mermaid-ctrl-btn.wide { width: auto; padding: 0 7px; font-size: 0.7rem; }
+    .mermaid-ctrl-btn:hover { background: var(--border2); }
 
     /* Error panel ───────────────────────────────────────────── */
     .error-panel {
@@ -610,11 +986,86 @@
       color: var(--red); margin-top: 16px;
     }
 
+    .panel-block {
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      backdrop-filter: blur(6px);
+    }
+
+    .doc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--surface2);
+    }
+
+    .tabs-nav {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .tab-btn {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color var(--transition), color var(--transition), background var(--transition);
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      border-color: var(--border2);
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      border-color: var(--accent);
+      background: rgba(227, 89, 20, 0.12);
+    }
+
+    .tab-pane {
+      display: none;
+      padding-top: 12px;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
     /* Scrollbar ─────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+
+    @media (max-width: 720px) {
+      .shell { padding: 0 18px 68px; }
+      header { gap: 12px; }
+      .logo img { width: 32px; height: 32px; }
+      .header-text h1 { font-size: 1.7rem; }
+      .header-text p { display: none; }
+      .version-badge { display: none; }
+      .auth-panels { grid-template-columns: 1fr; }
+      .byok-row { grid-template-columns: 1fr; }
+      .provider-picker { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -623,11 +1074,11 @@
   <!-- Header -->
   <header>
     <div class="logo">
-      <img src="favicon-96x96.png" alt="Spark Log Analyzer Logo" width="96" height="96" />
+      <img src="favicon-96x96.png" alt="SprkLogs Logo" width="96" height="96" />
     </div>
     <div class="header-text">
-      <h1>Spark Log Analyzer</h1>
-      <p>Event log reduction · Bottleneck detection · AI diagnostics</p>
+      <h1>SprkLogs</h1>
+      <p id="header-subtitle">Análise de Performance · Apache Spark</p>
     </div>
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
       <label for="lang-select" style="font-size:0.85rem; color:var(--text-dim);">Language:</label>
@@ -639,54 +1090,108 @@
     </div>
   </header>
 
+  <div class="tabs-nav">
+    <button id="tab-btn-home" class="tab-btn active" type="button" onclick="switchTab('home')">Inicio</button>
+    <button id="tab-btn-history" class="tab-btn" type="button" onclick="switchTab('history')">Historico</button>
+    <button id="tab-btn-help" class="tab-btn" type="button" onclick="switchTab('help')">Ajuda</button>
+  </div>
+
+  <section id="tab-home" class="tab-pane active">
+
   <!-- OAuth2 Authentication -->
   <div style="margin-top: 40px; margin-bottom: 40px;">
-    <div class="section-label" id="lbl-auth">00 — Authentication (Optional)</div>
+    <div class="section-label" id="lbl-auth">00 — Authentication</div>
 
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
-      <button class="btn-oauth" id="btn-oauth-openai" onclick="initiateOAuth('openai')">
-        🔑 Login with OpenAI
-      </button>
-      <button class="btn-oauth" id="btn-oauth-anthropic" onclick="initiateOAuth('anthropic')">
-        🧠 Login with Anthropic
-      </button>
-      <button class="btn-oauth" id="btn-oauth-gemini" onclick="initiateOAuth('gemini')">
-        ✨ Login with Google Gemini
-      </button>
-    </div>
+    <div class="auth-panels" style="margin-top: 8px;">
+      <div class="oauth-wrap">
+        <div class="auth-subtitle" id="oauth-subtitle">OAuth2</div>
+        <div class="auth-helper" id="oauth-helper">Use this first option to authenticate with OAuth2.</div>
 
-    <div id="oauth-status" style="display: none; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;">
-      <span id="oauth-status-text"></span>
-      <button onclick="clearOAuthSession()" style="margin-left: auto; padding: 4px 8px; cursor: pointer;">×</button>
-    </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+          <button class="btn-oauth oauth-openai" id="btn-oauth-openai" onclick="initiateOAuth('openai')">
+            <svg class="oauth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M12 3.7l3.8 2.2v4.4L12 12.5l-3.8-2.2V5.9L12 3.7z"/>
+              <path d="M6.2 7.1L2.5 9.2v4.4l3.7 2.1 3.8-2.2v-4.4L6.2 7.1z"/>
+              <path d="M17.8 7.1L14 9.2v4.4l3.8 2.2 3.7-2.1V9.2l-3.7-2.1z"/>
+              <path d="M12 12.5l3.8 2.2v4.4L12 21.3l-3.8-2.2v-4.4L12 12.5z"/>
+            </svg>
+            <span id="btn-oauth-openai-text">Login with OpenAI</span>
+          </button>
+        </div>
 
-    <div id="tip-text" style="font-size: 0.85rem; color: var(--text-dim); margin-top: 12px;">
-      <strong>Tip:</strong> Login with OAuth2 to avoid pasting API keys. Alternatively, you can still provide your API key manually below.
-    </div>
-
-    <!-- LLM options & output mode -->
-    <div class="options-row" style="margin-top:24px;">
-      <div class="field">
-        <label>LLM Provider</label>
-        <select id="sel-provider">
-          <option value="">— none —</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="gemini">Google Gemini</option>
-        </select>
+        <div id="oauth-status" style="display: none; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+          <span id="oauth-status-text"></span>
+          <button onclick="clearOAuthSession()" style="margin-left: auto; padding: 4px 8px; cursor: pointer;">×</button>
+        </div>
       </div>
-      <div class="field" id="api-key-field" style="display: block;">
-        <label>API Key <span style="font-weight: normal; opacity: 0.7;">(optional if OAuth logged in)</span></label>
-        <input type="password" id="input-key" placeholder="sk-… (fallback to OAuth if logged in)" autocomplete="off" />
-      </div>
-      <div class="field">
-        <label>Output Mode</label>
-        <div class="toggle-wrap">
-          <label class="toggle">
-            <input type="checkbox" id="chk-compact">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-          <span class="toggle-label">Compact report</span>
+
+      <div class="byok-wrap" id="api-key-field" style="display: block; margin-top: 0;">
+        <div class="auth-subtitle" id="byok-subtitle" style="margin-bottom:6px;">BYOK</div>
+        <div class="auth-helper" id="byok-helper" style="margin-bottom:10px;">Or use your own API key below (Bring Your Own Key).</div>
+        <label id="provider-label" style="display:block; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">LLM Provider</label>
+        <div class="byok-row">
+          <div class="provider-picker">
+            <label class="provider-option">
+              <input type="radio" name="llm-provider" value="openai" checked>
+              <span class="provider-card">
+                <a id="provider-openai-link" class="provider-key-action" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-tip="Pegar a Key" aria-label="Pegar a Key OpenAI">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M10 14L21 3"/>
+                    <path d="M15 3h6v6"/>
+                    <path d="M21 14v7H3V3h7"/>
+                  </svg>
+                </a>
+                <span class="provider-head">
+                  <svg class="provider-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M12 3.7l3.8 2.2v4.4L12 12.5l-3.8-2.2V5.9L12 3.7z"/>
+                    <path d="M6.2 7.1L2.5 9.2v4.4l3.7 2.1 3.8-2.2v-4.4L6.2 7.1z"/>
+                    <path d="M17.8 7.1L14 9.2v4.4l3.8 2.2 3.7-2.1V9.2l-3.7-2.1z"/>
+                    <path d="M12 12.5l3.8 2.2v4.4L12 21.3l-3.8-2.2v-4.4L12 12.5z"/>
+                  </svg>
+                  OpenAI
+                </span>
+                <span class="provider-hint" id="provider-openai-hint">API key: https://platform.openai.com/api-keys</span>
+              </span>
+            </label>
+            <label class="provider-option">
+              <input type="radio" name="llm-provider" value="gemini">
+              <span class="provider-card">
+                <a id="provider-gemini-link" class="provider-key-action" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" data-tip="Pegar a Key" aria-label="Pegar a Key Gemini">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M10 14L21 3"/>
+                    <path d="M15 3h6v6"/>
+                    <path d="M21 14v7H3V3h7"/>
+                  </svg>
+                </a>
+                <span class="provider-head">
+                  <svg class="provider-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.2 5.8L20 10l-5.8 2.2L12 18l-2.2-5.8L4 10l5.8-2.2L12 2z"/>
+                  </svg>
+                  Gemini
+                </span>
+                <span class="provider-hint" id="provider-gemini-hint">API key: https://aistudio.google.com/apikey</span>
+              </span>
+            </label>
+          </div>
+          <div>
+            <label id="api-key-label" style="display:block; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">API Key</label>
+            <div class="api-key-wrap">
+              <input class="api-key-input" type="password" id="input-key" placeholder="Paste your API key" autocomplete="off" />
+              <button type="button" class="btn-eye" id="btn-eye" onclick="toggleKeyVisibility()" aria-label="Toggle key visibility">
+                <!-- eye-open -->
+                <svg id="icon-eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <!-- eye-closed -->
+                <svg id="icon-eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -700,7 +1205,7 @@
       <!-- ZIP drop zone -->
       <div class="drop-zone" id="zone-zip" ondragover="onDragOver(event,'zip')" ondragleave="onDragLeave('zip')" ondrop="onDrop(event,'zip')">
         <input type="file" id="input-zip">
-        <span class="drop-icon">📦</span>
+        <span class="drop-icon">ZIP</span>
         <div class="drop-title">Event Log ZIP</div>
         <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.zip — Spark event logs</em></div>
         <div class="file-name" id="name-zip"></div>
@@ -709,7 +1214,7 @@
       <!-- PySpark files drop zone -->
       <div class="drop-zone" id="zone-py" ondragover="onDragOver(event,'py')" ondragleave="onDragLeave('py')" ondrop="onDrop(event,'py')">
         <input type="file" id="input-py" accept=".py" multiple>
-        <span class="drop-icon">🐍</span>
+        <span class="drop-icon">PY</span>
         <div class="drop-title" id="py-title">PySpark Source Files <span style="opacity:.5;font-size:.75em">(optional)</span></div>
         <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.py — job source code</em></div>
         <div class="file-name" id="name-py"></div>
@@ -772,59 +1277,71 @@
 
   </div><!-- /results -->
 
-  <!-- History section -->
-  <div style="margin-top: 32px;">
-    <div class="section-label" id="history-label">Histórico</div>
-    <div id="history-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
-      <div id="history-list"></div>
-    </div>
-  </div>
+  </section>
 
-  <!-- Privacy and legal docs section -->
-  <div style="margin-top: 32px;">
-    <div class="section-label">06 — Privacy & Legal Documents</div>
-    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; gap: 12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border:1px solid var(--border); border-radius:var(--radius); padding:12px; background:var(--surface2);">
-        <div>
-          <div style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">01 — Diagrama de Arquitetura de Privacidade</div>
-          <div style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Fluxo de dados, pontos de processamento e exposicao externa.</div>
-        </div>
-        <button class="btn-dl" type="button" onclick="openDocViewer('docs/01-diagrama-arquitetura-privacidade.md', '01 — Diagrama de Arquitetura de Privacidade')">Abrir documento</button>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border:1px solid var(--border); border-radius:var(--radius); padding:12px; background:var(--surface2);">
-        <div>
-          <div style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">02 — Documento de Arquitetura de Privacidade</div>
-          <div style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Descricao tecnica para compliance e seguranca.</div>
-        </div>
-        <button class="btn-dl" type="button" onclick="openDocViewer('docs/02-documento-arquitetura-privacidade.md', '02 — Documento de Arquitetura de Privacidade')">Abrir documento</button>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border:1px solid var(--border); border-radius:var(--radius); padding:12px; background:var(--surface2);">
-        <div>
-          <div style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">03 — Politica de Privacidade + Termos de Uso</div>
-          <div style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Rascunho juridico com campos [PREENCHER].</div>
-        </div>
-        <button class="btn-dl" type="button" onclick="openDocViewer('docs/03-politica-privacidade-termos.md', '03 — Politica de Privacidade + Termos de Uso')">Abrir documento</button>
+  <section id="tab-history" class="tab-pane">
+    <div style="margin-top: 32px;">
+      <div class="section-label" id="history-label">Histórico</div>
+      <div id="history-section" class="panel-block">
+        <div id="history-list"></div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div id="doc-modal" class="doc-modal" onclick="onDocModalBackdrop(event)">
-    <div class="doc-card">
-      <div class="doc-head">
-        <div id="doc-modal-title" class="doc-title">Documento</div>
-        <button class="doc-close" type="button" onclick="closeDocViewer()">Fechar</button>
+  <section id="tab-help" class="tab-pane">
+    <div style="margin-top: 32px;">
+      <div class="section-label" id="help-section-label">Ajuda</div>
+      <div class="panel-block" style="margin-bottom: 16px;">
+        <div id="help-panel-title" style="font-family:var(--mono); font-size:0.86rem; color:var(--text);">Documentacao de Privacidade e Legal</div>
+        <div id="help-panel-desc" style="font-size:0.88rem; color:var(--text-dim); margin-top:6px; line-height:1.6;">
+          Esta aba concentra os materiais de referencia de governanca, privacidade e conformidade.
+        </div>
       </div>
-      <div id="doc-modal-body" class="doc-body"></div>
+
+      <div id="help-docs-label" class="section-label">06 — Documentos de Privacidade e Legal</div>
+      <div class="panel-block" style="display: grid; gap: 12px;">
+        <div class="doc-row">
+          <div>
+            <div id="doc01-title" style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">01 — Diagrama de Arquitetura de Privacidade</div>
+            <div id="doc01-desc" style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Fluxo de dados, pontos de processamento e exposicao externa.</div>
+          </div>
+          <button id="doc01-btn" class="btn-dl" type="button" onclick="openDocLang('doc01')">Abrir documento</button>
+        </div>
+
+        <div class="doc-row">
+          <div>
+            <div id="doc02-title" style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">02 — Documento de Arquitetura de Privacidade</div>
+            <div id="doc02-desc" style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Descricao tecnica para compliance e seguranca.</div>
+          </div>
+          <button id="doc02-btn" class="btn-dl" type="button" onclick="openDocLang('doc02')">Abrir documento</button>
+        </div>
+
+        <div class="doc-row">
+          <div>
+            <div id="doc03-title" style="font-family:var(--mono); font-size:0.8rem; font-weight:600;">03 — Politica de Privacidade + Termos de Uso</div>
+            <div id="doc03-desc" style="font-size:0.82rem; color:var(--text-dim); margin-top:4px;">Rascunho juridico com campos [PREENCHER].</div>
+          </div>
+          <button id="doc03-btn" class="btn-dl" type="button" onclick="openDocLang('doc03')">Abrir documento</button>
+        </div>
     </div>
   </div>
+  </section>
 
 </div><!-- /shell -->
 
-<footer style="margin-top: 60px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim);">
+<footer style="margin-top: 60px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim); background: rgba(0,0,0,0.94);">
   <p>Created by <strong>Alex Valsechi</strong> | <a href="https://www.linkedin.com/in/alex-valsechi/" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">LinkedIn</a></p>
 </footer>
+
+<div id="doc-modal" class="doc-modal" onclick="onDocModalBackdrop(event)">
+  <div class="doc-card">
+    <div class="doc-head">
+      <div id="doc-modal-title" class="doc-title">Documento</div>
+      <button class="doc-close" type="button" onclick="closeDocViewer()">Fechar</button>
+    </div>
+    <div id="doc-modal-body" class="doc-body"></div>
+  </div>
+</div>
 
 <script>
 /* ── State ──────────────────────────────────────────── */
@@ -836,7 +1353,10 @@ let zipFile      = null;
 let pyFiles      = [];
 let currentOAuthUser = null;
 let currentOAuthProvider = null;
+let currentLocalSummary = null;
+let currentReducedReport = null; // kept locally — never re-fetched from server
 let currentLang = 'en';
+let statusCycleTimer = null;
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
 let originalStages = [];
@@ -871,15 +1391,19 @@ function apiUrl(path) {
 
 const translations = {
   en: {
-    authLabel: '00 — Authentication (Optional)',
-    loginOpenAI: '🔑 Login with OpenAI',
-    loginAnthropic: '🧠 Login with Anthropic',
-    loginGemini: '✨ Login with Google Gemini',
-    tip: 'Tip: Login with OAuth2 to avoid pasting API keys. Alternatively, you can still provide your API key manually below.',
+    authLabel: '00 — Authentication',
+    oauthSubtitle: 'OAuth2',
+    oauthHelper: 'Use this first option to authenticate with OAuth2.',
+    loginOpenAI: 'Login with OpenAI',
+    tip: 'Or',
+    byokSubtitle: 'BYOK',
+    byokHelper: 'Or use your own API key below (Bring Your Own Key).',
     llmProviderLabel: 'LLM Provider',
-    apiKeyLabel: 'API Key (optional if OAuth logged in)',
-    outputModeLabel: 'Output Mode',
-    compactReport: 'Compact report',
+    apiKeyLabel: 'API Key',
+    apiKeyPlaceholder: 'Paste your API key',
+    openAiKeyHint: 'API key: https://platform.openai.com/api-keys',
+    geminiKeyHint: 'API key: https://aistudio.google.com/apikey',
+    keyCta: 'Get Key',
     uploadLabel: '01 — Upload',
     eventLogZip: 'Event Log ZIP',
     pysparkFiles: 'PySpark Source Files',
@@ -892,18 +1416,39 @@ const translations = {
     statusError: 'Error',
     historyLabel: 'History',
     noHistory: 'No previous analyses.',
-    processedAtLabel: 'Processed at'
+    processedAtLabel: 'Processed at',
+    headerSubtitle: 'Performance Analysis · Apache Spark',
+    tabHome: 'Home',
+    tabHistory: 'History',
+    tabHelp: 'Help',
+    helpSectionLabel: 'Help',
+    helpPanelTitle: 'Privacy & Legal Documentation',
+    helpPanelDesc: 'This tab contains reference materials for governance, privacy, and compliance.',
+    helpDocsLabel: '06 — Privacy & Legal Documents',
+    doc01Title: '01 — Architecture & Privacy Diagram',
+    doc01Desc: 'Data flow, processing points, and external exposure.',
+    doc01Btn: 'Open document',
+    doc02Title: '02 — Privacy Architecture Document',
+    doc02Desc: 'Technical description for compliance and security.',
+    doc02Btn: 'Open document',
+    doc03Title: '03 — Privacy Policy + Terms of Use',
+    doc03Desc: 'Legal draft with [FILL IN] fields.',
+    doc03Btn: 'Open document'
   },
   pt: {
-    authLabel: '00 — Autenticação (Opcional)',
-    loginOpenAI: '🔑 Login com OpenAI',
-    loginAnthropic: '🧠 Login com Anthropic',
-    loginGemini: '✨ Login com Google Gemini',
-    tip: 'Dica: faça login com OAuth2 para evitar colar chaves de API. Alternativamente, você ainda pode fornecer sua chave manualmente abaixo.',
+    authLabel: '00 — Autenticação',
+    oauthSubtitle: 'OAuth2',
+    oauthHelper: 'Use esta primeira opcao para autenticar via OAuth2.',
+    loginOpenAI: 'Login com OpenAI',
+    tip: 'Ou',
+    byokSubtitle: 'BYOK',
+    byokHelper: 'Ou use sua propria chave de API abaixo (Bring Your Own Key).',
     llmProviderLabel: 'Provedor LLM',
-    apiKeyLabel: 'Chave API (opcional se logado via OAuth)',
-    outputModeLabel: 'Modo de Saída',
-    compactReport: 'Relatório compacto',
+    apiKeyLabel: 'Chave API',
+    apiKeyPlaceholder: 'Cole sua chave de API',
+    openAiKeyHint: 'Chave API: https://platform.openai.com/api-keys',
+    geminiKeyHint: 'Chave API: https://aistudio.google.com/apikey',
+    keyCta: 'Pegar a Key',
     uploadLabel: '01 — Enviar',
     eventLogZip: 'ZIP de Log',
     pysparkFiles: 'Arquivos PySpark',
@@ -916,7 +1461,24 @@ const translations = {
     statusError: 'Erro',
     historyLabel: 'Histórico',
     noHistory: 'Nenhuma análise anterior.',
-    processedAtLabel: 'Processado em'
+    processedAtLabel: 'Processado em',
+    headerSubtitle: 'Análise de Performance · Apache Spark',
+    tabHome: 'Início',
+    tabHistory: 'Histórico',
+    tabHelp: 'Ajuda',
+    helpSectionLabel: 'Ajuda',
+    helpPanelTitle: 'Documentacao de Privacidade e Legal',
+    helpPanelDesc: 'Esta aba concentra os materiais de referencia de governanca, privacidade e conformidade.',
+    helpDocsLabel: '06 — Documentos de Privacidade e Legal',
+    doc01Title: '01 — Diagrama de Arquitetura de Privacidade',
+    doc01Desc: 'Fluxo de dados, pontos de processamento e exposicao externa.',
+    doc01Btn: 'Abrir documento',
+    doc02Title: '02 — Documento de Arquitetura de Privacidade',
+    doc02Desc: 'Descricao tecnica para compliance e seguranca.',
+    doc02Btn: 'Abrir documento',
+    doc03Title: '03 — Politica de Privacidade + Termos de Uso',
+    doc03Desc: 'Rascunho juridico com campos [PREENCHER].',
+    doc03Btn: 'Abrir documento'
   }
 };
 
@@ -927,17 +1489,23 @@ function updateLanguage() {
   const lblAuth = document.getElementById('lbl-auth');
   if (lblAuth) lblAuth.textContent = t.authLabel;
 
-  const btnOpenAI = document.getElementById('btn-oauth-openai');
+  const oauthSubtitle = document.getElementById('oauth-subtitle');
+  if (oauthSubtitle) oauthSubtitle.textContent = t.oauthSubtitle;
+
+  const oauthHelper = document.getElementById('oauth-helper');
+  if (oauthHelper) oauthHelper.textContent = t.oauthHelper;
+
+  const btnOpenAI = document.getElementById('btn-oauth-openai-text');
   if (btnOpenAI) btnOpenAI.textContent = t.loginOpenAI;
 
-  const btnAnthropic = document.getElementById('btn-oauth-anthropic');
-  if (btnAnthropic) btnAnthropic.textContent = t.loginAnthropic;
-
-  const btnGemini = document.getElementById('btn-oauth-gemini');
-  if (btnGemini) btnGemini.textContent = t.loginGemini;
-
   const tipText = document.getElementById('tip-text');
-  if (tipText) tipText.innerHTML = `<strong>${currentLang==='pt'?'Dica':'Tip'}:</strong> ${t.tip}`;
+  if (tipText) tipText.textContent = t.tip;
+
+  const byokSubtitle = document.getElementById('byok-subtitle');
+  if (byokSubtitle) byokSubtitle.textContent = t.byokSubtitle;
+
+  const byokHelper = document.getElementById('byok-helper');
+  if (byokHelper) byokHelper.textContent = t.byokHelper;
 
   // update optional label if necessary
   const pyTitle = currentLang === 'pt'
@@ -946,22 +1514,67 @@ function updateLanguage() {
   const pyTitleEl = document.getElementById('py-title');
   if (pyTitleEl) pyTitleEl.innerHTML = pyTitle;
 
-  const providerLabel = document.querySelector('label[for="sel-provider"]');
+  const providerLabel = document.getElementById('provider-label');
   if (providerLabel) providerLabel.textContent = t.llmProviderLabel;
 
-  const apiKeyFieldLabel = document.querySelector('#api-key-field label');
-  if (apiKeyFieldLabel && apiKeyFieldLabel.firstChild) {
-    apiKeyFieldLabel.firstChild.textContent = t.apiKeyLabel;
+  const apiKeyLabel = document.getElementById('api-key-label');
+  if (apiKeyLabel) apiKeyLabel.textContent = t.apiKeyLabel;
+
+  const keyInput = document.getElementById('input-key');
+  if (keyInput) keyInput.placeholder = t.apiKeyPlaceholder;
+
+  const openAiHint = document.getElementById('provider-openai-hint');
+  if (openAiHint) openAiHint.textContent = t.openAiKeyHint;
+
+  const geminiHint = document.getElementById('provider-gemini-hint');
+  if (geminiHint) geminiHint.textContent = t.geminiKeyHint;
+
+  const openAiLink = document.getElementById('provider-openai-link');
+  if (openAiLink) {
+    openAiLink.setAttribute('data-tip', t.keyCta);
+    openAiLink.setAttribute('aria-label', `${t.keyCta} OpenAI`);
   }
 
-  const compactLabel = document.querySelector('label[for="chk-compact"]');
-  if (compactLabel) compactLabel.textContent = t.outputModeLabel;
-
-  const toggleLabel = document.querySelector('.toggle-label');
-  if (toggleLabel) toggleLabel.textContent = t.compactReport;
+  const geminiLink = document.getElementById('provider-gemini-link');
+  if (geminiLink) {
+    geminiLink.setAttribute('data-tip', t.keyCta);
+    geminiLink.setAttribute('aria-label', `${t.keyCta} Gemini`);
+  }
 
   const historyLabel = document.getElementById('history-label');
   if (historyLabel) historyLabel.textContent = t.historyLabel;
+
+  const headerSubtitle = document.getElementById('header-subtitle');
+  if (headerSubtitle) headerSubtitle.textContent = t.headerSubtitle;
+
+  const tabHome = document.getElementById('tab-btn-home');
+  if (tabHome) tabHome.textContent = t.tabHome;
+
+  const tabHistory = document.getElementById('tab-btn-history');
+  if (tabHistory) tabHistory.textContent = t.tabHistory;
+
+  const tabHelp = document.getElementById('tab-btn-help');
+  if (tabHelp) tabHelp.textContent = t.tabHelp;
+
+  const helpSectionLabel = document.getElementById('help-section-label');
+  if (helpSectionLabel) helpSectionLabel.textContent = t.helpSectionLabel;
+
+  const helpPanelTitle = document.getElementById('help-panel-title');
+  if (helpPanelTitle) helpPanelTitle.textContent = t.helpPanelTitle;
+
+  const helpPanelDesc = document.getElementById('help-panel-desc');
+  if (helpPanelDesc) helpPanelDesc.textContent = t.helpPanelDesc;
+
+  const helpDocsLabel = document.getElementById('help-docs-label');
+  if (helpDocsLabel) helpDocsLabel.textContent = t.helpDocsLabel;
+
+  [['doc01-title', 'doc01Title'], ['doc01-desc', 'doc01Desc'], ['doc01-btn', 'doc01Btn'],
+   ['doc02-title', 'doc02Title'], ['doc02-desc', 'doc02Desc'], ['doc02-btn', 'doc02Btn'],
+   ['doc03-title', 'doc03Title'], ['doc03-desc', 'doc03Desc'], ['doc03-btn', 'doc03Btn']
+  ].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t[key];
+  });
 
   const zipTitle = document.querySelector('#zone-zip .drop-title');
   if (zipTitle) zipTitle.textContent = t.eventLogZip;
@@ -986,6 +1599,38 @@ function setStatus(status, msg) {
   dot.className = 'status-dot ' + status;
 }
 
+function getSelectedProvider() {
+  const checked = document.querySelector('input[name="llm-provider"]:checked');
+  return checked ? checked.value : '';
+}
+
+function setSelectedProvider(provider) {
+  if (!provider) return;
+  const input = document.querySelector(`input[name="llm-provider"][value="${provider}"]`);
+  if (input) {
+    input.checked = true;
+  }
+}
+
+function switchTab(tabName) {
+  const homePane = document.getElementById('tab-home');
+  const historyPane = document.getElementById('tab-history');
+  const helpPane = document.getElementById('tab-help');
+  const homeBtn = document.getElementById('tab-btn-home');
+  const historyBtn = document.getElementById('tab-btn-history');
+  const helpBtn = document.getElementById('tab-btn-help');
+
+  const selected = tabName === 'help' || tabName === 'history' ? tabName : 'home';
+  homePane.classList.toggle('active', selected === 'home');
+  historyPane.classList.toggle('active', selected === 'history');
+  helpPane.classList.toggle('active', selected === 'help');
+  homeBtn.classList.toggle('active', selected === 'home');
+  historyBtn.classList.toggle('active', selected === 'history');
+  helpBtn.classList.toggle('active', selected === 'help');
+
+  localStorage.setItem('sparkui_active_tab', selected);
+}
+
 // language selector handler
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded fired');
@@ -1005,6 +1650,9 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLanguage();
     });
   }
+
+  const savedTab = localStorage.getItem('sparkui_active_tab');
+  switchTab(savedTab === 'help' || savedTab === 'history' ? savedTab : 'home');
 
   updateLanguage();
   handleOAuthCallback();
@@ -1088,7 +1736,7 @@ function updateZoneUI(type, name) {
   console.log('Zone element:', zone, 'Label element:', label);
   if (name) { 
     zone.classList.add('has-file'); 
-    label.textContent = '✓ ' + name; 
+    label.textContent = 'Selected: ' + name; 
     console.log('Added has-file class and updated label');
   }
   else { 
@@ -1158,7 +1806,7 @@ function handleOAuthCallback() {
     displayOAuthStatus();
     
     // Update provider selector
-    document.getElementById('sel-provider').value = provider;
+    setSelectedProvider(provider);
     
     // Clear the URL
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1168,24 +1816,17 @@ function handleOAuthCallback() {
 function displayOAuthStatus() {
   const statusDiv = document.getElementById('oauth-status');
   const statusText = document.getElementById('oauth-status-text');
-  const apiKeyField = document.getElementById('api-key-field');
   
   if (currentOAuthUser && currentOAuthProvider) {
-    statusText.textContent = `✓ Logged in with ${currentOAuthProvider.toUpperCase()} (User: ${currentOAuthUser.substring(0, 8)}…)`;
+    statusText.textContent = `Logged in with ${currentOAuthProvider.toUpperCase()} (User: ${currentOAuthUser.substring(0, 8)}...)`;
     statusDiv.style.display = 'flex';
     statusDiv.style.justifyContent = 'space-between';
     statusDiv.style.alignItems = 'center';
-    
-    // Hide API key field when OAuth is active
-    apiKeyField.style.display = 'none';
-    
+
     // Auto-select provider
-    document.getElementById('sel-provider').value = currentOAuthProvider;
+    setSelectedProvider(currentOAuthProvider);
   } else {
     statusDiv.style.display = 'none';
-    
-    // Show API key field when no OAuth
-    apiKeyField.style.display = 'block';
   }
 }
 
@@ -1193,7 +1834,6 @@ function clearOAuthSession() {
   currentOAuthUser = null;
   currentOAuthProvider = null;
   document.getElementById('oauth-status').style.display = 'none';
-  document.getElementById('sel-provider').value = '';
   document.getElementById('api-key-field').style.display = 'block'; // Show API key field again
 }
 
@@ -1222,7 +1862,7 @@ function renderHistory() {
     container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.9rem;">${t.noHistory}</p>`;
     return;
   }
-  container.innerHTML = analysisHistory.map((item) => `
+  container.innerHTML = analysisHistory.map((item, idx) => `
     <div style="border-bottom: 1px solid var(--border); padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
       <div>
         <strong>${item.appName || 'App'}</strong>
@@ -1230,11 +1870,151 @@ function renderHistory() {
         <br><small style="color: var(--text-dim);">Duração: ${item.duration}, Stages: ${item.numStages}</small>
       </div>
       <div>
-        <a href="${apiUrl(`/api/download/${item.jobId}/md`)}" class="btn-dl" style="margin-right: 8px;">MD</a>
-        <a href="${apiUrl(`/api/download/${item.jobId}/json`)}" class="btn-dl">JSON</a>
+        <button class="btn-dl" type="button" data-history-idx="${idx}">Download Markdown</button>
       </div>
     </div>
   `).join('');
+
+  // Attach click handlers with closure over item — avoids inline JS with user content
+  container.querySelectorAll('[data-history-idx]').forEach(btn => {
+    const idx = parseInt(btn.getAttribute('data-history-idx'), 10);
+    const item = analysisHistory[idx];
+    if (item) {
+      btn.addEventListener('click', () =>
+        downloadMarkdownLocal(item.markdownContent || '', item.suggestedFilename || `spark_${item.appName || 'report'}.md`)
+      );
+    }
+  });
+}
+
+function showDownloadPopup(message, variant = 'success') {
+  const existing = document.getElementById('download-popup');
+  if (existing) {
+    existing.remove();
+  }
+
+  const popup = document.createElement('div');
+  popup.id = 'download-popup';
+  popup.textContent = message;
+  popup.style.position = 'fixed';
+  popup.style.right = '20px';
+  popup.style.bottom = '20px';
+  popup.style.zIndex = '9999';
+  popup.style.padding = '10px 14px';
+  popup.style.borderRadius = '2px';
+  popup.style.fontFamily = 'var(--mono)';
+  popup.style.fontSize = '0.78rem';
+  popup.style.letterSpacing = '0.03em';
+  popup.style.color = '#fff';
+  popup.style.border = variant === 'success'
+    ? '1px solid rgba(75, 196, 126, 0.45)'
+    : '1px solid rgba(239, 107, 107, 0.45)';
+  popup.style.background = variant === 'success'
+    ? 'rgba(16, 42, 28, 0.94)'
+    : 'rgba(52, 17, 17, 0.94)';
+  popup.style.backdropFilter = 'blur(8px)';
+  popup.style.boxShadow = '0 10px 26px rgba(0,0,0,0.35)';
+
+  document.body.appendChild(popup);
+
+  setTimeout(() => {
+    if (popup && popup.parentNode) {
+      popup.parentNode.removeChild(popup);
+    }
+  }, 2600);
+}
+
+async function downloadMarkdownLocal(content, suggestedName) {
+  if (!content) {
+    showError('Conteúdo do relatório não disponível.');
+    showDownloadPopup('Relatório não disponível.', 'error');
+    return;
+  }
+
+  try {
+    const result = await window.desktopApi.saveReportToDisk({ content, suggestedName });
+    if (result && result.saved) {
+      showDownloadPopup('Relatório salvo em: ' + result.filePath);
+    }
+    // result.saved === false means user canceled the dialog — silent
+  } catch (e) {
+    showError('Falha ao salvar: ' + (e.message || String(e)));
+    showDownloadPopup('Falha ao salvar o relatório.', 'error');
+  }
+}
+
+/* ── Status step cycle ─────────────────────────────── */
+const pipelineMessages = {
+  en: [
+    'Reading ZIP file locally…',
+    'Unpacking log files…',
+    'Extracting Spark events…',
+    'Identifying stages & tasks…',
+    'Computing performance metrics…',
+    'Detecting bottlenecks & data skew…',
+    'Compressing analysis report…',
+    'Uploading reduced report…',
+    'Transferring data to server…',
+    'Preparing AI analysis context…',
+    'Sending context to LLM…',
+    'Waiting for AI response…',
+    'Analyzing stage performance…',
+    'Generating optimization suggestions…',
+    'Formatting final report…',
+  ],
+  pt: [
+    'Lendo arquivo ZIP localmente…',
+    'Descompactando arquivos de log…',
+    'Extraindo eventos do Spark…',
+    'Identificando stages e tarefas…',
+    'Calculando métricas de performance…',
+    'Detectando gargalos e skew de dados…',
+    'Comprimindo relatório de análise…',
+    'Enviando relatório reduzido…',
+    'Transferindo dados para o servidor…',
+    'Preparando contexto para análise IA…',
+    'Enviando contexto para a LLM…',
+    'Aguardando resposta da inteligência artificial…',
+    'Analisando performance dos stages…',
+    'Gerando sugestões de otimização…',
+    'Formatando relatório final…',
+  ]
+};
+
+function startStatusCycle(dotStatus) {
+  stopStatusCycle();
+  const lang = pipelineMessages[currentLang] ? currentLang : 'en';
+  const msgs = pipelineMessages[lang];
+  let idx = 0;
+  const el = document.getElementById('status-msg');
+  const dot = document.getElementById('status-dot');
+  const bar = document.getElementById('status-bar');
+  if (bar) bar.classList.add('visible');
+  if (dot) dot.className = 'status-dot ' + (dotStatus || 'pending');
+  function showStep() {
+    if (!el) return;
+    el.classList.remove('stepping');
+    void el.offsetWidth;
+    el.textContent = msgs[idx % msgs.length];
+    el.classList.add('stepping');
+    idx++;
+  }
+  showStep();
+  statusCycleTimer = setInterval(showStep, 2500);
+}
+
+function stopStatusCycle() {
+  if (statusCycleTimer) {
+    clearInterval(statusCycleTimer);
+    statusCycleTimer = null;
+  }
+  const el = document.getElementById('status-msg');
+  if (el) el.classList.remove('stepping');
+}
+
+function updateStatusDot(status) {
+  const dot = document.getElementById('status-dot');
+  if (dot) dot.className = 'status-dot ' + status;
 }
 
 /* ── Submit ─────────────────────────────────────────── */
@@ -1248,38 +2028,54 @@ async function submitJob() {
   btn.disabled = true;
   spinner.classList.remove('hidden');
 
-  const fd = new FormData();
-  fd.append('log_zip', zipFile, zipFile.name);
-  pyFiles.forEach(f => fd.append('pyspark_files', f, f.name));
-  fd.append('compact',      document.getElementById('chk-compact').checked);
-  fd.append('language',     currentLang);
-  
-  // Use OAuth if available, otherwise fall back to manual API key
-  if (currentOAuthUser && currentOAuthProvider) {
-    fd.append('user_id', currentOAuthUser);
-    fd.append('provider', currentOAuthProvider);
-  } else {
-    fd.append('llm_provider', document.getElementById('sel-provider').value || '');
-    fd.append('api_key',      document.getElementById('input-key').value || '');
-  }
-
-  setStatus('pending', 'Uploading…');
+  startStatusCycle('pending');
   startTs = Date.now();
   startElapsed();
   showProgressBar();
 
   try {
-    const res = await fetch(apiUrl('/api/upload'), { method: 'POST', body: fd });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-      throw new Error(err.detail || 'Upload failed');
+    if (!window.desktopApi || !window.desktopApi.reduceZipLocally || !window.desktopApi.submitReducedForAnalysis) {
+      throw new Error('Desktop API not available. Please restart the Electron app.');
     }
-    const data = await res.json();
+
+    const zipPath = zipFile.path;
+    if (!zipPath) {
+      throw new Error('Could not resolve local file path for ZIP. Re-select the file and try again.');
+    }
+
+    const reduced = await window.desktopApi.reduceZipLocally({
+      zipPath,
+      compact: false,
+    });
+
+    const reducedReport = reduced && reduced.reducedReport;
+    if (!reducedReport || !String(reducedReport).trim()) {
+      throw new Error('Local reduction failed: empty reduced report.');
+    }
+    currentLocalSummary = (reduced && reduced.summary) || null;
+    currentReducedReport = reducedReport; // store locally for download — never round-trips to server
+
+    updateStatusDot('running');
+
+    const payload = {
+      apiBaseUrl: API_BASE_URL,
+      reducedReport,
+      pyFilePaths: pyFiles.map(f => f.path).filter(Boolean),
+      llmProvider: currentOAuthProvider || getSelectedProvider() || '',
+      apiKey: currentOAuthUser ? '' : (document.getElementById('input-key').value || ''),
+      language: currentLang,
+      userId: currentOAuthUser || '',
+      provider: currentOAuthProvider || '',
+    };
+
+    const data = await window.desktopApi.submitReducedForAnalysis(payload);
+
     currentJobId = data.job_id;
-    setStatus('running', 'Processing event log…');
+    updateStatusDot('running');
     animateProgress(15, 75, 12000);
     startPolling();
   } catch (e) {
+    stopStatusCycle();
     showError(e.message);
     setStatus('error', 'Upload failed');
   }
@@ -1292,11 +2088,11 @@ function startPolling() {
       const res = await fetch(apiUrl('/api/status/' + currentJobId));
       if (!res.ok) {
         if (res.status === 429) {
-          setStatus('running', 'Server busy (rate limit). Retrying...');
+          updateStatusDot('running');
           return;
         }
         if (res.status >= 500) {
-          setStatus('running', 'Server processing... retrying status check');
+          updateStatusDot('running');
           return;
         }
         throw new Error('Status check failed: ' + res.status);
@@ -1306,22 +2102,28 @@ function startPolling() {
         clearInterval(pollTimer);
         animateProgress(75, 100, 600);
         setTimeout(() => {
+          stopStatusCycle();
           setStatus('done', 'Analysis complete');
           stopElapsed();
+          // Inject locally-computed summary when backend omits it (reduced upload path).
+          if (!data.summary && currentLocalSummary) {
+            data.summary = currentLocalSummary;
+          }
           renderResults(data);
           hideProgressBar();
         }, 650);
       } else if (data.status === 'error') {
         clearInterval(pollTimer);
+        stopStatusCycle();
         showError(data.error || 'Unknown error during processing');
         setStatus('error', 'Processing failed');
         stopElapsed();
         hideProgressBar();
       } else if (data.status === 'running') {
-        setStatus('running', 'Analyzing stages & calling LLM…');
+        updateStatusDot('running');
       }
     } catch {
-      setStatus('running', 'Network hiccup... retrying');
+      updateStatusDot('running');
     }
   }, 1500);
 }
@@ -1368,32 +2170,43 @@ function renderResults(data) {
     document.getElementById('llm-inner').innerHTML = mdToHtml(data.llm_analysis);
   }
 
-  // Download buttons
+  // Build markdown content entirely on the client — no server round-trip
+  const mdParts = [];
+  if (currentReducedReport) mdParts.push(currentReducedReport);
+  if (data.llm_analysis && data.llm_analysis.trim()) {
+    mdParts.push('\n\n---\n\n## AI Analysis\n\n' + data.llm_analysis);
+  }
+  const mdContent = mdParts.join('');
+  const safeName = (s && s.app_name ? s.app_name.replace(/[^a-z0-9_-]/gi, '_') : 'report');
+  const suggestedFilename = `spark_${safeName}_${Date.now()}.md`;
+
+  // Download button — purely local, no server fetch
   const dlBar = document.getElementById('dl-bar');
   dlBar.innerHTML = `
-    <a class="btn-dl" href="${apiUrl(`/api/download/${currentJobId}/md`)}">
+    <button class="btn-dl" type="button" id="btn-dl-md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Download Markdown
-    </a>
-    <a class="btn-dl" href="${apiUrl(`/api/download/${currentJobId}/json`)}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download JSON
-    </a>
+    </button>
   `;
+  document.getElementById('btn-dl-md').addEventListener('click', () =>
+    downloadMarkdownLocal(mdContent, suggestedFilename)
+  );
 
   // Reveal
   const el = document.getElementById('results');
   el.classList.add('visible');
 
-  // Save to history
+  // Save to history — markdown content stays on the user's machine (localStorage)
   const analysis = {
     jobId: currentJobId,
     timestamp: Date.now(),
     processedAtLocal: new Date().toLocaleString(),
-    appName: s.app_name,
-    duration: fmtMs(s.total_duration_ms),
-    numStages: s.num_stages,
-    numTasks: s.num_tasks
+    appName:        s ? s.app_name                : 'Unknown',
+    duration:       s ? fmtMs(s.total_duration_ms)  : '—',
+    numStages:      s ? s.num_stages               : 0,
+    numTasks:       s ? s.num_tasks                : 0,
+    markdownContent: mdContent,
+    suggestedFilename,
   };
   saveHistory(analysis);
   
@@ -1409,8 +2222,11 @@ function renderStageTable(stages) {
   totalStagesCount = stages.length;
   document.getElementById('stage-tbody').innerHTML = stages.map((st, idx) => {
     const pct = maxDur > 0 ? Math.round((st.duration_ms / maxDur) * 100) : 0;
+    const skewTipEN = `High skew ratio (${st.skew_ratio}×): uneven task distribution can cause performance issues. Tasks may take significantly different times, leading to wasted resources and longer job duration.`;
+    const skewTipPT = `Alto skew ratio (${st.skew_ratio}×): distribuição desigual de tarefas pode causar problemas de performance. As tarefas podem ter durações muito diferentes, desperdiçando recursos e aumentando a duração do job.`;
+    const skewTip = currentLang === 'pt' ? skewTipPT : skewTipEN;
     const skewTag = st.skew_ratio > 3
-      ? `<span class="tag-skew" title="High skew ratio (${st.skew_ratio}×): This stage has uneven task distribution, which can cause performance issues. Tasks may take significantly different times to complete, leading to wasted resources and longer overall job duration.">⚠ ${st.skew_ratio}×</span>`
+      ? `<span class="tag-skew">⚠ ${st.skew_ratio}×<span class="tip-box">${skewTip}</span></span>`
       : (st.skew_ratio ? st.skew_ratio + '×' : '—');
     const rowClass = !stagesTableExpanded && idx >= 5 ? 'row-hidden' : '';
     return `<tr class="${rowClass}">
@@ -1640,6 +2456,73 @@ function convertMermaidBlocks(html) {
   });
 }
 
+function initMermaidZoom(node) {
+  const svg = node.querySelector('svg');
+  if (!svg) return;
+
+  svg.style.maxWidth = 'none';
+  svg.style.display = 'block';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'mermaid-svg-wrap';
+  node.insertBefore(wrap, svg);
+  wrap.appendChild(svg);
+
+  const controls = document.createElement('div');
+  controls.className = 'mermaid-controls';
+  controls.innerHTML =
+    '<button class="mermaid-ctrl-btn" data-action="zoom-in" title="Zoom in">+</button>' +
+    '<button class="mermaid-ctrl-btn" data-action="zoom-out" title="Zoom out">−</button>' +
+    '<button class="mermaid-ctrl-btn wide" data-action="reset" title="Resetar zoom">Reset</button>';
+  node.appendChild(controls);
+
+  let scale = 1, tx = 0, ty = 0;
+  let dragging = false, startX, startY, startTx, startTy;
+
+  function apply() {
+    wrap.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+  }
+
+  node.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = node.getBoundingClientRect();
+    const mx = e.clientX - rect.left - tx;
+    const my = e.clientY - rect.top  - ty;
+    const delta = e.deltaY < 0 ? 0.12 : -0.12;
+    const next = Math.min(5, Math.max(0.2, scale + delta));
+    tx -= mx * (next - scale);
+    ty -= my * (next - scale);
+    scale = next;
+    apply();
+  }, { passive: false });
+
+  node.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.mermaid-controls')) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startTx = tx; startTy = ty;
+    node.classList.add('dragging');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    tx = startTx + (e.clientX - startX);
+    ty = startTy + (e.clientY - startY);
+    apply();
+  });
+  window.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; node.classList.remove('dragging'); }
+  });
+
+  controls.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'zoom-in')  { scale = Math.min(5, scale + 0.2); apply(); }
+    if (btn.dataset.action === 'zoom-out') { scale = Math.max(0.2, scale - 0.2); apply(); }
+    if (btn.dataset.action === 'reset')    { scale = 1; tx = 0; ty = 0; apply(); }
+  });
+}
+
 async function renderMermaidIn(container) {
   if (!window.mermaid) return;
 
@@ -1658,10 +2541,34 @@ async function renderMermaidIn(container) {
     try {
       const result = await window.mermaid.render(`doc-mermaid-${Date.now()}-${i}`, source);
       node.innerHTML = result.svg;
+      initMermaidZoom(node);
     } catch (err) {
       node.innerHTML = `<pre><code>${esc(String(err && err.message ? err.message : err))}</code></pre>`;
     }
   }
+}
+
+const docRegistry = {
+  doc01: {
+    pt: { path: 'docs/01-diagrama-arquitetura-privacidade.md',    title: '01 — Diagrama de Arquitetura de Privacidade' },
+    en: { path: 'docs/01-diagrama-arquitetura-privacidade-en.md', title: '01 — Architecture & Privacy Diagram' }
+  },
+  doc02: {
+    pt: { path: 'docs/02-documento-arquitetura-privacidade.md',    title: '02 — Documento de Arquitetura de Privacidade' },
+    en: { path: 'docs/02-documento-arquitetura-privacidade-en.md', title: '02 — Privacy Architecture Document' }
+  },
+  doc03: {
+    pt: { path: 'docs/03-politica-privacidade-termos.md',    title: '03 — Politica de Privacidade + Termos de Uso' },
+    en: { path: 'docs/03-politica-privacidade-termos-en.md', title: '03 — Privacy Policy + Terms of Use' }
+  }
+};
+
+function openDocLang(key) {
+  const lang = (currentLang === 'pt') ? 'pt' : 'en';
+  const entry = docRegistry[key];
+  if (!entry) return;
+  const { path, title } = entry[lang] || entry.en;
+  openDocViewer(path, title);
 }
 
 async function openDocViewer(path, title) {
@@ -1700,14 +2607,26 @@ function onDocModalBackdrop(event) {
 }
 
 /* ── UI helpers ─────────────────────────────────────── */
+function toggleKeyVisibility() {
+  const input = document.getElementById('input-key');
+  const iconOpen = document.getElementById('icon-eye-open');
+  const iconClosed = document.getElementById('icon-eye-closed');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  iconOpen.style.display   = showing ? '' : 'none';
+  iconClosed.style.display = showing ? 'none' : '';
+}
+
 function showError(msg) {
   const el = document.getElementById('error-panel');
-  el.textContent = '✗ ' + msg;
+  el.textContent = 'Error: ' + msg;
   el.style.display = '';
 }
 function resetUI() {
+  stopStatusCycle();
   clearInterval(pollTimer);
   clearInterval(elapsedTimer);
+  document.getElementById('status-bar').classList.remove('visible');
   
   // Enable button and hide spinner
   const btn = document.getElementById('btn-submit');

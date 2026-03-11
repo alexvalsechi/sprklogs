@@ -9,7 +9,13 @@ This script reuses backend LogReducer to keep parity with server behavior.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+# Ensure project root is importable when script is executed directly by Electron.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.services.log_reducer import LogReducer
 
@@ -32,10 +38,9 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(reduced_report, encoding="utf-8")
 
-    # Keep this lightweight and machine-readable for Electron side.
-    print(f"summary_app={summary.app_name}")
-    print(f"summary_tasks={summary.num_tasks}")
-    print(f"reduced_chars={len(reduced_report)}")
+    # Emit full summary as JSON on stdout so Electron can capture structured data.
+    import json
+    print(json.dumps(summary.model_dump()))
     return 0
 
 

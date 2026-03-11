@@ -180,3 +180,46 @@ class TestZipBombProtection:
         import json
         data = json.loads(out)
         assert "stages" in data
+
+
+class TestReduceScriptJsonOutput:
+    """Validates the JSON contract that reduce_log.py emits on stdout.
+
+    reduce_log.py prints json.dumps(summary.model_dump()) so Electron
+    can capture structured summary data without re-parsing markdown.
+    """
+
+    def test_summary_model_dump_is_json_serializable(self, sample_summary):
+        """summary.model_dump() must round-trip through JSON without error."""
+        import json
+        data = sample_summary.model_dump()
+        serialized = json.dumps(data)
+        deserialized = json.loads(serialized)
+        assert deserialized["app_name"] == "TestJob"
+        assert deserialized["num_tasks"] == 10
+        assert isinstance(deserialized["stages"], list)
+        assert len(deserialized["stages"]) == 1
+
+    def test_summary_stages_have_renderer_required_fields(self, sample_summary):
+        """Every stage dict must include all fields read by renderResults() in the renderer."""
+        data = sample_summary.model_dump()
+        stages = data["stages"]
+        assert stages, "Expected at least one stage in summary"
+        required = {
+            "stage_id", "name", "num_tasks", "duration_ms",
+            "input_bytes", "shuffle_read_bytes", "shuffle_write_bytes",
+        }
+        for stage in stages:
+            missing = required - stage.keys()
+            assert not missing, f"Stage {stage.get('stage_id')} missing renderer fields: {missing}"
+
+    def test_summary_top_level_fields_present(self, sample_summary):
+        """Top-level summary fields expected by the KPI cards must be present."""
+        data = sample_summary.model_dump()
+        required = {
+            "app_name", "spark_version", "total_duration_ms",
+            "num_stages", "num_tasks", "executor_count",
+            "total_input_bytes", "total_shuffle_read_bytes",
+        }
+        missing = required - data.keys()
+        assert not missing, f"AppSummary missing KPI fields: {missing}"

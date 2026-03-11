@@ -2,8 +2,17 @@ const path = require('path');
 const fs = require('fs/promises');
 const os = require('os');
 const { execFile } = require('child_process');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, shell, dialog } = require('electron');
 const { ipcMain } = require('electron');
+
+function isHttpUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 function runFile(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -19,10 +28,13 @@ function runFile(command, args, cwd) {
 
 function createWindow() {
   const win = new BrowserWindow({
+    title: 'SprkLogs',
+    icon: path.join(__dirname, 'renderer', 'logo-256.png'),
     width: 1200,
     height: 820,
     minWidth: 980,
     minHeight: 680,
+    backgroundColor: '#000000',
     autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -30,6 +42,21 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isHttpUrl(url)) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isHttpUrl(url)) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -48,12 +75,17 @@ app.whenReady().then(() => {
     const scriptPath = path.join(__dirname, 'scripts', 'reduce_log.py');
     const workspaceRoot = path.resolve(__dirname, '..');
 
-    await runFile('python', [scriptPath, '--zip', zipPath, '--out', outputFile, ...(compact ? ['--compact'] : [])], workspaceRoot);
+    const { stdout } = await runFile('python', [scriptPath, '--zip', zipPath, '--out', outputFile, ...(compact ? ['--compact'] : [])], workspaceRoot);
 
     const reducedReport = await fs.readFile(outputFile, 'utf-8');
     await fs.unlink(outputFile).catch(() => {});
 
-    return { reducedReport };
+    let summary = null;
+    try {
+      summary = JSON.parse(stdout.trim());
+    } catch (_) { /* non-fatal: summary will be null */ }
+
+    return { reducedReport, summary };
   });
 
   ipcMain.handle('submit-reduced-for-analysis', async (_event, payload) => {
@@ -62,6 +94,8 @@ app.whenReady().then(() => {
     const pyFilePaths = (payload && payload.pyFilePaths) || [];
     const llmProvider = payload && payload.llmProvider;
     const apiKey = payload && payload.apiKey;
+    const userId = payload && payload.userId;
+    const provider = payload && payload.provider;
     const language = (payload && payload.language) || 'en';
 
     if (!reducedReport || !String(reducedReport).trim()) {
@@ -76,6 +110,12 @@ app.whenReady().then(() => {
     }
     if (apiKey) {
       form.append('api_key', apiKey);
+    }
+    if (userId) {
+      form.append('user_id', userId);
+    }
+    if (provider) {
+      form.append('provider', provider);
     }
 
     for (const filePath of pyFilePaths) {
@@ -95,6 +135,28 @@ app.whenReady().then(() => {
     }
 
     return res.json();
+  });
+
+  ipcMain.handle('save-report-to-disk', async (_event, payload) => {
+    const { content, suggestedName } = payload || {};
+    if (!content || typeof content !== 'string') {
+      throw new Error('content is required');
+    }
+
+    const defaultName = suggestedName || `spark_report_${Date.now()}.md`;
+
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Salvar relatório Markdown',
+      defaultPath: path.join(app.getPath('documents'), defaultName),
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    });
+
+    if (canceled || !filePath) {
+      return { saved: false };
+    }
+
+    await fs.writeFile(filePath, content, 'utf-8');
+    return { saved: true, filePath };
   });
 
   createWindow();
