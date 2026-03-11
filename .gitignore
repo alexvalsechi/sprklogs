@@ -7,3 +7,6 @@ dist/
 .pytest_cache/
 .mypy_cache/
 /tmp/sparkui_uploads/
+node_modules/
+desktop/node_modules/
+desktop/dist/
