@@ -13,9 +13,16 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release token
+        run: |
+          if [ -z "${{ secrets.RELEASE_PLEASE_TOKEN }}" ]; then
+            echo "Missing secret RELEASE_PLEASE_TOKEN. Configure a PAT with repo scope so release events can trigger desktop asset publishing workflows."
+            exit 1
+          fi
+
       - name: Run release-please
         uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
