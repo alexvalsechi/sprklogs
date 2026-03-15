@@ -70,6 +70,7 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
   })
 
   ipcMain.handle('get-backend-url', async () => pyBaseUrl)
+  ipcMain.handle('get-app-version', async () => app.getVersion())
 
   ipcMain.handle('submit-reduced-for-analysis', async (_event: IpcMainInvokeEvent, payload: SubmitPayload) => {
     // Always use the locally-managed backend URL — do NOT trust the renderer-supplied

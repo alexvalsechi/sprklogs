@@ -1086,7 +1086,7 @@
         <option value="en">English</option>
         <option value="pt">Português (Brasil)</option>
       </select>
-      <span class="version-badge">v2.0</span>
+      <span class="version-badge" id="app-version-badge">v-</span>
     </div>
   </header>
 
@@ -1389,6 +1389,19 @@ if (window.api && typeof window.api.getBackendUrl === 'function') {
   window.api.getBackendUrl().then(function(url) { if (url) API_BASE_URL = url; }).catch(function() {});
 }
 
+function loadAppVersionBadge() {
+  const badge = document.getElementById('app-version-badge');
+  if (!badge || !window.api || typeof window.api.getAppVersion !== 'function') {
+    return;
+  }
+
+  window.api.getAppVersion().then(function(version) {
+    if (typeof version === 'string' && version.trim()) {
+      badge.textContent = `v${version.trim().replace(/^v/i, '')}`;
+    }
+  }).catch(function() {});
+}
+
 function apiUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
@@ -1659,6 +1672,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedTab = localStorage.getItem('sparkui_active_tab');
   switchTab(savedTab === 'help' || savedTab === 'history' ? savedTab : 'home');
 
+  loadAppVersionBadge();
   updateLanguage();
   handleOAuthCallback();
   loadHistory();

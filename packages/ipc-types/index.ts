@@ -1,6 +1,7 @@
 export interface IpcApi {
   compressFile: (filePath: string) => Promise<{ outputPath: string; savedBytes: number }>
   getCompressionStatus: (jobId: string) => Promise<{ status: 'pending' | 'running' | 'done' | 'error'; progress: number }>
+  getAppVersion: () => Promise<string>
 
   login: (credentials: { email: string; password: string }) => Promise<{ token: string }>
   logout: () => Promise<void>
