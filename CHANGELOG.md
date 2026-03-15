@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/alexvalsechi/sprklogs/compare/v0.3.0...v0.3.1) (2026-03-15)
+
+
+### Bug Fixes
+
+* add missing script for local Windows distribution in package.json ([24cb0ff](https://github.com/alexvalsechi/sprklogs/commit/24cb0ffcd5350d03193c755b1243f87c8243e492))
+* update file paths and import logic for backend package in reduce_log.py and compress.handler.ts ([bade2ef](https://github.com/alexvalsechi/sprklogs/commit/bade2efb5448dd5b26b4d0326c57d1e089eee19d))
+
 ## [0.3.0](https://github.com/alexvalsechi/sprklogs/compare/v0.2.6...v0.3.0) (2026-03-15)
 
 
