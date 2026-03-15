@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/alexvalsechi/sprklogs/compare/v0.5.0...v0.6.0) (2026-03-15)
+
+
+### Features
+
+* add IPC handler and frontend integration for retrieving app ver… ([6e4d71a](https://github.com/alexvalsechi/sprklogs/commit/6e4d71a4cccdff1c31c378df4c27f2f5e4b41afa))
+* add IPC handler and frontend integration for retrieving app version ([5965d00](https://github.com/alexvalsechi/sprklogs/commit/5965d00793fef6a7e67b68758e856fc22a86bb7c))
+
 ## [0.5.0](https://github.com/alexvalsechi/sprklogs/compare/v0.4.0...v0.5.0) (2026-03-15)
 
 
