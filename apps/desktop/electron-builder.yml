@@ -6,13 +6,11 @@ directories:
 npmRebuild: false
 nodeGypRebuild: false
 files:
-  - main/**/*
-  - preload/**/*
+  - dist/**/*
   - renderer/**/*
   - resources/**/*
   - package.json
   - electron-builder.yml
-  - main/scripts/**/*
 win:
   target:
     - target: nsis
