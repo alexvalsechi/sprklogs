@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Electron shell for local Spark ZIP reduction + backend LLM analysis",
-  "author": "Spark Log Analyzer Team",
+  "author": "SprkLogs Team",
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc",

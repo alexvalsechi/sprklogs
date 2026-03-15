@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -110,6 +110,21 @@ nav {
 }
 
 .nav-btn:hover { opacity: 0.82; }
+
+.lang-toggle {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.lang-toggle:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
 /* HERO */
 #hero {
@@ -793,6 +808,37 @@ footer {
 
 .foot-links a:hover { color: var(--text); }
 
+.nav-github {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-github:hover { color: var(--text); }
+
+.nav-github svg { display: block; }
+
+/* WINDOWS DOWNLOAD BUTTONS */
+#nav-download-exe,
+#cta-download-exe {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#nav-download-exe::before,
+#cta-download-exe::before {
+  content: '';
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
 /* ANIMATIONS */
 .fade {
   opacity: 0;
@@ -832,82 +878,86 @@ footer {
     SprkLogs
   </a>
   <div class="nav-right">
-    <a href="#how" class="nav-link">Como funciona</a>
-    <a href="#reduction" class="nav-link">A redução</a>
-    <a href="#whynot" class="nav-link">Por que não ChatGPT</a>
-    <a href="#" id="nav-download-exe" class="nav-btn">Baixar .exe</a>
+    <a href="#how" class="nav-link" data-i18n="nav.how">How it works</a>
+    <a href="#reduction" class="nav-link" data-i18n="nav.reduction">The reduction</a>
+    <a href="#whynot" class="nav-link" data-i18n="nav.whynot">Why not ChatGPT</a>
+    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub repository (Open Source)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+    </a>
+    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">PT-BR</button>
+    <a href="#" id="nav-download-exe" class="nav-btn" data-i18n="nav.download">Download .exe</a>
   </div>
 </nav>
 
 <!-- HERO -->
 <section id="hero">
   <div class="hero-left">
-    <p class="hero-eyebrow">Análise de Performance · Apache Spark</p>
+    <p class="hero-eyebrow" data-i18n="hero.eyebrow">Performance Analysis · Apache Spark</p>
 
-    <h1 class="hero-h1">
-      Analise logs Spark<br>
-      <em>sem gastar</em><br>
-      todos os tokens.
+    <h1 class="hero-h1" data-i18n="hero.h1">
+      Analyze Spark logs<br>
+      <em>without burning</em><br>
+      all your tokens.
     </h1>
 
-    <p class="hero-body">
-      Logs do Spark UI chegam a 1 GB. Nenhuma LLM processa isso direto.
-      O SprkLogs faz a análise funcionar - <strong>você sobe o log, recebe o diagnóstico técnico com gargalos e recomendações</strong>. Sem custo absurdo de tokens, sem contexto estourado.
+    <p class="hero-body" data-i18n="hero.body">
+      Spark UI logs can reach 1 GB. No LLM processes that directly.
+      SprkLogs makes the analysis work — <strong>you upload the log, get a technical diagnosis with bottlenecks and recommendations</strong>. No absurd token cost, no blown context window.
     </p>
 
     <div class="hero-actions">
-      <a href="#cta" class="btn-main">Analisar meu log</a>
-      <a href="#how" class="btn-ghost">Como funciona →</a>
+      <a href="#cta" class="btn-main" data-i18n="hero.btnAnalyze">Analyze my log</a>
+      <a href="#how" class="btn-ghost" data-i18n="hero.btnHow">How it works →</a>
     </div>
 
     <div class="hero-stats">
       <div>
         <span class="hstat-n">1 GB+</span>
-        <span class="hstat-l">logs suportados</span>
+        <span class="hstat-l" data-i18n="hero.statLogsLabel">logs supported</span>
       </div>
       <div>
-        <span class="hstat-n" style="color:var(--accent)">Gargalos</span>
-        <span class="hstat-l">priorizados por impacto</span>
+        <span class="hstat-n" style="color:var(--accent)" data-i18n="hero.statBottlenecks">Bottlenecks</span>
+        <span class="hstat-l" data-i18n="hero.statBottlenecksLabel">prioritized by impact</span>
       </div>
       <div>
-        <span class="hstat-n">Evidência</span>
-        <span class="hstat-l">do próprio job</span>
+        <span class="hstat-n" data-i18n="hero.statEvidence">Evidence</span>
+        <span class="hstat-l" data-i18n="hero.statEvidenceLabel">from the job itself</span>
       </div>
     </div>
   </div>
 
   <div class="hero-right fade">
-    <p class="rv-label">O que o SprkLogs entrega</p>
+    <p class="rv-label" data-i18n="hero.rvLabel">What SprkLogs delivers</p>
 
     <div style="display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:3px; overflow:hidden; margin-bottom:32px;">
       <div style="padding:20px 24px; background:var(--surface); border-bottom:1px solid var(--line);">
-        <div style="font-family:var(--mono); font-size:11px; color:var(--dim); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;">Você traz</div>
-        <div style="font-size:16px; font-weight:300; color:var(--text);">O event log do job Spark - pode ser 400 MB, pode ser 1 GB.</div>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--dim); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;" data-i18n="hero.youBringLabel">You bring</div>
+        <div style="font-size:16px; font-weight:300; color:var(--text);" data-i18n="hero.youBringText">The Spark job event log — can be 400 MB, can be 1 GB.</div>
       </div>
       <div style="padding:20px 24px; background:var(--surface);">
-        <div style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;">SprkLogs entrega</div>
-        <div style="font-size:16px; font-weight:300; color:var(--text); line-height:1.7;">Diagnóstico técnico com gargalos por stage, causa raiz identificada e recomendações prontas para implementar.</div>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;" data-i18n="hero.deliversLabel">SprkLogs delivers</div>
+        <div style="font-size:16px; font-weight:300; color:var(--text); line-height:1.7;" data-i18n="hero.deliversText">Technical diagnosis with bottlenecks by stage, identified root cause and recommendations ready to implement.</div>
       </div>
     </div>
 
-    <p class="rv-caption">
-      Funciona para logs que nenhuma LLM conseguiria processar diretamente. <strong>O tamanho do arquivo não é mais uma limitação.</strong>
+    <p class="rv-caption" data-i18n="hero.rvCaption">
+      Works for logs no LLM could process directly. <strong>File size is no longer a limitation.</strong>
     </p>
   </div>
 </section>
 
 <div class="problem-strip">
-  <div class="ps-item">
-    <strong>O problema</strong>
-    Logs do Spark UI chegam a 1 GB. Jogar isso direto numa LLM não funciona - contexto estoura ou o custo é absurdo.
+  <div class="ps-item" data-i18n="problem.p1">
+    <strong>The problem</strong>
+    Spark UI logs can reach 1 GB. Sending that directly to an LLM doesn’t work — context blows up or the cost is absurd.
   </div>
-  <div class="ps-item">
-    <strong>A tentação</strong>
-    Subir o log no ChatGPT e esperar uma análise. Na prática: truncamento, alucinação ou erro de contexto.
+  <div class="ps-item" data-i18n="problem.p2">
+    <strong>The temptation</strong>
+    Upload the log to ChatGPT and expect an analysis. In practice: truncation, hallucination or context error.
   </div>
-  <div class="ps-item">
-    <strong>O que o SprkLogs faz</strong>
-    Trata o log internamente antes de qualquer chamada à IA. Você recebe o diagnóstico, não a conta de tokens.
+  <div class="ps-item" data-i18n="problem.p3">
+    <strong>What SprkLogs does</strong>
+    Processes the log internally before any AI call. You get the diagnosis, not the token bill.
   </div>
 </div>
 
@@ -915,50 +965,50 @@ footer {
 <section id="how">
   <div class="section-top fade">
     <div>
-      <p class="section-tag">Como funciona</p>
-      <h2 class="section-h2">Cinco etapas.<br><em>Uma só análise.</em></h2>
+      <p class="section-tag" data-i18n="how.tag">How it works</p>
+      <h2 class="section-h2" data-i18n="how.h2">Five steps.<br><em>One analysis.</em></h2>
     </div>
-    <p class="section-top-right">Do arquivo bruto ao diagnóstico técnico com evidências do próprio job.</p>
+    <p class="section-top-right" data-i18n="how.desc">From the raw file to the technical diagnosis with evidence from the job itself.</p>
   </div>
 
   <div class="step-row fade">
     <span class="step-n">01</span>
-    <div class="step-title">Ingestão do event log</div>
-    <div class="step-body">
-      Você sobe o ZIP do event log do Spark e, opcionalmente, os <strong>arquivos .py do job PySpark</strong>. Nenhuma configuração extra. Nenhum servidor para configurar.
-      <span class="step-chip">ENTRADA</span>
+    <div class="step-title" data-i18n="how.step1.title">Event log ingestion</div>
+    <div class="step-body" data-i18n="how.step1.body">
+      You upload the Spark event log ZIP and, optionally, the <strong>PySpark job .py files</strong>. No extra configuration. No server to set up.
+      <span class="step-chip">INPUT</span>
     </div>
   </div>
   <div class="step-row fade">
     <span class="step-n">02</span>
-    <div class="step-title">Redução inteligente</div>
-    <div class="step-body">
-      O sistema transforma centenas de MB num <strong>relatório técnico compacto de alguns KB</strong>. Apenas os sinais que importam: KPIs por estágio, tasks lentas, padrões anômalos. O ruído é descartado.
-      <span class="step-chip">TRUNFO DO PRODUTO</span>
+    <div class="step-title" data-i18n="how.step2.title">Smart reduction</div>
+    <div class="step-body" data-i18n="how.step2.body">
+      The system transforms hundreds of MB into a <strong>compact technical report of a few KB</strong>. Only the signals that matter: KPIs by stage, slow tasks, anomalous patterns. The noise is discarded.
+      <span class="step-chip">CORE FEATURE</span>
     </div>
   </div>
   <div class="step-row fade">
     <span class="step-n">03</span>
-    <div class="step-title">Análise assíncrona</div>
-    <div class="step-body">
-      O relatório reduzido - não o log original - é enviado à LLM. A análise roda em background e <strong>você acompanha em tempo real</strong>. Sem timeout. Sem contexto estourado.
+    <div class="step-title" data-i18n="how.step3.title">Async analysis</div>
+    <div class="step-body" data-i18n="how.step3.body">
+      The reduced report — not the original log — is sent to the LLM. The analysis runs in the background and <strong>you follow it in real time</strong>. No timeout. No blown context.
       <span class="step-chip">BACKEND</span>
     </div>
   </div>
   <div class="step-row fade">
     <span class="step-n">04</span>
-    <div class="step-title">Diagnóstico com evidência</div>
-    <div class="step-body">
-      O painel exibe resumo executivo, tabela de stages e <strong>recomendações priorizadas por impacto</strong>. Cada apontamento é rastreável ao dado real do log - não uma suposição genérica.
-      <span class="step-chip">SAÍDA</span>
+    <div class="step-title" data-i18n="how.step4.title">Diagnosis with evidence</div>
+    <div class="step-body" data-i18n="how.step4.body">
+      The panel shows an executive summary, stage table and <strong>recommendations prioritized by impact</strong>. Each finding is traceable to the real log data — not a generic assumption.
+      <span class="step-chip">OUTPUT</span>
     </div>
   </div>
   <div class="step-row fade">
     <span class="step-n">05</span>
-    <div class="step-title">Exportação para ação</div>
-    <div class="step-body">
-      Resultado em <strong>Markdown e JSON</strong>. Pronto para o PR, o Confluence ou o plano de otimização da sprint.
-      <span class="step-chip">EXPORTAÇÃO</span>
+    <div class="step-title" data-i18n="how.step5.title">Export for action</div>
+    <div class="step-body" data-i18n="how.step5.body">
+      Output in <strong>Markdown and JSON</strong>. Ready for the PR, Confluence or the sprint optimization plan.
+      <span class="step-chip">EXPORT</span>
     </div>
   </div>
 </section>
@@ -967,34 +1017,34 @@ footer {
 <div id="reduction">
   <div class="red-grid">
     <div class="red-panel fade">
-      <p class="red-tag">O desafio</p>
-      <h3 class="red-title">Logs de 1 GB+<br>não cabem<br>numa LLM.</h3>
-      <p class="red-body">
-        O Spark UI gera arquivos de log enormes - proporcional à complexidade e duração do job. Um pipeline de produção realista produz facilmente centenas de MB ou mais de 1 GB de dados de execução.
+      <p class="red-tag" data-i18n="red.challengeTag">The challenge</p>
+      <h3 class="red-title" data-i18n="red.challengeTitle">1 GB+ logs<br>don’t fit<br>in an LLM.</h3>
+      <p class="red-body" data-i18n="red.challengeBody">
+        Spark UI generates huge log files — proportional to the job’s complexity and duration. A realistic production pipeline easily produces hundreds of MB or over 1 GB of execution data.
         <br><br>
-        Enviar isso direto a uma IA não é uma opção: o modelo trunca, o contexto estoura, ou a conta de tokens chega antes do diagnóstico.
+        Sending this directly to an AI is not an option: the model truncates, context blows up, or the token bill arrives before the diagnosis.
       </p>
     </div>
 
     <div class="red-panel fade">
-      <p class="red-tag">A solução</p>
-      <h3 class="red-title">SprkLogs trata<br>o log antes<br>da IA.</h3>
-      <p class="red-body">
-        O sistema processa o log internamente e entrega à IA apenas o que é necessário para um diagnóstico técnico preciso - os sinais de performance por stage, indicadores de problema e padrões relevantes.
+      <p class="red-tag" data-i18n="red.solutionTag">The solution</p>
+      <h3 class="red-title" data-i18n="red.solutionTitle">SprkLogs processes<br>the log before<br>the AI.</h3>
+      <p class="red-body" data-i18n="red.solutionBody">
+        The system processes the log internally and delivers to the AI only what is needed for a precise technical diagnosis — the performance signals by stage, problem indicators and relevant patterns.
         <br><br>
-        <strong>Resultado: você analisa jobs de qualquer tamanho, sem custo de tokens proporcional ao arquivo e sem limite de contexto.</strong>
+        <strong>Result: you analyze jobs of any size, without token cost proportional to the file and without context limits.</strong>
       </p>
       <div class="token-table">
         <div class="tt-row">
-          <span class="tt-label">Log direto à LLM</span>
-          <span class="tt-val tt-bad">Inviável ou caro demais</span>
+          <span class="tt-label" data-i18n="red.table.row1label">Log directly to LLM</span>
+          <span class="tt-val tt-bad" data-i18n="red.table.row1val">Unfeasible or too expensive</span>
         </div>
         <div class="tt-row">
-          <span class="tt-label">Com SprkLogs</span>
-          <span class="tt-val tt-good">Diagnóstico completo</span>
+          <span class="tt-label" data-i18n="red.table.row2label">With SprkLogs</span>
+          <span class="tt-val tt-good" data-i18n="red.table.row2val">Complete diagnosis</span>
         </div>
         <div class="tt-row">
-          <span class="tt-label">Tamanho do log suportado</span>
+          <span class="tt-label" data-i18n="red.table.row3label">Supported log size</span>
           <span class="tt-big">1 GB+</span>
         </div>
       </div>
@@ -1006,40 +1056,40 @@ footer {
 <section id="whynot">
   <div class="whynot-grid">
     <div class="fade">
-      <p class="section-tag">Por que não simplesmente jogar no ChatGPT</p>
-      <h2 class="section-h2">Porque<br>o log<br><em>não cabe.</em></h2>
-      <p class="whynot-body">
-        A lógica parece simples: sobe o log, pede análise. Mas um log de Spark de produção tem tamanho proporcional à complexidade do job - e qualquer tentativa de enviá-lo direto a uma LLM esbarra no limite de contexto ou num custo inviável.
+      <p class="section-tag" data-i18n="whynot.tag">Why not just throw it at ChatGPT</p>
+      <h2 class="section-h2" data-i18n="whynot.h2">Because<br>the log<br><em>doesn’t fit.</em></h2>
+      <p class="whynot-body" data-i18n="whynot.body">
+        The logic seems simple: upload the log, ask for analysis. But a production Spark log has a size proportional to the job’s complexity — and any attempt to send it directly to an LLM hits the context limit or an unfeasible cost.
         <br><br>
-        Antes do SprkLogs, a alternativa real era navegar o Spark UI manualmente, stage por stage, e construir o contexto à mão. <strong>Horas de trabalho para o que o SprkLogs entrega em minutos.</strong>
+        Before SprkLogs, the real alternative was manually navigating Spark UI, stage by stage, and building context by hand. <strong>Hours of work for what SprkLogs delivers in minutes.</strong>
       </p>
     </div>
 
     <div class="fade">
       <div class="contrast-list">
         <div class="ci">
-          <span class="ci-side ci-bad">Sem SprkLogs</span>
-          <p class="ci-text">Log enviado direto à LLM. <strong>Contexto estoura</strong>, modelo trunca os dados ou recusa o arquivo.</p>
+          <span class="ci-side ci-bad" data-i18n="whynot.ci1side">Without SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci1text">Log sent directly to LLM. <strong>Context blows up</strong>, model truncates the data or rejects the file.</p>
         </div>
         <div class="ci">
-          <span class="ci-side ci-good">Com SprkLogs</span>
-          <p class="ci-text">O sistema processa o log antes da IA. LLM recebe <strong>o que precisa para diagnosticar</strong> - não o arquivo inteiro.</p>
+          <span class="ci-side ci-good" data-i18n="whynot.ci2side">With SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci2text">The system processes the log before the AI. LLM receives <strong>what it needs to diagnose</strong> — not the entire file.</p>
         </div>
         <div class="ci">
-          <span class="ci-side ci-bad">Sem SprkLogs</span>
-          <p class="ci-text">Análise genérica sem base no job. A IA sugere coisas que <strong>não têm relação com o seu contexto de execução</strong>.</p>
+          <span class="ci-side ci-bad" data-i18n="whynot.ci3side">Without SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci3text">Generic analysis with no basis in the job. The AI suggests things that <strong>have no relation to your execution context</strong>.</p>
         </div>
         <div class="ci">
-          <span class="ci-side ci-good">Com SprkLogs</span>
-          <p class="ci-text">Cada recomendação é rastreável ao dado real: <strong>stage, duração, distribuição de tasks, padrão detectado</strong>.</p>
+          <span class="ci-side ci-good" data-i18n="whynot.ci4side">With SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci4text">Each recommendation is traceable to real data: <strong>stage, duration, task distribution, detected pattern</strong>.</p>
         </div>
         <div class="ci">
-          <span class="ci-side ci-bad">Sem SprkLogs</span>
-          <p class="ci-text">Custo de tokens proporcional ao tamanho do arquivo - <strong>inviável para logs de produção</strong>.</p>
+          <span class="ci-side ci-bad" data-i18n="whynot.ci5side">Without SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci5text">Token cost proportional to file size — <strong>unfeasible for production logs</strong>.</p>
         </div>
         <div class="ci">
-          <span class="ci-side ci-good">Com SprkLogs</span>
-          <p class="ci-text"><strong>Custo fixo e previsível</strong>, independente de o log ter 100 MB ou 1 GB.</p>
+          <span class="ci-side ci-good" data-i18n="whynot.ci6side">With SprkLogs</span>
+          <p class="ci-text" data-i18n="whynot.ci6text"><strong>Fixed and predictable cost</strong>, regardless of whether the log is 100 MB or 1 GB.</p>
         </div>
       </div>
     </div>
@@ -1050,40 +1100,40 @@ footer {
 <section id="differentials">
   <div class="diff-layout">
     <div class="diff-sticky fade">
-      <p class="section-tag">Diferenciais</p>
-      <h2 class="section-h2">O que nos<br>separa do<br><em>óbvio.</em></h2>
-      <p>Não somos um wrapper de ChatGPT para logs. Somos um sistema de redução e análise especializado em Spark.</p>
+      <p class="section-tag" data-i18n="diff.tag">Differentials</p>
+      <h2 class="section-h2" data-i18n="diff.h2">What sets us<br>apart from<br><em>the obvious.</em></h2>
+      <p data-i18n="diff.desc">We are not a ChatGPT wrapper for logs. We are a reduction and analysis system specialized in Spark.</p>
     </div>
     <div class="diff-cells fade">
       <div class="dc">
         <p class="dc-n">01</p>
-        <h4 class="dc-title">Funciona com logs reais</h4>
-        <p class="dc-desc">Logs de produção chegam a 1 GB. O SprkLogs foi construído para isso - sem limitação por tamanho de arquivo ou custo absurdo de tokens.</p>
+        <h4 class="dc-title" data-i18n="diff.dc1.title">Works with real logs</h4>
+        <p class="dc-desc" data-i18n="diff.dc1.desc">Production logs reach 1 GB. SprkLogs was built for this — no file size limitation or absurd token cost.</p>
       </div>
       <div class="dc">
         <p class="dc-n">02</p>
-        <h4 class="dc-title">Diagnóstico com evidência</h4>
-        <p class="dc-desc">Cada recomendação é rastreável a um dado real de execução. Stage ID, duração, distribuição de tasks - não suposições genéricas.</p>
+        <h4 class="dc-title" data-i18n="diff.dc2.title">Diagnosis with evidence</h4>
+        <p class="dc-desc" data-i18n="diff.dc2.desc">Each recommendation is traceable to a real execution data point. Stage ID, duration, task distribution — not generic assumptions.</p>
       </div>
       <div class="dc">
         <p class="dc-n">03</p>
-        <h4 class="dc-title">Múltiplos provedores de IA</h4>
-        <p class="dc-desc">OpenAI, Anthropic, Gemini. Escolha o provedor que se adapta à sua política de privacidade e governança de dados.</p>
+        <h4 class="dc-title" data-i18n="diff.dc3.title">AI providers</h4>
+        <p class="dc-desc" data-i18n="diff.dc3.desc">OpenAI or Gemini. Choose the provider that fits your privacy policy and data governance.</p>
       </div>
       <div class="dc">
         <p class="dc-n">04</p>
-        <h4 class="dc-title">Arquitetura desktop híbrida</h4>
-        <p class="dc-desc">Processamento local do log antes de qualquer chamada externa. Base sólida para estratégia de privacidade de dados sensíveis.</p>
+        <h4 class="dc-title" data-i18n="diff.dc4.title">Hybrid desktop architecture</h4>
+        <p class="dc-desc" data-i18n="diff.dc4.desc">Local log processing before any external call. A solid foundation for sensitive data privacy strategy.</p>
       </div>
       <div class="dc">
         <p class="dc-n">05</p>
-        <h4 class="dc-title">Interface para engenheiros</h4>
-        <p class="dc-desc">Construída para quem vive no Spark UI. Terminologia técnica correta, fluxo direto, sem camada de abstração para leigos.</p>
+        <h4 class="dc-title" data-i18n="diff.dc5.title">Interface for engineers</h4>
+        <p class="dc-desc" data-i18n="diff.dc5.desc">Built for those who live in Spark UI. Correct technical terminology, direct flow, no abstraction layer for non-experts.</p>
       </div>
       <div class="dc">
         <p class="dc-n">06</p>
-        <h4 class="dc-title">Saída pronta para uso</h4>
-        <p class="dc-desc">Markdown e JSON exportáveis. Cole no PR, no Confluence ou use como base para o plano de otimização da sprint.</p>
+        <h4 class="dc-title" data-i18n="diff.dc6.title">Output ready to use</h4>
+        <p class="dc-desc" data-i18n="diff.dc6.desc">Exportable Markdown and JSON. Paste it in the PR, Confluence or use as the basis for the sprint optimization plan.</p>
       </div>
     </div>
   </div>
@@ -1092,39 +1142,39 @@ footer {
 <!-- FOR WHOM -->
 <section id="whom" style="border-top:1px solid var(--line)">
   <div class="whom-header fade">
-    <p class="section-tag">Para quem</p>
-    <h2 class="section-h2">Quem vive <em>dentro do Spark.</em></h2>
+    <p class="section-tag" data-i18n="whom.tag">For whom</p>
+    <h2 class="section-h2" data-i18n="whom.h2">Those who live <em>inside Spark.</em></h2>
   </div>
   <div class="whom-cells fade">
     <div class="wc">
-      <p class="wc-role"><span class="role-dot"></span>Engenheiro de Dados</p>
-      <h4 class="wc-title">Jobs lentos<br>em produção.</h4>
-      <p class="wc-desc">Diagnostique a causa raiz sem horas de leitura manual do Spark UI. <strong>O SprkLogs entrega o gargalo priorizado</strong> com stage ID, métrica e recomendação específica para o seu job.</p>
+      <p class="wc-role"><span class="role-dot"></span><span data-i18n="whom.wc1.role">Data Engineer</span></p>
+      <h4 class="wc-title" data-i18n="whom.wc1.title">Slow jobs<br>in production.</h4>
+      <p class="wc-desc" data-i18n="whom.wc1.desc">Diagnose the root cause without hours of manual Spark UI reading. <strong>SprkLogs delivers the prioritized bottleneck</strong> with stage ID, metric and recommendation specific to your job.</p>
     </div>
     <div class="wc">
-      <p class="wc-role"><span class="role-dot"></span>Analista de Dados</p>
-      <h4 class="wc-title">PySpark sem<br>saber tuning.</h4>
-      <p class="wc-desc">Você escreve o job, ele roda devagar, você não sabe por onde começar. <strong>O SprkLogs explica em linguagem técnica clara</strong> o que está errado e como corrigir.</p>
+      <p class="wc-role"><span class="role-dot"></span><span data-i18n="whom.wc2.role">Data Analyst</span></p>
+      <h4 class="wc-title" data-i18n="whom.wc2.title">PySpark without<br>knowing tuning.</h4>
+      <p class="wc-desc" data-i18n="whom.wc2.desc">You write the job, it runs slowly, you don’t know where to start. <strong>SprkLogs explains in clear technical language</strong> what is wrong and how to fix it.</p>
     </div>
     <div class="wc">
-      <p class="wc-role"><span class="role-dot"></span>Arquiteto de Dados</p>
-      <h4 class="wc-title">Decisões com<br>evidência real.</h4>
-      <p class="wc-desc">Valide mudanças de arquitetura com dados de execução real. <strong>Justifique reparticionamento, ajuste de shuffle</strong> e mudanças de infraestrutura com métricas extraídas do próprio job.</p>
+      <p class="wc-role"><span class="role-dot"></span><span data-i18n="whom.wc3.role">Data Architect</span></p>
+      <h4 class="wc-title" data-i18n="whom.wc3.title">Decisions with<br>real evidence.</h4>
+      <p class="wc-desc" data-i18n="whom.wc3.desc">Validate architecture changes with real execution data. <strong>Justify repartitioning, shuffle tuning</strong> and infrastructure changes with metrics extracted from the job itself.</p>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
 <section id="cta">
-  <p class="section-tag" style="text-align:center">Pronto para começar</p>
-  <h2 class="cta-h fade">Traga o seu log.<br><em>Leve o diagnóstico.</em></h2>
-  <p class="cta-sub">Suba o event log do seu job Spark e receba um diagnóstico técnico completo - sem estourar contexto, sem tokens desperdiçados.</p>
+  <p class="section-tag" style="text-align:center" data-i18n="cta.tag">Ready to start</p>
+  <h2 class="cta-h fade" data-i18n="cta.h">Bring your log.<br><em>Leave with the diagnosis.</em></h2>
+  <p class="cta-sub" data-i18n="cta.sub">Upload your Spark job event log and receive a complete technical diagnosis — no blown context, no wasted tokens.</p>
   <div class="cta-actions">
-    <a href="#" class="btn-main">Analisar meu log Spark</a>
-    <a href="#" id="cta-download-exe" class="btn-main disabled">Baixar instalador .exe</a>
-    <a href="#how" class="btn-ghost">Como funciona →</a>
+    <a href="#" class="btn-main" data-i18n="cta.btnAnalyze">Analyze my Spark log</a>
+    <a href="#" id="cta-download-exe" class="btn-main disabled" data-i18n="cta.btnDownload">Download .exe installer</a>
+    <a href="#how" class="btn-ghost" data-i18n="cta.btnHow">How it works →</a>
   </div>
-  <p class="cta-note">Arquitetura desktop híbrida · Redução de log antes da IA · Diagnóstico com evidência</p>
+  <p class="cta-note" data-i18n="cta.note">Hybrid desktop architecture · Log reduction before AI · Evidence-based diagnosis</p>
 </section>
 
 <footer>
@@ -1134,14 +1184,259 @@ footer {
   </a>
   <span class="foot-copy">© 2025 SprkLogs</span>
   <div class="foot-links">
-    <a href="#">Docs</a>
-    <a href="#">Privacidade</a>
-    <a href="#">Contato</a>
+    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+      <span data-i18n="footer.openSource">Open Source</span>
+    </a>
+    <a href="#" data-i18n="footer.docs">Docs</a>
+    <a href="#" data-i18n="footer.privacy">Privacy</a>
+    <a href="#" data-i18n="footer.contact">Contact</a>
   </div>
 </footer>
 
 <script>
-  // Scroll fade-in
+  /* ===================== i18n ===================== */
+  const TRANSLATIONS = {
+    en: {
+      'html.lang': 'en',
+      'lang.toggle': 'PT-BR',
+      'nav.how': 'How it works',
+      'nav.reduction': 'The reduction',
+      'nav.whynot': 'Why not ChatGPT',
+      'nav.download': 'Download .exe',
+      'hero.eyebrow': 'Performance Analysis \u00b7 Apache Spark',
+      'hero.h1': 'Analyze Spark logs<br><em>without burning</em><br>all your tokens.',
+      'hero.body': 'Spark UI logs can reach 1 GB. No LLM processes that directly. SprkLogs makes the analysis work \u2014 <strong>you upload the log, get a technical diagnosis with bottlenecks and recommendations</strong>. No absurd token cost, no blown context window.',
+      'hero.btnAnalyze': 'Analyze my log',
+      'hero.btnHow': 'How it works \u2192',
+      'hero.statLogsLabel': 'logs supported',
+      'hero.statBottlenecks': 'Bottlenecks',
+      'hero.statBottlenecksLabel': 'prioritized by impact',
+      'hero.statEvidence': 'Evidence',
+      'hero.statEvidenceLabel': 'from the job itself',
+      'hero.rvLabel': 'What SprkLogs delivers',
+      'hero.youBringLabel': 'You bring',
+      'hero.youBringText': 'The Spark job event log \u2014 can be 400 MB, can be 1 GB.',
+      'hero.deliversLabel': 'SprkLogs delivers',
+      'hero.deliversText': 'Technical diagnosis with bottlenecks by stage, identified root cause and recommendations ready to implement.',
+      'hero.rvCaption': 'Works for logs no LLM could process directly. <strong>File size is no longer a limitation.</strong>',
+      'problem.p1': '<strong>The problem</strong>\n    Spark UI logs can reach 1 GB. Sending that directly to an LLM doesn\u2019t work \u2014 context blows up or the cost is absurd.',
+      'problem.p2': '<strong>The temptation</strong>\n    Upload the log to ChatGPT and expect an analysis. In practice: truncation, hallucination or context error.',
+      'problem.p3': '<strong>What SprkLogs does</strong>\n    Processes the log internally before any AI call. You get the diagnosis, not the token bill.',
+      'how.tag': 'How it works',
+      'how.h2': 'Five steps.<br><em>One analysis.</em>',
+      'how.desc': 'From the raw file to the technical diagnosis with evidence from the job itself.',
+      'how.step1.title': 'Event log ingestion',
+      'how.step1.body': 'You upload the Spark event log ZIP and, optionally, the <strong>PySpark job .py files</strong>. No extra configuration. No server to set up.\n      <span class="step-chip">INPUT</span>',
+      'how.step2.title': 'Smart reduction',
+      'how.step2.body': 'The system transforms hundreds of MB into a <strong>compact technical report of a few KB</strong>. Only the signals that matter: KPIs by stage, slow tasks, anomalous patterns. The noise is discarded.\n      <span class="step-chip">CORE FEATURE</span>',
+      'how.step3.title': 'Async analysis',
+      'how.step3.body': 'The reduced report \u2014 not the original log \u2014 is sent to the LLM. The analysis runs in the background and <strong>you follow it in real time</strong>. No timeout. No blown context.\n      <span class="step-chip">BACKEND</span>',
+      'how.step4.title': 'Diagnosis with evidence',
+      'how.step4.body': 'The panel shows an executive summary, stage table and <strong>recommendations prioritized by impact</strong>. Each finding is traceable to the real log data \u2014 not a generic assumption.\n      <span class="step-chip">OUTPUT</span>',
+      'how.step5.title': 'Export for action',
+      'how.step5.body': 'Output in <strong>Markdown and JSON</strong>. Ready for the PR, Confluence or the sprint optimization plan.\n      <span class="step-chip">EXPORT</span>',
+      'red.challengeTag': 'The challenge',
+      'red.challengeTitle': '1 GB+ logs<br>don\u2019t fit<br>in an LLM.',
+      'red.challengeBody': 'Spark UI generates huge log files \u2014 proportional to the job\u2019s complexity and duration. A realistic production pipeline easily produces hundreds of MB or over 1 GB of execution data.<br><br>Sending this directly to an AI is not an option: the model truncates, context blows up, or the token bill arrives before the diagnosis.',
+      'red.solutionTag': 'The solution',
+      'red.solutionTitle': 'SprkLogs processes<br>the log before<br>the AI.',
+      'red.solutionBody': 'The system processes the log internally and delivers to the AI only what is needed for a precise technical diagnosis \u2014 the performance signals by stage, problem indicators and relevant patterns.<br><br><strong>Result: you analyze jobs of any size, without token cost proportional to the file and without context limits.</strong>',
+      'red.table.row1label': 'Log directly to LLM',
+      'red.table.row1val': 'Unfeasible or too expensive',
+      'red.table.row2label': 'With SprkLogs',
+      'red.table.row2val': 'Complete diagnosis',
+      'red.table.row3label': 'Supported log size',
+      'whynot.tag': 'Why not just throw it at ChatGPT',
+      'whynot.h2': 'Because<br>the log<br><em>doesn\u2019t fit.</em>',
+      'whynot.body': 'The logic seems simple: upload the log, ask for analysis. But a production Spark log has a size proportional to the job\u2019s complexity \u2014 and any attempt to send it directly to an LLM hits the context limit or an unfeasible cost.<br><br>Before SprkLogs, the real alternative was manually navigating Spark UI, stage by stage, and building context by hand. <strong>Hours of work for what SprkLogs delivers in minutes.</strong>',
+      'whynot.ci1side': 'Without SprkLogs',
+      'whynot.ci1text': 'Log sent directly to LLM. <strong>Context blows up</strong>, model truncates the data or rejects the file.',
+      'whynot.ci2side': 'With SprkLogs',
+      'whynot.ci2text': 'The system processes the log before the AI. LLM receives <strong>what it needs to diagnose</strong> \u2014 not the entire file.',
+      'whynot.ci3side': 'Without SprkLogs',
+      'whynot.ci3text': 'Generic analysis with no basis in the job. The AI suggests things that <strong>have no relation to your execution context</strong>.',
+      'whynot.ci4side': 'With SprkLogs',
+      'whynot.ci4text': 'Each recommendation is traceable to real data: <strong>stage, duration, task distribution, detected pattern</strong>.',
+      'whynot.ci5side': 'Without SprkLogs',
+      'whynot.ci5text': 'Token cost proportional to file size \u2014 <strong>unfeasible for production logs</strong>.',
+      'whynot.ci6side': 'With SprkLogs',
+      'whynot.ci6text': '<strong>Fixed and predictable cost</strong>, regardless of whether the log is 100 MB or 1 GB.',
+      'diff.tag': 'Differentials',
+      'diff.h2': 'What sets us<br>apart from<br><em>the obvious.</em>',
+      'diff.desc': 'We are not a ChatGPT wrapper for logs. We are a reduction and analysis system specialized in Spark.',
+      'diff.dc1.title': 'Works with real logs',
+      'diff.dc1.desc': 'Production logs reach 1 GB. SprkLogs was built for this \u2014 no file size limitation or absurd token cost.',
+      'diff.dc2.title': 'Diagnosis with evidence',
+      'diff.dc2.desc': 'Each recommendation is traceable to a real execution data point. Stage ID, duration, task distribution \u2014 not generic assumptions.',
+      'diff.dc3.title': 'AI providers',
+      'diff.dc3.desc': 'OpenAI or Gemini. Choose the provider that fits your privacy policy and data governance.',
+      'diff.dc4.title': 'Hybrid desktop architecture',
+      'diff.dc4.desc': 'Local log processing before any external call. A solid foundation for sensitive data privacy strategy.',
+      'diff.dc5.title': 'Interface for engineers',
+      'diff.dc5.desc': 'Built for those who live in Spark UI. Correct technical terminology, direct flow, no abstraction layer for non-experts.',
+      'diff.dc6.title': 'Output ready to use',
+      'diff.dc6.desc': 'Exportable Markdown and JSON. Paste it in the PR, Confluence or use as the basis for the sprint optimization plan.',
+      'whom.tag': 'For whom',
+      'whom.h2': 'Those who live <em>inside Spark.</em>',
+      'whom.wc1.role': 'Data Engineer',
+      'whom.wc1.title': 'Slow jobs<br>in production.',
+      'whom.wc1.desc': 'Diagnose the root cause without hours of manual Spark UI reading. <strong>SprkLogs delivers the prioritized bottleneck</strong> with stage ID, metric and recommendation specific to your job.',
+      'whom.wc2.role': 'Data Analyst',
+      'whom.wc2.title': 'PySpark without<br>knowing tuning.',
+      'whom.wc2.desc': 'You write the job, it runs slowly, you don\u2019t know where to start. <strong>SprkLogs explains in clear technical language</strong> what is wrong and how to fix it.',
+      'whom.wc3.role': 'Data Architect',
+      'whom.wc3.title': 'Decisions with<br>real evidence.',
+      'whom.wc3.desc': 'Validate architecture changes with real execution data. <strong>Justify repartitioning, shuffle tuning</strong> and infrastructure changes with metrics extracted from the job itself.',
+      'cta.tag': 'Ready to start',
+      'cta.h': 'Bring your log.<br><em>Leave with the diagnosis.</em>',
+      'cta.sub': 'Upload your Spark job event log and receive a complete technical diagnosis \u2014 no blown context, no wasted tokens.',
+      'cta.btnAnalyze': 'Analyze my Spark log',
+      'cta.btnDownload': 'Download .exe installer',
+      'cta.btnHow': 'How it works \u2192',
+      'cta.note': 'Hybrid desktop architecture \u00b7 Log reduction before AI \u00b7 Evidence-based diagnosis',
+      'footer.openSource': 'Open Source',
+      'footer.docs': 'Docs',
+      'footer.privacy': 'Privacy',
+      'footer.contact': 'Contact',
+      'exe.download': 'Download .exe installer',
+      'exe.openRelease': 'Open desktop release',
+    },
+    pt: {
+      'html.lang': 'pt-BR',
+      'lang.toggle': 'EN',
+      'nav.how': 'Como funciona',
+      'nav.reduction': 'A redu\u00e7\u00e3o',
+      'nav.whynot': 'Por que n\u00e3o ChatGPT',
+      'nav.download': 'Baixar .exe',
+      'hero.eyebrow': 'An\u00e1lise de Performance \u00b7 Apache Spark',
+      'hero.h1': 'Analise logs Spark<br><em>sem gastar</em><br>todos os tokens.',
+      'hero.body': 'Logs do Spark UI chegam a 1 GB. Nenhuma LLM processa isso direto. O SprkLogs faz a an\u00e1lise funcionar \u2014 <strong>voc\u00ea sobe o log, recebe o diagn\u00f3stico t\u00e9cnico com gargalos e recomenda\u00e7\u00f5es</strong>. Sem custo absurdo de tokens, sem contexto estourado.',
+      'hero.btnAnalyze': 'Analisar meu log',
+      'hero.btnHow': 'Como funciona \u2192',
+      'hero.statLogsLabel': 'logs suportados',
+      'hero.statBottlenecks': 'Gargalos',
+      'hero.statBottlenecksLabel': 'priorizados por impacto',
+      'hero.statEvidence': 'Evid\u00eancia',
+      'hero.statEvidenceLabel': 'do pr\u00f3prio job',
+      'hero.rvLabel': 'O que o SprkLogs entrega',
+      'hero.youBringLabel': 'Voc\u00ea traz',
+      'hero.youBringText': 'O event log do job Spark - pode ser 400 MB, pode ser 1 GB.',
+      'hero.deliversLabel': 'SprkLogs entrega',
+      'hero.deliversText': 'Diagn\u00f3stico t\u00e9cnico com gargalos por stage, causa raiz identificada e recomenda\u00e7\u00f5es prontas para implementar.',
+      'hero.rvCaption': 'Funciona para logs que nenhuma LLM conseguiria processar diretamente. <strong>O tamanho do arquivo n\u00e3o \u00e9 mais uma limita\u00e7\u00e3o.</strong>',
+      'problem.p1': '<strong>O problema</strong>\n    Logs do Spark UI chegam a 1 GB. Jogar isso direto numa LLM n\u00e3o funciona - contexto estoura ou o custo \u00e9 absurdo.',
+      'problem.p2': '<strong>A tenta\u00e7\u00e3o</strong>\n    Subir o log no ChatGPT e esperar uma an\u00e1lise. Na pr\u00e1tica: truncamento, alucina\u00e7\u00e3o ou erro de contexto.',
+      'problem.p3': '<strong>O que o SprkLogs faz</strong>\n    Trata o log internamente antes de qualquer chamada \u00e0 IA. Voc\u00ea recebe o diagn\u00f3stico, n\u00e3o a conta de tokens.',
+      'how.tag': 'Como funciona',
+      'how.h2': 'Cinco etapas.<br><em>Uma s\u00f3 an\u00e1lise.</em>',
+      'how.desc': 'Do arquivo bruto ao diagn\u00f3stico t\u00e9cnico com evid\u00eancias do pr\u00f3prio job.',
+      'how.step1.title': 'Ingest\u00e3o do event log',
+      'how.step1.body': 'Voc\u00ea sobe o ZIP do event log do Spark e, opcionalmente, os <strong>arquivos .py do job PySpark</strong>. Nenhuma configura\u00e7\u00e3o extra. Nenhum servidor para configurar.\n      <span class="step-chip">ENTRADA</span>',
+      'how.step2.title': 'Redu\u00e7\u00e3o inteligente',
+      'how.step2.body': 'O sistema transforma centenas de MB num <strong>relat\u00f3rio t\u00e9cnico compacto de alguns KB</strong>. Apenas os sinais que importam: KPIs por est\u00e1gio, tasks lentas, padr\u00f5es an\u00f4malos. O ru\u00eddo \u00e9 descartado.\n      <span class="step-chip">TRUNFO DO PRODUTO</span>',
+      'how.step3.title': 'An\u00e1lise ass\u00edncrona',
+      'how.step3.body': 'O relat\u00f3rio reduzido - n\u00e3o o log original - \u00e9 enviado \u00e0 LLM. A an\u00e1lise roda em background e <strong>voc\u00ea acompanha em tempo real</strong>. Sem timeout. Sem contexto estourado.\n      <span class="step-chip">BACKEND</span>',
+      'how.step4.title': 'Diagn\u00f3stico com evid\u00eancia',
+      'how.step4.body': 'O painel exibe resumo executivo, tabela de stages e <strong>recomenda\u00e7\u00f5es priorizadas por impacto</strong>. Cada apontamento \u00e9 rastre\u00e1vel ao dado real do log - n\u00e3o uma suposi\u00e7\u00e3o gen\u00e9rica.\n      <span class="step-chip">SA\u00cdDA</span>',
+      'how.step5.title': 'Exporta\u00e7\u00e3o para a\u00e7\u00e3o',
+      'how.step5.body': 'Resultado em <strong>Markdown e JSON</strong>. Pronto para o PR, o Confluence ou o plano de otimiza\u00e7\u00e3o da sprint.\n      <span class="step-chip">EXPORTA\u00c7\u00c3O</span>',
+      'red.challengeTag': 'O desafio',
+      'red.challengeTitle': 'Logs de 1 GB+<br>n\u00e3o cabem<br>numa LLM.',
+      'red.challengeBody': 'O Spark UI gera arquivos de log enormes - proporcional \u00e0 complexidade e dura\u00e7\u00e3o do job. Um pipeline de produ\u00e7\u00e3o realista produz facilmente centenas de MB ou mais de 1 GB de dados de execu\u00e7\u00e3o.<br><br>Enviar isso direto a uma IA n\u00e3o \u00e9 uma op\u00e7\u00e3o: o modelo trunca, o contexto estoura, ou a conta de tokens chega antes do diagn\u00f3stico.',
+      'red.solutionTag': 'A solu\u00e7\u00e3o',
+      'red.solutionTitle': 'SprkLogs trata<br>o log antes<br>da IA.',
+      'red.solutionBody': 'O sistema processa o log internamente e entrega \u00e0 IA apenas o que \u00e9 necess\u00e1rio para um diagn\u00f3stico t\u00e9cnico preciso - os sinais de performance por stage, indicadores de problema e padr\u00f5es relevantes.<br><br><strong>Resultado: voc\u00ea analisa jobs de qualquer tamanho, sem custo de tokens proporcional ao arquivo e sem limite de contexto.</strong>',
+      'red.table.row1label': 'Log direto \u00e0 LLM',
+      'red.table.row1val': 'Invi\u00e1vel ou caro demais',
+      'red.table.row2label': 'Com SprkLogs',
+      'red.table.row2val': 'Diagn\u00f3stico completo',
+      'red.table.row3label': 'Tamanho do log suportado',
+      'whynot.tag': 'Por que n\u00e3o simplesmente jogar no ChatGPT',
+      'whynot.h2': 'Porque<br>o log<br><em>n\u00e3o cabe.</em>',
+      'whynot.body': 'A l\u00f3gica parece simples: sobe o log, pede an\u00e1lise. Mas um log de Spark de produ\u00e7\u00e3o tem tamanho proporcional \u00e0 complexidade do job - e qualquer tentativa de envi\u00e1-lo direto a uma LLM esbarra no limite de contexto ou num custo invi\u00e1vel.<br><br>Antes do SprkLogs, a alternativa real era navegar o Spark UI manualmente, stage por stage, e construir o contexto \u00e0 m\u00e3o. <strong>Horas de trabalho para o que o SprkLogs entrega em minutos.</strong>',
+      'whynot.ci1side': 'Sem SprkLogs',
+      'whynot.ci1text': 'Log enviado direto \u00e0 LLM. <strong>Contexto estoura</strong>, modelo trunca os dados ou recusa o arquivo.',
+      'whynot.ci2side': 'Com SprkLogs',
+      'whynot.ci2text': 'O sistema processa o log antes da IA. LLM recebe <strong>o que precisa para diagnosticar</strong> - n\u00e3o o arquivo inteiro.',
+      'whynot.ci3side': 'Sem SprkLogs',
+      'whynot.ci3text': 'An\u00e1lise gen\u00e9rica sem base no job. A IA sugere coisas que <strong>n\u00e3o t\u00eam rela\u00e7\u00e3o com o seu contexto de execu\u00e7\u00e3o</strong>.',
+      'whynot.ci4side': 'Com SprkLogs',
+      'whynot.ci4text': 'Cada recomenda\u00e7\u00e3o \u00e9 rastre\u00e1vel ao dado real: <strong>stage, dura\u00e7\u00e3o, distribui\u00e7\u00e3o de tasks, padr\u00e3o detectado</strong>.',
+      'whynot.ci5side': 'Sem SprkLogs',
+      'whynot.ci5text': 'Custo de tokens proporcional ao tamanho do arquivo - <strong>invi\u00e1vel para logs de produ\u00e7\u00e3o</strong>.',
+      'whynot.ci6side': 'Com SprkLogs',
+      'whynot.ci6text': '<strong>Custo fixo e previs\u00edvel</strong>, independente de o log ter 100 MB ou 1 GB.',
+      'diff.tag': 'Diferenciais',
+      'diff.h2': 'O que nos<br>separa do<br><em>\u00f3bvio.</em>',
+      'diff.desc': 'N\u00e3o somos um wrapper de ChatGPT para logs. Somos um sistema de redu\u00e7\u00e3o e an\u00e1lise especializado em Spark.',
+      'diff.dc1.title': 'Funciona com logs reais',
+      'diff.dc1.desc': 'Logs de produ\u00e7\u00e3o chegam a 1 GB. O SprkLogs foi constru\u00eddo para isso - sem limita\u00e7\u00e3o por tamanho de arquivo ou custo absurdo de tokens.',
+      'diff.dc2.title': 'Diagn\u00f3stico com evid\u00eancia',
+      'diff.dc2.desc': 'Cada recomenda\u00e7\u00e3o \u00e9 rastre\u00e1vel a um dado real de execu\u00e7\u00e3o. Stage ID, dura\u00e7\u00e3o, distribui\u00e7\u00e3o de tasks - n\u00e3o suposi\u00e7\u00f5es gen\u00e9ricas.',
+      'diff.dc3.title': 'Provedores de IA',
+      'diff.dc3.desc': 'OpenAi ou Gemini. Escolha o provedor que se adapta \u00e0 sua pol\u00edtica de privacidade e governan\u00e7a de dados.',
+      'diff.dc4.title': 'Arquitetura desktop h\u00edbrida',
+      'diff.dc4.desc': 'Processamento local do log antes de qualquer chamada externa. Base s\u00f3lida para estrat\u00e9gia de privacidade de dados sens\u00edveis.',
+      'diff.dc5.title': 'Interface para engenheiros',
+      'diff.dc5.desc': 'Constru\u00edda para quem vive no Spark UI. Terminologia t\u00e9cnica correta, fluxo direto, sem camada de abstra\u00e7\u00e3o para leigos.',
+      'diff.dc6.title': 'Sa\u00edda pronta para uso',
+      'diff.dc6.desc': 'Markdown e JSON export\u00e1veis. Cole no PR, no Confluence ou use como base para o plano de otimiza\u00e7\u00e3o da sprint.',
+      'whom.tag': 'Para quem',
+      'whom.h2': 'Quem vive <em>dentro do Spark.</em>',
+      'whom.wc1.role': 'Engenheiro de Dados',
+      'whom.wc1.title': 'Jobs lentos<br>em produ\u00e7\u00e3o.',
+      'whom.wc1.desc': 'Diagnostique a causa raiz sem horas de leitura manual do Spark UI. <strong>O SprkLogs entrega o gargalo priorizado</strong> com stage ID, m\u00e9trica e recomenda\u00e7\u00e3o espec\u00edfica para o seu job.',
+      'whom.wc2.role': 'Analista de Dados',
+      'whom.wc2.title': 'PySpark sem<br>saber tuning.',
+      'whom.wc2.desc': 'Voc\u00ea escreve o job, ele roda devagar, voc\u00ea n\u00e3o sabe por onde come\u00e7ar. <strong>O SprkLogs explica em linguagem t\u00e9cnica clara</strong> o que est\u00e1 errado e como corrigir.',
+      'whom.wc3.role': 'Arquiteto de Dados',
+      'whom.wc3.title': 'Decis\u00f5es com<br>evid\u00eancia real.',
+      'whom.wc3.desc': 'Valide mudan\u00e7as de arquitetura com dados de execu\u00e7\u00e3o real. <strong>Justifique reparticionamento, ajuste de shuffle</strong> e mudan\u00e7as de infraestrutura com m\u00e9tricas extra\u00eddas do pr\u00f3prio job.',
+      'cta.tag': 'Pronto para come\u00e7ar',
+      'cta.h': 'Traga o seu log.<br><em>Leve o diagn\u00f3stico.</em>',
+      'cta.sub': 'Suba o event log do seu job Spark e receba um diagn\u00f3stico t\u00e9cnico completo - sem estourar contexto, sem tokens desperdi\u00e7ados.',
+      'cta.btnAnalyze': 'Analisar meu log Spark',
+      'cta.btnDownload': 'Baixar instalador .exe',
+      'cta.btnHow': 'Como funciona \u2192',
+      'cta.note': 'Arquitetura desktop h\u00edbrida \u00b7 Redu\u00e7\u00e3o de log antes da IA \u00b7 Diagn\u00f3stico com evid\u00eancia',
+      'footer.openSource': 'Open Source',
+      'footer.docs': 'Docs',
+      'footer.privacy': 'Privacidade',
+      'footer.contact': 'Contato',
+      'exe.download': 'Baixar instalador .exe',
+      'exe.openRelease': 'Abrir release desktop',
+    }
+  };
+
+  let currentLang = 'en';
+
+  function detectLang() {
+    const saved = localStorage.getItem('sprklogs-lang');
+    if (saved === 'en' || saved === 'pt') return saved;
+    if (window.location.hostname.endsWith('github.io')) return 'en';
+    const browserLang = (navigator.language || 'en').toLowerCase();
+    return browserLang.startsWith('pt') ? 'pt' : 'en';
+  }
+
+  function applyLang(lang) {
+    currentLang = lang;
+    const t = TRANSLATIONS[lang];
+    document.documentElement.lang = t['html.lang'];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (t[key] !== undefined) el.innerHTML = t[key];
+    });
+    const toggle = document.getElementById('lang-toggle');
+    if (toggle) toggle.textContent = t['lang.toggle'];
+    localStorage.setItem('sprklogs-lang', lang);
+  }
+
+  function toggleLang() {
+    applyLang(currentLang === 'en' ? 'pt' : 'en');
+  }
+
+  /* ===================== Scroll fade-in ===================== */
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -1168,6 +1463,7 @@ footer {
     bio.observe(bar);
   }
 
+  /* ===================== GitHub releases ===================== */
   const fallbackGithubRepo = 'alexvalsechi/sprklogs';
 
   function detectPagesRepository() {
@@ -1188,13 +1484,15 @@ footer {
     return { owner, repo };
   }
 
-  function setExeLinks(label, href, disabled) {
+  function setExeLinks(i18nKey, href, disabled) {
+    const t = TRANSLATIONS[currentLang];
     ['nav-download-exe', 'cta-download-exe'].forEach((id) => {
       const element = document.getElementById(id);
       if (!element) {
         return;
       }
-      element.textContent = label;
+      element.dataset.i18n = i18nKey;
+      element.innerHTML = t[i18nKey] || i18nKey;
       element.href = href || '#';
       element.classList.toggle('disabled', !!disabled);
     });
@@ -1209,7 +1507,7 @@ footer {
   async function hydrateExeLinks() {
     const repoInfo = detectPagesRepository();
     if (!repoInfo) {
-      setExeLinks('Abrir release desktop', `https://github.com/${fallbackGithubRepo}/releases/tag/master-latest`, false);
+      setExeLinks('exe.openRelease', `https://github.com/${fallbackGithubRepo}/releases/tag/master-latest`, false);
       return;
     }
 
@@ -1233,12 +1531,12 @@ footer {
       if (latestReleaseWithExe) {
         const exeAsset = findExeAsset(latestReleaseWithExe);
         if (exeAsset?.browser_download_url) {
-          setExeLinks('Baixar instalador .exe', exeAsset.browser_download_url, false);
+          setExeLinks('exe.download', exeAsset.browser_download_url, false);
           return;
         }
 
         if (latestReleaseWithExe.html_url) {
-          setExeLinks('Abrir release desktop', latestReleaseWithExe.html_url, false);
+          setExeLinks('exe.openRelease', latestReleaseWithExe.html_url, false);
           return;
         }
       }
@@ -1252,21 +1550,23 @@ footer {
         const fallbackRelease = await fallbackRes.json();
         const fallbackExe = findExeAsset(fallbackRelease);
         if (fallbackExe?.browser_download_url) {
-          setExeLinks('Baixar instalador .exe', fallbackExe.browser_download_url, false);
+          setExeLinks('exe.download', fallbackExe.browser_download_url, false);
           return;
         }
         if (fallbackRelease?.html_url) {
-          setExeLinks('Abrir release desktop', fallbackRelease.html_url, false);
+          setExeLinks('exe.openRelease', fallbackRelease.html_url, false);
           return;
         }
       }
 
-      setExeLinks('Abrir release desktop', `https://github.com/${repoInfo.owner}/${repoInfo.repo}/releases`, false);
+      setExeLinks('exe.openRelease', `https://github.com/${repoInfo.owner}/${repoInfo.repo}/releases`, false);
     } catch {
-      setExeLinks('Abrir release desktop', `https://github.com/${repoInfo.owner}/${repoInfo.repo}/releases`, false);
+      setExeLinks('exe.openRelease', `https://github.com/${repoInfo.owner}/${repoInfo.repo}/releases`, false);
     }
   }
 
+  /* ===================== Init ===================== */
+  applyLang(detectLang());
   hydrateExeLinks();
 </script>
 </body>

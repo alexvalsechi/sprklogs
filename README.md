@@ -1,4 +1,4 @@
-# Spark Log Analyzer - Electron Hybrid Branch
+# SprkLogs - Electron Hybrid Branch
 
 This branch contains the Electron-hybrid monorepo context.
 
