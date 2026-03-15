@@ -18,7 +18,7 @@ function isHttpUrl(rawUrl: string): boolean {
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     title: 'SprkLogs',
-    icon: path.join(__dirname, '../../renderer/features/spark-analyzer/favicon.ico'),
+    icon: path.join(__dirname, '../../renderer/features/spark-analyzer/web-app-manifest-512x512.png'),
     width: 1280,
     height: 800,
     minWidth: 980,

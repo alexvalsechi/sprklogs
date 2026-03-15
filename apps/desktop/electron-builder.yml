@@ -17,15 +17,13 @@ extraResources:
     filter:
       - "**/*"
 win:
-  icon: renderer/features/spark-analyzer/favicon.ico
+  icon: renderer/features/spark-analyzer/web-app-manifest-512x512.png
   target:
     - target: nsis
       arch:
         - x64
 nsis:
   artifactName: SprkLogs-setup-v${version}.${ext}
-  installerIcon: renderer/features/spark-analyzer/favicon.ico
-  uninstallerIcon: renderer/features/spark-analyzer/favicon.ico
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
