@@ -38,71 +38,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fix 7zip-bin for electron-builder
+      - name: Ensure electron-builder native binaries
         shell: powershell
         run: |
-          # Patch builder-util's 7za.js to guard chmod with existsSync
-          # and patch 7zip-bin/index.js to use system 7z.exe as fallback
-          # Ref: https://github.com/electron-userland/electron-builder/issues/8021
+          function Ensure-FromNpmTarball {
+            param(
+              [string]$PackageName,
+              [string]$Version,
+              [string]$FileInTar,
+              [string]$Destination
+            )
 
-          $system7z = "C:\Program Files\7-Zip\7z.exe"
-          Write-Output "System 7z exists: $(Test-Path $system7z)"
-
-          # 1) Patch 7zip-bin/index.js to return system 7z path on Windows
-          $sevenBinIndex = "node_modules/7zip-bin/index.js"
-          $patchedIndex = @'
-          "use strict"
-          const path = require("path")
-          const fs = require("fs")
-          function getPath() {
-            const bundled = (process.platform === "win32")
-              ? path.join(__dirname, "win", process.arch, "7za.exe")
-              : (process.platform === "darwin")
-                ? path.join(__dirname, "mac", process.arch, "7za")
-                : path.join(__dirname, "linux", process.arch, "7za")
-            if (fs.existsSync(bundled)) return bundled
-            if (process.platform === "win32") {
-              const sys = "C:\\Program Files\\7-Zip\\7z.exe"
-              if (fs.existsSync(sys)) return sys
+            if (Test-Path $Destination) {
+              Write-Output "OK: already exists $Destination"
+              return
             }
-            return bundled
-          }
-          exports.path7za = getPath()
-          exports.path7x = path.join(__dirname, "7x.sh")
-          '@
-          Set-Content -Path $sevenBinIndex -Value $patchedIndex -Encoding utf8 -Force
 
-          # 2) Patch builder-util/out/7za.js to guard chmod with existsSync
-          $builderUtil7za = "node_modules/builder-util/out/7za.js"
-          $patchedUtil = @'
-          "use strict";
-          Object.defineProperty(exports, "__esModule", { value: true });
-          exports.getPath7x = exports.getPath7za = void 0;
-          const _7zip_bin_1 = require("7zip-bin");
-          const fs = require("fs");
-          const fs_extra_1 = require("fs-extra");
-          async function getPath7za() {
-            if (fs.existsSync(_7zip_bin_1.path7za)) {
-              await (0, fs_extra_1.chmod)(_7zip_bin_1.path7za, 0o755);
-            }
-            return _7zip_bin_1.path7za;
-          }
-          exports.getPath7za = getPath7za;
-          async function getPath7x() {
-            if (fs.existsSync(_7zip_bin_1.path7x)) {
-              await (0, fs_extra_1.chmod)(_7zip_bin_1.path7x, 0o755);
-            }
-            return _7zip_bin_1.path7x;
-          }
-          exports.getPath7x = getPath7x;
-          '@
-          Set-Content -Path $builderUtil7za -Value $patchedUtil -Encoding utf8 -Force
+            $tgz = "$PackageName-$Version.tgz"
+            Write-Output "Downloading $PackageName@$Version via npm pack..."
+            npm pack "$PackageName@$Version"
 
-          # 3) Verify
-          Write-Output "--- Patched 7zip-bin/index.js ---"
-          node -e "const b = require('7zip-bin'); console.log('path7za:', b.path7za); console.log('exists:', require('fs').existsSync(b.path7za))"
-          Write-Output "--- Patched builder-util/out/7za.js ---"
-          node -e "const b = require('builder-util/out/7za'); b.getPath7za().then(p => console.log('getPath7za():', p))"
+            if (-not (Test-Path $tgz)) {
+              throw "Failed to download $tgz"
+            }
+
+            tar -xzf $tgz "$FileInTar"
+            if (-not (Test-Path ($FileInTar -replace '^package/', 'package\\'))) {
+              throw "Failed to extract $FileInTar from $tgz"
+            }
+
+            New-Item -ItemType Directory -Path (Split-Path $Destination -Parent) -Force | Out-Null
+            Copy-Item ($FileInTar -replace '^package/', 'package\\') $Destination -Force
+
+            Remove-Item $tgz -Force -ErrorAction SilentlyContinue
+            Remove-Item package -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Output "OK: restored $Destination"
+          }
+
+          Ensure-FromNpmTarball -PackageName "7zip-bin" -Version "5.2.0" -FileInTar "package/win/x64/7za.exe" -Destination "node_modules/7zip-bin/win/x64/7za.exe"
+          Ensure-FromNpmTarball -PackageName "app-builder-bin" -Version "4.0.0" -FileInTar "package/win/x64/app-builder.exe" -Destination "node_modules/app-builder-bin/win/x64/app-builder.exe"
+
+          Write-Output "Resolved paths:"
+          node -e "const fs=require('fs');const z=require('7zip-bin').path7za;console.log('7za:',z,'exists:',fs.existsSync(z));console.log('app-builder exists:',fs.existsSync('node_modules/app-builder-bin/win/x64/app-builder.exe'));"
 
       - name: Build NSIS installer
         run: npm run dist:win --workspace @log-sparkui/desktop
