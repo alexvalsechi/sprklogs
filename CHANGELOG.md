@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/alexvalsechi/sprklogs/compare/v0.4.0...v0.5.0) (2026-03-15)
+
+
+### Features
+
+* enhance workflow with optional inputs for manual release and so… ([54a992e](https://github.com/alexvalsechi/sprklogs/commit/54a992e6f8c9aaa2408a8462f6469cb63f74a2f2))
+* enhance workflow with optional inputs for manual release and source reference ([29281f0](https://github.com/alexvalsechi/sprklogs/commit/29281f068bc91a6e356eb8de13c729d04af1006f))
+
 ## [0.4.0](https://github.com/alexvalsechi/sprklogs/compare/v0.3.1...v0.4.0) (2026-03-15)
 
 
