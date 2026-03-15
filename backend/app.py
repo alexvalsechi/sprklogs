@@ -80,7 +80,7 @@ def parse_args():
 def landing_page():
     if HAS_FRONTEND:
         return FileResponse(FRONTEND_DIR / "index.html")
-    return {"status": "ok", "service": "spark-log-analyzer-backend"}
+    return {"status": "ok", "service": "sprklogs-backend"}
 
 
 if HAS_FRONTEND:
