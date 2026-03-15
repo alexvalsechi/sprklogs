@@ -60,4 +60,3 @@ class JobResult(BaseModel):
     reduced_report: Optional[str] = None
     llm_analysis: Optional[str] = None
     error: Optional[str] = None
-    task_id: Optional[str] = None

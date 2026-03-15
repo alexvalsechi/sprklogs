@@ -8,6 +8,12 @@ const { app } = require('electron')
 let pyProcess: ChildProcess | null = null
 let pyPort = 8765
 
+type BackendLaunchConfig = {
+  command: string
+  args: string[]
+  cwd?: string
+}
+
 async function findFreePort(): Promise<number> {
   return new Promise((resolve) => {
     const srv = net.createServer()
@@ -44,34 +50,74 @@ export async function startPython(): Promise<string> {
 
   const packagedBin = process.platform === 'win32' ? 'server.exe' : 'server'
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath || ''
-  const bin = app.isPackaged
-    ? path.join(resourcesPath, 'backend', packagedBin)
-    : 'python'
 
-  if (app.isPackaged && !fs.existsSync(bin)) {
-    throw new Error(`Packaged backend executable not found at: ${bin}`)
+  const resolveLaunchCandidates = (): BackendLaunchConfig[] => {
+    if (!app.isPackaged) {
+      const repoRoot = path.join(__dirname, '../../../..')
+      return [{ command: 'python', args: ['-m', 'backend.app', '--port', String(pyPort)], cwd: repoRoot }]
+    }
+
+    const packagedBackendRoot = path.join(resourcesPath, 'backend')
+    const packagedPyEntrypoint = path.join(packagedBackendRoot, 'app.py')
+    const packagedExe = path.join(packagedBackendRoot, packagedBin)
+
+    const candidates: BackendLaunchConfig[] = []
+
+    // Prefer Python source backend when available. This keeps local packaged builds
+    // aligned with current backend code and avoids stale server.exe regressions.
+    if (fs.existsSync(packagedPyEntrypoint)) {
+      candidates.push({
+        command: 'python',
+        args: ['-m', 'backend.app', '--port', String(pyPort)],
+        cwd: resourcesPath,
+      })
+    }
+
+    if (fs.existsSync(packagedExe)) {
+      candidates.push({
+        command: packagedExe,
+        args: ['--port', String(pyPort)],
+      })
+    }
+
+    return candidates
   }
 
-  const repoRoot = path.join(__dirname, '../../../..')
-  const args = app.isPackaged
-    ? ['--port', String(pyPort)]
-    : ['-m', 'backend.app', '--port', String(pyPort)]
-  const spawnOpts = app.isPackaged
-    ? { stdio: 'pipe' as const }
-    : { stdio: 'pipe' as const, cwd: repoRoot }
+  const candidates = resolveLaunchCandidates()
+  if (candidates.length === 0) {
+    throw new Error('No bundled backend launcher found (expected backend Python files or server executable).')
+  }
 
-  pyProcess = spawn(bin, args, spawnOpts)
-  pyProcess.stderr?.on('data', (d) => console.error('[python]', d.toString()))
-  pyProcess.on('exit', (code) => console.log('[python] exited with code', code))
+  const errors: string[] = []
 
-  await Promise.race([
-    waitForPort(pyPort),
-    new Promise<void>((_, reject) => {
-      pyProcess?.once('error', (err) => reject(err))
-      pyProcess?.once('exit', (code) => reject(new Error(`Python backend exited early with code ${code}`)))
-    }),
-  ])
-  return `http://localhost:${pyPort}`
+  for (const candidate of candidates) {
+    const spawnOpts = candidate.cwd
+      ? { stdio: 'pipe' as const, cwd: candidate.cwd }
+      : { stdio: 'pipe' as const }
+
+    pyProcess = spawn(candidate.command, candidate.args, spawnOpts)
+    pyProcess.stderr?.on('data', (d) => console.error('[python]', d.toString()))
+    pyProcess.on('exit', (code) => console.log('[python] exited with code', code))
+
+    try {
+      await Promise.race([
+        waitForPort(pyPort),
+        new Promise<void>((_, reject) => {
+          pyProcess?.once('error', (err) => reject(err))
+          pyProcess?.once('exit', (code) => reject(new Error(`Python backend exited early with code ${code}`)))
+        }),
+      ])
+
+      return `http://localhost:${pyPort}`
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      errors.push(`${candidate.command} ${candidate.args.join(' ')} => ${detail}`)
+      pyProcess?.kill()
+      pyProcess = null
+    }
+  }
+
+  throw new Error(`Could not start backend. Attempts: ${errors.join(' | ')}`)
 }
 
 export function stopPython(): void {

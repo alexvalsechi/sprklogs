@@ -14,10 +14,6 @@ python-multipart>=0.0.6
 # Session management
 starlette-sessions>=0.0.5
 
-# Async task queue
-celery[redis]>=5.4.0
-redis>=5.0.0
-
 # LLM providers (optional — install only what you need)
 openai>=1.30.0
 anthropic>=0.28.0

@@ -6,8 +6,6 @@ Handles login, callback, and logout for OAuth2 providers.
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 import logging
-import redis as redis_lib
-from typing import Optional
 import uuid
 
 from backend.api.routes.auth import (
@@ -19,13 +17,6 @@ from backend.utils.config import get_settings
 router = APIRouter(prefix="/auth")
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-# Redis client for token storage
-try:
-    redis_client = redis_lib.Redis.from_url(settings.celery_broker_url)
-except Exception as e:
-    logger.warning(f"Redis unavailable for token storage: {e}")
-    redis_client = None
 
 # OAuth providers
 providers = {
@@ -48,7 +39,7 @@ providers = {
     ) if settings.google_oauth_client_id else None,
 }
 
-token_manager = TokenManager(redis_client, settings.secret_key) if redis_client else None
+token_manager = TokenManager(settings.secret_key)
 
 
 @router.get("/login/{provider}")
@@ -107,9 +98,6 @@ async def callback(provider: str, code: str = Query(...), state: str = Query(...
 @router.post("/logout/{provider}")
 async def logout(provider: str, user_id: str = Query(...)):
     """Logout and delete token."""
-    if not token_manager:
-        raise HTTPException(status_code=500, detail="Token storage not available")
-    
     token_manager.delete_token(user_id, provider)
     logger.info(f"User {user_id} logged out from {provider}")
     return {"message": "Logged out successfully"}
@@ -118,9 +106,6 @@ async def logout(provider: str, user_id: str = Query(...)):
 @router.get("/providers/{user_id}")
 async def list_connected_providers(user_id: str):
     """List OAuth providers connected to this user."""
-    if not token_manager:
-        raise HTTPException(status_code=500, detail="Token storage not available")
-    
     connected = token_manager.list_providers(user_id)
     return {
         "user_id": user_id,
@@ -132,9 +117,6 @@ async def list_connected_providers(user_id: str):
 @router.get("/status/{user_id}/{provider}")
 async def check_token_status(user_id: str, provider: str):
     """Check if token is valid/connected."""
-    if not token_manager:
-        raise HTTPException(status_code=500, detail="Token storage not available")
-    
     token = token_manager.get_token(user_id, provider)
     if not token:
         return {"connected": False, "provider": provider}
