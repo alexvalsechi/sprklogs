@@ -1,5 +1,5 @@
 appId: com.sparklogs.analyzer.desktop
-productName: Spark Log Analyzer
+productName: SprkLogs
 electronVersion: 31.7.7
 directories:
   output: dist
@@ -17,11 +17,15 @@ extraResources:
     filter:
       - "**/*"
 win:
+  icon: renderer/features/spark-analyzer/favicon.ico
   target:
     - target: nsis
       arch:
         - x64
 nsis:
+  artifactName: SprkLogs-setup-v${version}.${ext}
+  installerIcon: renderer/features/spark-analyzer/favicon.ico
+  uninstallerIcon: renderer/features/spark-analyzer/favicon.ico
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

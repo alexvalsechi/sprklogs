@@ -1,4 +1,4 @@
-"""Spark Log Analyzer FastAPI entrypoint."""
+"""SprkLogs FastAPI entrypoint."""
 import argparse
 import sys
 from fastapi import FastAPI
@@ -34,13 +34,13 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    logging.getLogger(__name__).info("Spark Log Analyzer starting up…")
+    logging.getLogger(__name__).info("SprkLogs starting up…")
     yield
     logging.getLogger(__name__).info("Shutting down…")
 
 
 app = FastAPI(
-    title="Spark Log Analyzer",
+    title="SprkLogs",
     description="Reduce and analyze Apache Spark event logs with AI-powered diagnostics.",
     version="2.0.0",
     lifespan=lifespan,
