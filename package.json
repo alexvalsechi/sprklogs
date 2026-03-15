@@ -5,6 +5,7 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "build:python": "bash infra/scripts/build-python.sh",
+    "build:desktop:local": "powershell -ExecutionPolicy Bypass -File infra/scripts/build-desktop-local.ps1",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },

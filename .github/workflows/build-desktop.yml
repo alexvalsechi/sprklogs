@@ -112,17 +112,33 @@ jobs:
           # Patch builder-util chmod guard (same idea as electron-builder fix in newer builds)
           $builder7za = "node_modules/builder-util/out/7za.js"
           if (Test-Path $builder7za) {
-            $content = Get-Content $builder7za -Raw
-            if ($content -notmatch 'const fs = require\("fs"\);') {
-              $content = $content -replace 'const fs_extra_1 = require\("fs-extra"\);', 'const fs = require("fs");`nconst fs_extra_1 = require("fs-extra");'
-            }
-            $content = $content -replace 'await \(0, fs_extra_1\.chmod\)\(_7zip_bin_1\.path7za, 0o755\);', 'if (fs.existsSync(_7zip_bin_1.path7za)) {`n        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7za, 0o755);`n    }'
-            $content = $content -replace 'await \(0, fs_extra_1\.chmod\)\(_7zip_bin_1\.path7x, 0o755\);', 'if (fs.existsSync(_7zip_bin_1.path7x)) {`n        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7x, 0o755);`n    }'
-            Set-Content -Path $builder7za -Value $content -Encoding utf8 -Force
+            $patchedBuilder7za = @(
+              '"use strict";'
+              'Object.defineProperty(exports, "__esModule", { value: true });'
+              'exports.getPath7x = exports.getPath7za = void 0;'
+              'const _7zip_bin_1 = require("7zip-bin");'
+              'const fs = require("fs");'
+              'const fs_extra_1 = require("fs-extra");'
+              'async function getPath7za() {'
+              '    if (fs.existsSync(_7zip_bin_1.path7za)) {'
+              '        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7za, 0o755);'
+              '    }'
+              '    return _7zip_bin_1.path7za;'
+              '}'
+              'exports.getPath7za = getPath7za;'
+              'async function getPath7x() {'
+              '    if (fs.existsSync(_7zip_bin_1.path7x)) {'
+              '        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7x, 0o755);'
+              '    }'
+              '    return _7zip_bin_1.path7x;'
+              '}'
+              'exports.getPath7x = getPath7x;'
+            ) -join "`n"
+            Set-Content -Path $builder7za -Value $patchedBuilder7za -Encoding utf8 -Force
           }
 
           Write-Output "Resolved paths:"
-          node -e "const fs=require('fs');const z=require('7zip-bin').path7za;console.log('7za:',z,'exists:',fs.existsSync(z));console.log('app-builder exists:',fs.existsSync('node_modules/app-builder-bin/win/x64/app-builder.exe'));"
+          node -e "const fs=require('fs');const p7='node_modules/7zip-bin/win/x64/7za.exe';const pab='node_modules/app-builder-bin/win/x64/app-builder.exe';console.log('7za path:',p7,'exists:',fs.existsSync(p7));console.log('app-builder path:',pab,'exists:',fs.existsSync(pab));"
 
       - name: Build NSIS installer
         run: npm run dist:win --workspace @log-sparkui/desktop
