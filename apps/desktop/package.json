@@ -3,18 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "description": "Electron shell for local Spark ZIP reduction + backend LLM analysis",
-  "main": "main/index.ts",
+  "main": "dist/main/index.js",
   "scripts": {
-    "start": "electron .",
+    "build": "tsc",
+    "start": "npm run build && electron .",
     "check": "node -e \"require('./package.json'); console.log('desktop package ok')\"",
-    "pack:win": "electron-builder --win --dir",
-    "dist:win": "electron-builder --win nsis --publish never"
+    "pack:win": "npm run build && electron-builder --win --dir",
+    "dist:win": "npm run build && electron-builder --win nsis --publish never"
   },
   "dependencies": {
-    "@log-sparkui/ipc-types": "workspace:*"
+    "@log-sparkui/ipc-types": "*"
   },
   "devDependencies": {
     "electron": "^31.7.7",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.14.0"
   }
 }

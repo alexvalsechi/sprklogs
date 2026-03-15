@@ -18,7 +18,7 @@ function isHttpUrl(rawUrl: string): boolean {
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     title: 'SprkLogs',
-    icon: path.join(__dirname, '../renderer/features/spark-analyzer/logo-256.png'),
+    icon: path.join(__dirname, '../../renderer/features/spark-analyzer/logo-256.png'),
     width: 1280,
     height: 800,
     minWidth: 980,
@@ -49,7 +49,7 @@ function createWindow(): void {
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173')
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/features/spark-analyzer/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../../renderer/features/spark-analyzer/index.html'))
   }
 }
 

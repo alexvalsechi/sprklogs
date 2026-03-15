@@ -47,11 +47,15 @@ export async function startPython(): Promise<string> {
     ? path.join(resourcesPath, 'backend', packagedBin)
     : 'python'
 
+  const repoRoot = path.join(__dirname, '../../../..')
   const args = app.isPackaged
     ? ['--port', String(pyPort)]
-    : [path.join(__dirname, '../../../backend/app.py'), '--port', String(pyPort)]
+    : ['-m', 'backend.app', '--port', String(pyPort)]
+  const spawnOpts = app.isPackaged
+    ? { stdio: 'pipe' as const }
+    : { stdio: 'pipe' as const, cwd: repoRoot }
 
-  pyProcess = spawn(bin, args, { stdio: 'pipe' })
+  pyProcess = spawn(bin, args, spawnOpts)
   pyProcess.stderr?.on('data', (d) => console.error('[python]', d.toString()))
   pyProcess.on('exit', (code) => console.log('[python] exited with code', code))
 
