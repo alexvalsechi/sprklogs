@@ -41,11 +41,37 @@ jobs:
       - name: Fix 7zip-bin binary for electron-builder
         shell: powershell
         run: |
-          choco install 7zip -y
-          $target = "node_modules\7zip-bin\win\x64"
-          New-Item -ItemType Directory -Path $target -Force | Out-Null
-          Copy-Item "C:\Program Files\7-Zip\7z.exe" "$target\7za.exe"
-          Write-Output "7za.exe placed at $target\7za.exe"
+          $binPath = "node_modules\7zip-bin\win\x64\7za.exe"
+          Write-Output "=== Diagnosing 7zip-bin ==="
+          Write-Output "CWD: $(Get-Location)"
+          Write-Output "7zip-bin dir exists: $(Test-Path 'node_modules\7zip-bin')"
+          if (Test-Path 'node_modules\7zip-bin') {
+            Get-ChildItem -Recurse 'node_modules\7zip-bin' | Select-Object FullName
+          }
+          Write-Output "7za.exe exists: $(Test-Path $binPath)"
+
+          if (-not (Test-Path $binPath)) {
+            Write-Output "--- 7za.exe missing, extracting from npm registry ---"
+            npm pack 7zip-bin@5.2.0 2>&1
+            if (-not (Test-Path '7zip-bin-5.2.0.tgz')) {
+              Write-Error "npm pack failed - tgz not found"; exit 1
+            }
+            tar -xzf 7zip-bin-5.2.0.tgz "package/win/x64/7za.exe"
+            if (-not (Test-Path 'package\win\x64\7za.exe')) {
+              Write-Output "Targeted extract failed, doing full extract..."
+              tar -xzf 7zip-bin-5.2.0.tgz
+            }
+            New-Item -ItemType Directory -Path "node_modules\7zip-bin\win\x64" -Force | Out-Null
+            Copy-Item "package\win\x64\7za.exe" $binPath -Force -ErrorAction Stop
+            Remove-Item 7zip-bin-5.2.0.tgz -Force -ErrorAction SilentlyContinue
+            Remove-Item package -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          if (Test-Path $binPath) {
+            Write-Output "OK: 7za.exe present at $binPath ($(  (Get-Item $binPath).Length  ) bytes)"
+          } else {
+            Write-Error "FATAL: 7za.exe still missing at $binPath"; exit 1
+          }
 
       - name: Build NSIS installer
         run: npm run dist:win --workspace @log-sparkui/desktop
