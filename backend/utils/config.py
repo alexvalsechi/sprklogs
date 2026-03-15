@@ -43,10 +43,6 @@ class Settings(BaseSettings):
     max_files_in_zip: int = 1000     # Max number of files in ZIP
     compression_ratio_limit: int = 100  # Max compression ratio
 
-    # Celery
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/0"
-
     # Auth & Security
     secret_key: str = "your-secret-key-change-in-production"
     frontend_url: str = "http://localhost:8000"

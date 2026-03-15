@@ -1,7 +1,7 @@
 """
 OAuth2 & Token Management
 ==========================
-Manages OAuth2 flows, stores tokens in Redis/session, and handles token refresh.
+Manages OAuth2 flows, stores tokens in local memory/session, and handles token refresh.
 Supports OpenAI, Anthropic Claude, and Google Gemini.
 """
 import json
@@ -9,8 +9,8 @@ import httpx
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
+from threading import Lock
 from jose import jwt
-import redis as redis_lib
 
 logger = logging.getLogger(__name__)
 
@@ -137,17 +137,31 @@ class GoogleGeminiProvider(OAuthProvider):
 
 
 class TokenManager:
-    """Manages token storage in Redis with encryption."""
+    """Manages token storage in local memory with TTL."""
     
-    def __init__(self, redis_client: redis_lib.Redis, secret_key: str):
-        self.redis = redis_client
+    def __init__(self, secret_key: str):
         self.secret_key = secret_key
         self.algorithm = "HS256"
+        self._store: dict[str, str] = {}
+        self._expires_at: dict[str, datetime] = {}
+        self._lock = Lock()
+
+    def _key(self, user_id: str, provider: str) -> str:
+        return f"oauth_token:{user_id}:{provider}"
+
+    def _is_expired(self, key: str) -> bool:
+        expires = self._expires_at.get(key)
+        return bool(expires and datetime.utcnow() >= expires)
+
+    def _cleanup_if_expired(self, key: str) -> None:
+        if self._is_expired(key):
+            self._store.pop(key, None)
+            self._expires_at.pop(key, None)
     
     def store_token(self, user_id: str, provider: str, token_data: Dict[str, Any]) -> None:
-        """Store token securely in Redis with TTL."""
+        """Store token securely in-memory with TTL."""
         expires_in = token_data.get("expires_in", 86400)
-        key = f"oauth_token:{user_id}:{provider}"
+        key = self._key(user_id, provider)
         
         # Encrypt sensitive data (optional: use more robust encryption)
         payload = {
@@ -158,17 +172,17 @@ class TokenManager:
             "created_at": datetime.utcnow().isoformat(),
         }
         
-        self.redis.setex(
-            key,
-            expires_in,
-            json.dumps(payload)
-        )
+        with self._lock:
+            self._store[key] = json.dumps(payload)
+            self._expires_at[key] = datetime.utcnow() + timedelta(seconds=int(expires_in))
         logger.info(f"Stored token for {user_id}:{provider}")
     
     def get_token(self, user_id: str, provider: str) -> Optional[Dict[str, Any]]:
-        """Retrieve token from Redis."""
-        key = f"oauth_token:{user_id}:{provider}"
-        data = self.redis.get(key)
+        """Retrieve token from local memory."""
+        key = self._key(user_id, provider)
+        with self._lock:
+            self._cleanup_if_expired(key)
+            data = self._store.get(key)
         if not data:
             return None
         
@@ -178,16 +192,21 @@ class TokenManager:
     
     def delete_token(self, user_id: str, provider: str) -> None:
         """Remove token (logout)."""
-        key = f"oauth_token:{user_id}:{provider}"
-        self.redis.delete(key)
+        key = self._key(user_id, provider)
+        with self._lock:
+            self._store.pop(key, None)
+            self._expires_at.pop(key, None)
         logger.info(f"Deleted token for {user_id}:{provider}")
     
     def list_providers(self, user_id: str) -> list[str]:
         """List connected OAuth providers for a user."""
-        pattern = f"oauth_token:{user_id}:*"
-        keys = self.redis.keys(pattern)
-        providers = [key.split(":")[-1] for key in keys if isinstance(key, (str, bytes))]
-        return providers
+        prefix = f"oauth_token:{user_id}:"
+        with self._lock:
+            keys = list(self._store.keys())
+            for key in keys:
+                self._cleanup_if_expired(key)
+            providers = [key.split(":")[-1] for key in self._store.keys() if key.startswith(prefix)]
+            return providers
 
 
 def generate_state_token(secret_key: str, duration_hours: int = 1) -> str:
