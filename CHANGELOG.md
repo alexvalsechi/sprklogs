@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/alexvalsechi/spark-log-analyzer/compare/v0.2.2...v0.2.3) (2026-03-15)
+
+
+### Bug Fixes
+
+* update release asset fetching logic to handle multiple releases … ([c2b838a](https://github.com/alexvalsechi/spark-log-analyzer/commit/c2b838abc8070894aa89e8b3e61bcb7065310eb2))
+* update release asset fetching logic to handle multiple releases and improve fallback mechanism ([624b866](https://github.com/alexvalsechi/spark-log-analyzer/commit/624b86689bafe6ecb20505effcb0ff068ab83222))
+
 ## [0.2.2](https://github.com/alexvalsechi/spark-log-analyzer/compare/v0.2.1...v0.2.2) (2026-03-15)
 
 
