@@ -38,6 +38,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Ensure 7zip binary for electron-builder
+        shell: powershell
+        run: |
+          npm install --no-save 7zip-bin@5.2.0
+          if (-not (Test-Path "node_modules/7zip-bin/win/x64/7za.exe")) {
+            Write-Error "7zip binary not found at node_modules/7zip-bin/win/x64/7za.exe"
+            exit 1
+          }
+
       - name: Build NSIS installer
         run: npm run dist:win --workspace @log-sparkui/desktop
 
