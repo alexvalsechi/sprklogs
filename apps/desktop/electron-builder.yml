@@ -1,5 +1,6 @@
 appId: com.sparklogs.analyzer.desktop
 productName: Spark Log Analyzer
+electronVersion: 31.7.7
 directories:
   output: dist
 files:
