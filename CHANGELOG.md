@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/alexvalsechi/sprklogs/compare/v0.2.6...v0.3.0) (2026-03-15)
+
+
+### Features
+
+* add GitHub Actions workflow for building Python backend ([a4172ce](https://github.com/alexvalsechi/sprklogs/commit/a4172ceeeabee74629134455431eef6588dd35bc))
+
 ## [0.2.6](https://github.com/alexvalsechi/sprklogs/compare/v0.2.5...v0.2.6) (2026-03-15)
 
 
