@@ -16,9 +16,6 @@ jobs:
   build-windows-exe:
     name: Build Windows installer
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -28,31 +25,31 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Sync desktop version with release tag
         shell: bash
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
-            npm version "$VERSION" --no-git-tag-version
+            npm version "$VERSION" --no-git-tag-version --workspace @log-sparkui/desktop
           fi
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build NSIS installer
-        run: npm run dist:win
+        run: npm run dist:win --workspace @log-sparkui/desktop
 
       - name: Generate SHA256 checksums
         shell: powershell
         run: |
           $checksums = ""
-          Get-ChildItem -Path dist -Filter *.exe -Recurse | ForEach-Object {
+          Get-ChildItem -Path apps/desktop/dist -Filter *.exe -Recurse | ForEach-Object {
             $hash = Get-FileHash $_.FullName -Algorithm SHA256
             $checksums += "$($hash.Hash)  $($_.Name)`n"
           }
-          Set-Content -Path dist\checksums.txt -Value $checksums
+          Set-Content -Path apps/desktop/dist/checksums.txt -Value $checksums
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

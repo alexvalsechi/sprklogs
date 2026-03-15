@@ -77,7 +77,7 @@ def parse_args():
 
 @app.get("/", include_in_schema=False)
 def landing_page():
-    return FileResponse(FRONTEND_DIR / "sprklogs-landing.html")
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

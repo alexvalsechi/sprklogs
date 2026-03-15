@@ -57,8 +57,7 @@ This repository now uses a trunk-based release flow on GitHub Actions.
 1. In repository settings, open **Pages** and set **Source** to **GitHub Actions**.
 2. Ensure Actions permissions allow workflow runs with write access to Pages.
 3. After first deploy, access:
-	- `https://<owner>.github.io/<repo>/` (frontend app)
-	- `https://<owner>.github.io/<repo>/sprklogs-landing.html` (institutional landing)
+	- `https://<owner>.github.io/<repo>/` (institutional landing)
 4. The pages automatically expose the desktop download link by reading release tag `master-latest`.
 
 ### Required repository settings (one-time)
