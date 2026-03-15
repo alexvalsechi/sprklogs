@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import path from 'path'
 import net from 'net'
+import fs from 'fs'
 
 const { app } = require('electron')
 
@@ -47,6 +48,10 @@ export async function startPython(): Promise<string> {
     ? path.join(resourcesPath, 'backend', packagedBin)
     : 'python'
 
+  if (app.isPackaged && !fs.existsSync(bin)) {
+    throw new Error(`Packaged backend executable not found at: ${bin}`)
+  }
+
   const repoRoot = path.join(__dirname, '../../../..')
   const args = app.isPackaged
     ? ['--port', String(pyPort)]
@@ -59,7 +64,13 @@ export async function startPython(): Promise<string> {
   pyProcess.stderr?.on('data', (d) => console.error('[python]', d.toString()))
   pyProcess.on('exit', (code) => console.log('[python] exited with code', code))
 
-  await waitForPort(pyPort)
+  await Promise.race([
+    waitForPort(pyPort),
+    new Promise<void>((_, reject) => {
+      pyProcess?.once('error', (err) => reject(err))
+      pyProcess?.once('exit', (code) => reject(new Error(`Python backend exited early with code ${code}`)))
+    }),
+  ])
   return `http://localhost:${pyPort}`
 }
 

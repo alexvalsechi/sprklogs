@@ -17,6 +17,21 @@ if (-not $SkipInstall) {
   npm ci
 }
 
+Write-Host "Building Python backend executable..."
+python -m pip install --upgrade pip
+pip install pyinstaller -r backend/requirements.txt
+New-Item -ItemType Directory -Path "apps/desktop/resources/backend" -Force | Out-Null
+pyinstaller backend/app.py `
+  --onefile `
+  --name server `
+  --distpath apps/desktop/resources/backend `
+  --workpath "$env:TEMP/pyinstaller-build" `
+  --specpath "$env:TEMP/pyinstaller-spec"
+
+if (-not (Test-Path "apps/desktop/resources/backend/server.exe")) {
+  throw "Missing apps/desktop/resources/backend/server.exe"
+}
+
 function Ensure-FromNpmTarball {
   param(
     [string]$PackageName,

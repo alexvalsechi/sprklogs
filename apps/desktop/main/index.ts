@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, dialog } from 'electron'
 import path from 'path'
 import { startPython, stopPython } from './python-manager'
 import { registerAllHandlers } from './ipc/register'
@@ -54,10 +54,17 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  pyBaseUrl = await startPython()
-  console.log('[main] Python running at', pyBaseUrl)
-  registerAllHandlers(pyBaseUrl)
-  createWindow()
+  try {
+    pyBaseUrl = await startPython()
+    console.log('[main] Python running at', pyBaseUrl)
+    registerAllHandlers(pyBaseUrl)
+    createWindow()
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    dialog.showErrorBox('Backend startup error', `Could not start bundled backend.\n\n${detail}`)
+    app.quit()
+    return
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
