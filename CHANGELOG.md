@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6](https://github.com/alexvalsechi/sprklogs/compare/v0.2.5...v0.2.6) (2026-03-15)
+
+
+### Bug Fixes
+
+* update application icon to use web app manifest image ([25af9b8](https://github.com/alexvalsechi/sprklogs/commit/25af9b8cfbfb7e380ccb25f80410898ce9ad393a))
+* update application icon to use web app manifest image ([2b1c5cd](https://github.com/alexvalsechi/sprklogs/commit/2b1c5cd82fc1e09d3b5160037c3e7ff8a229efce))
+
 ## [0.2.5](https://github.com/alexvalsechi/sprklogs/compare/v0.2.4...v0.2.5) (2026-03-15)
 
 
