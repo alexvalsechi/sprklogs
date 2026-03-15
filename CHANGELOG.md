@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5](https://github.com/alexvalsechi/sprklogs/compare/v0.2.4...v0.2.5) (2026-03-15)
+
+
+### Bug Fixes
+
+* update project name references to 'sprklogs' in package-lock.jso… ([b623908](https://github.com/alexvalsechi/sprklogs/commit/b6239085201ae325f60b6fca954f3e6f3d568fa5))
+* update project name references to 'sprklogs' in package-lock.json, index.html, and app.py ([59eb069](https://github.com/alexvalsechi/sprklogs/commit/59eb069041c7ba775dbfef9e48459aa2ca923ae2))
+
 ## [0.2.4](https://github.com/alexvalsechi/spark-log-analyzer/compare/v0.2.3...v0.2.4) (2026-03-15)
 
 
