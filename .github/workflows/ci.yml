@@ -65,12 +65,9 @@ jobs:
       - name: Validate institutional pages
         run: |
           test -f apps/web/index.html
-          test -f apps/web/sprklogs-landing.html
 
       - name: Smoke check desktop download CTAs
         run: |
-          grep -q 'id="desktop-download-link"' apps/web/index.html
-          grep -q 'hydrateDesktopDownloadLink' apps/web/index.html
-          grep -q 'id="nav-download-exe"' apps/web/sprklogs-landing.html
-          grep -q 'id="cta-download-exe"' apps/web/sprklogs-landing.html
-          grep -q 'hydrateExeLinks' apps/web/sprklogs-landing.html
+          grep -q 'id="nav-download-exe"' apps/web/index.html
+          grep -q 'id="cta-download-exe"' apps/web/index.html
+          grep -q 'hydrateExeLinks' apps/web/index.html
