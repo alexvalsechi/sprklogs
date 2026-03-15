@@ -1,0 +1,10 @@
+{
+  "name": "@log-sparkui/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo static web workspace",
+    "build": "echo static web workspace",
+    "lint": "echo no lint configured"
+  }
+}

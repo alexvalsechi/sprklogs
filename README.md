@@ -1,12 +1,12 @@
 # Spark Log Analyzer - Electron Hybrid Branch
 
-This branch contains only the Electron-hybrid context.
+This branch contains the Electron-hybrid monorepo context.
 
 ## Scope
 
-- Desktop app in `desktop/` handles local ZIP ingestion and local Python reduction.
+- Desktop app in `apps/desktop/` handles local ZIP ingestion and local Python reduction.
 - Backend in `backend/` is API/governance for OAuth2, usage policy points, and LLM processing from reduced logs.
-- No web SPA frontend is part of this branch.
+- Static web/landing assets live in `apps/web/`.
 
 ## Runtime Flow
 
@@ -24,7 +24,7 @@ docker compose up -d
 ## Run Desktop
 
 ```bash
-cd desktop
+cd apps/desktop
 npm install
 npm start
 ```
@@ -42,12 +42,24 @@ This repository now uses a trunk-based release flow on GitHub Actions.
 5. Release Please opens/updates a Release PR with semantic version and changelog.
 6. Merging the Release PR creates tag `vX.Y.Z`.
 7. Tag `vX.Y.Z` triggers Windows `.exe` build and uploads artifacts to GitHub Release.
+8. Pushes to `main`/`master` also publish a rolling desktop installer release at tag `master-latest`.
+9. Pushes to `main`/`master` deploy static site files from `apps/web/` to GitHub Pages.
 
 ### Workflows
 
 - `.github/workflows/ci.yml`: Pull request quality gate.
 - `.github/workflows/release-please.yml`: Semantic version + changelog automation.
-- `.github/workflows/release-desktop.yml`: Windows NSIS installer generation and release upload.
+- `.github/workflows/build-desktop.yml`: Windows NSIS installer generation for semantic tags and rolling `master-latest` publishing on `main`/`master` pushes.
+- `.github/workflows/deploy-web.yml`: Deploys `apps/web/` static files to GitHub Pages on `main`/`master` pushes.
+
+### GitHub Pages setup (one-time)
+
+1. In repository settings, open **Pages** and set **Source** to **GitHub Actions**.
+2. Ensure Actions permissions allow workflow runs with write access to Pages.
+3. After first deploy, access:
+	- `https://<owner>.github.io/<repo>/` (frontend app)
+	- `https://<owner>.github.io/<repo>/sprklogs-landing.html` (institutional landing)
+4. The pages automatically expose the desktop download link by reading release tag `master-latest`.
 
 ### Required repository settings (one-time)
 

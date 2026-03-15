@@ -1,0 +1,21 @@
+appId: com.sparklogs.analyzer.desktop
+productName: Spark Log Analyzer
+directories:
+  output: dist
+files:
+  - main/**/*
+  - preload/**/*
+  - renderer/**/*
+  - resources/**/*
+  - package.json
+  - electron-builder.yml
+  - main/scripts/**/*
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true

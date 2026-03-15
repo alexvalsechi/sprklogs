@@ -8,7 +8,7 @@ try:
 except ImportError:
     from celery_app import celery_app
 from backend.services.job_service import get_job_service
-from backend.auth import TokenManager
+from backend.api.routes.auth import TokenManager
 import redis as redis_lib
 from backend.utils.config import get_settings
 import logging

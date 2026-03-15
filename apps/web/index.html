@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spark Log Analyzer</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg:        #0b0f14;
+      --surface:   #111720;
+      --surface2:  #18202c;
+      --border:    #1f2d3d;
+      --border2:   #2a3d52;
+      --accent:    #e8732a;
+      --accent2:   #ff9f5a;
+      --blue:      #3d9be9;
+      --green:     #3dbd6e;
+      --red:       #e85858;
+      --yellow:    #e8c33a;
+      --text:      #d4dde8;
+      --text-dim:  #6b7f96;
+      --text-mute: #3a4f62;
+      --mono:      "IBM Plex Mono", monospace;
+      --sans:      "IBM Plex Sans", sans-serif;
+      --radius:    6px;
+      --transition: 180ms ease;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid noise texture overlay ────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+      opacity: 0.18;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .shell {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      padding: 36px 0 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 20px;
+    }
+    .logo {
+      flex-shrink: 0;
+      display: flex; align-items: center;
+    }
+    .logo img {
+      width: 96px; height: 96px;
+    }
+    .header-text {
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .header-text h1 {
+      font-family: var(--mono);
+      font-size: 1.25rem; font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+    .header-text p {
+      font-size: 0.8rem; color: var(--text-dim);
+      margin-top: 2px; letter-spacing: 0.03em;
+    }
+    .version-badge {
+      margin-left: auto;
+      font-family: var(--mono); font-size: 0.7rem;
+      color: var(--accent); border: 1px solid var(--accent);
+      padding: 3px 8px; border-radius: 2px;
+      opacity: 0.7;
+    }
+    .desktop-cta {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      border: 1px solid var(--border2);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: border-color var(--transition), color var(--transition);
+      white-space: nowrap;
+    }
+    .desktop-cta:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+    .desktop-cta.disabled {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* ── Section titles ────────────────────────────────────── */
+    .section-label {
+      font-family: var(--mono); font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after {
+      content: ""; flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Upload Panel ──────────────────────────────────────── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+    @media (max-width: 720px) { .upload-grid { grid-template-columns: 1fr; } }
+
+    .drop-zone {
+      background: var(--surface);
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: #14202e;
+    }
+    .drop-zone.has-file { border-style: solid; border-color: var(--green); }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .drop-icon {
+      font-size: 2rem; line-height: 1; margin-bottom: 12px;
+      display: block;
+    }
+    .drop-title {
+      font-family: var(--mono); font-size: 0.82rem;
+      font-weight: 500; color: var(--text); margin-bottom: 6px;
+    }
+    .drop-hint { font-size: 0.75rem; color: var(--text-dim); }
+    .file-name {
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--green); margin-top: 10px;
+      word-break: break-all;
+    }
+
+    /* ── Options row ────────────────────────────────────────── */
+    .options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px; align-items: end;
+      margin-top: 16px;
+    }
+    @media (max-width: 900px) { .options-row { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .options-row { grid-template-columns: 1fr; } }
+
+    .field label {
+      display: block;
+      font-family: var(--mono); font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .field select, .field input[type="text"], .field input[type="password"] {
+      width: 100%; background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius); padding: 9px 12px;
+      font-family: var(--mono); font-size: 0.82rem;
+      color: var(--text); outline: none;
+      transition: border-color var(--transition);
+    }
+    .field select:focus,
+    .field input:focus { border-color: var(--accent); }
+    .field select option { background: var(--surface); }
+
+    .toggle-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0;
+    }
+    .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--border2); border-radius: 20px;
+      transition: background var(--transition);
+    }
+    .toggle input:checked ~ .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #fff; border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .toggle input:checked ~ .toggle-track .toggle-thumb { transform: translateX(16px); }
+    .toggle-label { font-size: 0.8rem; color: var(--text-dim); }
+
+    /* ── Submit button ──────────────────────────────────────── */
+    .btn-analyze {
+      padding: 10px 28px;
+      background: var(--accent);
+      border: none; border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.82rem;
+      font-weight: 600; letter-spacing: 0.04em;
+      color: #fff; cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition), transform 80ms;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-analyze:hover { background: var(--accent2); }
+    .btn-analyze:active { transform: scale(0.98); }
+    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    /* Loading spinner animation */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .btn-analyze .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    .btn-analyze .spinner.hidden {
+      display: none;
+    }
+
+    /* ── OAuth buttons ──────────────────────────────────────── */
+    .btn-oauth {
+      padding: 10px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--sans); font-size: 0.9rem;
+      color: var(--text); cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .btn-oauth:hover {
+      background: var(--border2);
+      border-color: var(--accent);
+    }
+    .btn-oauth:active {
+      transform: scale(0.95);
+    }
+
+    /* ── Status bar ─────────────────────────────────────────── */
+    .status-bar {
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      font-family: var(--mono); font-size: 0.78rem;
+      opacity: 0; transform: translateY(-6px);
+      transition: opacity 300ms, transform 300ms;
+    }
+    .status-bar.visible { opacity: 1; transform: none; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--text-mute);
+    }
+    .status-dot.pending { background: var(--yellow); animation: pulse 1.4s infinite; }
+    .status-dot.running { background: var(--blue); animation: pulse 0.8s infinite; }
+    .status-dot.done    { background: var(--green); }
+    .status-dot.error   { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.35; }
+    }
+    @keyframes step-slide {
+      0%   { opacity: 0; transform: translateY(5px); }
+      14%  { opacity: 1; transform: translateY(0); }
+      86%  { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-4px); }
+    }
+    .status-msg { color: var(--text-dim); flex: 1; transition: none; }
+    .status-msg.stepping { animation: step-slide 2.4s ease both; }
+    .status-elapsed {
+      color: var(--text-mute); font-size: 0.7rem;
+      margin-left: auto;
+    }
+
+    /* ── Progress track ─────────────────────────────────────── */
+    .progress-track {
+      height: 2px; background: var(--border);
+      margin-top: 8px; border-radius: 1px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: var(--accent);
+      width: 0%; transition: width 400ms ease;
+      border-radius: 1px;
+    }
+
+    /* ── Results section ─────────────────────────────────────── */
+    #results {
+      margin-top: 48px;
+      opacity: 0; transform: translateY(12px);
+      transition: opacity 400ms, transform 400ms;
+    }
+    #results.visible { opacity: 1; transform: none; }
+
+    /* App Summary cards ─────────────────────────────────────── */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .kpi-label {
+      font-family: var(--mono); font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-family: var(--mono); font-size: 0.6rem;
+      font-weight: 600; color: #fff;
+    }
+    .kpi-value.accent  { color: var(--accent); }
+    .kpi-value.green   { color: var(--green); }
+    .kpi-value.yellow  { color: var(--yellow); }
+    .kpi-value.red     { color: var(--red); }
+
+    /* Stage table ───────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden; overflow-x: auto;
+      margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    thead tr {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border2);
+    }
+    th {
+      font-family: var(--mono); font-size: 0.65rem;
+      font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim);
+      padding: 10px 14px; text-align: left;
+      white-space: nowrap;
+    }
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    th.sortable:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    th.sortable.sorted-asc::after {
+      content: ' ▲';
+      color: var(--accent);
+    }
+    th.sortable.sorted-desc::after {
+      content: ' ▼';
+      color: var(--accent);
+    }
+    td {
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); color: var(--text);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag-skew {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(232,115,42,0.15);
+      color: var(--accent2); border: 1px solid rgba(232,115,42,0.3);
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 3px;
+    }
+    .bar-cell { min-width: 100px; }
+    .mini-bar {
+      height: 4px; background: var(--border2);
+      border-radius: 2px; overflow: hidden; margin-top: 4px;
+    }
+    .mini-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--blue); transition: width 600ms ease;
+    }
+
+    /* Table expand/collapse ────────────────────────────── */
+    tbody tr.row-hidden { display: none; }
+    .expand-btn {
+      margin-top: 14px;
+      padding: 9px 18px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.78rem;
+      color: var(--text-dim); cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    .expand-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .stages-actions {
+      margin-top: 12px;
+      margin-bottom: 26px;
+    }
+
+    /* LLM Analysis panel ────────────────────────────────────── */
+    .analysis-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .analysis-panel .inner {
+      font-size: 0.85rem; line-height: 1.75;
+      color: var(--text);
+    }
+    .analysis-panel .inner h1,
+    .analysis-panel .inner h2,
+    .analysis-panel .inner h3 {
+      font-family: var(--mono); color: #fff;
+      margin: 1.2em 0 0.5em;
+    }
+    .analysis-panel .inner h1 { font-size: 1rem; }
+    .analysis-panel .inner h2 { font-size: 0.95rem; color: var(--accent2); }
+    .analysis-panel .inner h3 { font-size: 0.85rem; color: var(--blue); }
+    .analysis-panel .inner code, .analysis-panel .inner pre {
+      font-family: var(--mono); font-size: 0.78rem;
+    }
+    .analysis-panel .inner pre {
+      background: var(--bg); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 14px 16px;
+      overflow-x: auto; margin: 10px 0;
+      line-height: 1.6;
+    }
+    .analysis-panel .inner code:not(pre code) {
+      background: rgba(61,155,233,0.12); color: var(--blue);
+      padding: 1px 5px; border-radius: 3px;
+    }
+    .analysis-panel .inner strong { color: #fff; }
+    .analysis-panel .inner ul, .analysis-panel .inner ol {
+      padding-left: 1.5em; margin: 0.5em 0;
+    }
+    .analysis-panel .inner li { margin: 0.25em 0; }
+    .analysis-panel .inner hr {
+      border: none; border-top: 1px solid var(--border);
+      margin: 1.5em 0;
+    }
+    .analysis-panel .inner table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.8rem;
+      table-layout: fixed;
+    }
+    .analysis-panel .inner th,
+    .analysis-panel .inner td {
+      border: 1px solid var(--border2);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .analysis-panel .inner th {
+      color: #fff;
+      background: rgba(255,255,255,0.03);
+      font-weight: 600;
+    }
+    .analysis-panel .inner table code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    /* Download bar ──────────────────────────────────────────── */
+    .download-bar {
+      display: flex; gap: 10px; margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .btn-dl {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--text-dim); cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+      text-decoration: none;
+    }
+    .btn-dl:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-dl svg { width: 13px; height: 13px; }
+
+    /* Error panel ───────────────────────────────────────────── */
+    .error-panel {
+      background: rgba(232,88,88,0.08);
+      border: 1px solid rgba(232,88,88,0.3);
+      border-radius: var(--radius); padding: 16px 20px;
+      font-family: var(--mono); font-size: 0.8rem;
+      color: var(--red); margin-top: 16px;
+    }
+
+    /* Scrollbar ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <img src="favicon-96x96.png" alt="Spark Log Analyzer Logo" width="96" height="96" />
+    </div>
+    <div class="header-text">
+      <h1>Spark Log Analyzer</h1>
+      <p>Event log reduction · Bottleneck detection · AI diagnostics</p>
+    </div>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+      <label for="lang-select" style="font-size:0.85rem; color:var(--text-dim);">Language:</label>
+      <select id="lang-select" style="background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius); padding:4px 8px; font-family:var(--mono); font-size:0.82rem; color:var(--text);">
+        <option value="en">English</option>
+        <option value="pt">Português (Brasil)</option>
+      </select>
+      <a id="desktop-download-link" class="desktop-cta disabled" href="#" target="_blank" rel="noopener noreferrer">Desktop EXE: loading...</a>
+      <span class="version-badge">v2.0</span>
+    </div>
+  </header>
+
+  <!-- OAuth2 Authentication -->
+  <div style="margin-top: 40px; margin-bottom: 40px;">
+    <div class="section-label" id="lbl-auth">00 — Authentication (Optional)</div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+      <button class="btn-oauth" id="btn-oauth-openai" onclick="initiateOAuth('openai')">
+        🔑 Login with OpenAI
+      </button>
+      <button class="btn-oauth" id="btn-oauth-anthropic" onclick="initiateOAuth('anthropic')">
+        🧠 Login with Anthropic
+      </button>
+      <button class="btn-oauth" id="btn-oauth-gemini" onclick="initiateOAuth('gemini')">
+        ✨ Login with Google Gemini
+      </button>
+    </div>
+
+    <div id="oauth-status" style="display: none; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;">
+      <span id="oauth-status-text"></span>
+      <button onclick="clearOAuthSession()" style="margin-left: auto; padding: 4px 8px; cursor: pointer;">×</button>
+    </div>
+
+    <div id="tip-text" style="font-size: 0.85rem; color: var(--text-dim); margin-top: 12px;">
+      <strong>Tip:</strong> Login with OAuth2 to avoid pasting API keys. Alternatively, you can still provide your API key manually below.
+    </div>
+
+    <!-- LLM options & output mode -->
+    <div class="options-row" style="margin-top:24px;">
+      <div class="field">
+        <label>LLM Provider</label>
+        <select id="sel-provider">
+          <option value="">— none —</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
+        </select>
+      </div>
+      <div class="field" id="api-key-field" style="display: block;">
+        <label>API Key <span style="font-weight: normal; opacity: 0.7;">(optional if OAuth logged in)</span></label>
+        <input type="password" id="input-key" placeholder="sk-… (fallback to OAuth if logged in)" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Output Mode</label>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="chk-compact">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+          <span class="toggle-label">Compact report</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload section -->
+  <div style="margin-top: 40px">
+    <div class="section-label">01 — Upload</div>
+
+    <div class="upload-grid">
+      <!-- ZIP drop zone -->
+      <div class="drop-zone" id="zone-zip" ondragover="onDragOver(event,'zip')" ondragleave="onDragLeave('zip')" ondrop="onDrop(event,'zip')">
+        <input type="file" id="input-zip">
+        <span class="drop-icon">📦</span>
+        <div class="drop-title">Event Log ZIP</div>
+        <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.zip — Spark event logs</em></div>
+        <div class="file-name" id="name-zip"></div>
+      </div>
+
+      <!-- PySpark files drop zone -->
+      <div class="drop-zone" id="zone-py" ondragover="onDragOver(event,'py')" ondragleave="onDragLeave('py')" ondrop="onDrop(event,'py')">
+        <input type="file" id="input-py" accept=".py" multiple>
+        <span class="drop-icon">🐍</span>
+        <div class="drop-title" id="py-title">PySpark Source Files <span style="opacity:.5;font-size:.75em">(optional)</span></div>
+        <div class="drop-hint">Drag &amp; drop or click to select<br><em style="opacity:.6">.py — job source code</em></div>
+        <div class="file-name" id="name-py"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; text-align:center;">
+      <button id="btn-submit" class="btn-analyze" onclick="submitJob()" disabled>
+        <span class="spinner hidden" id="btn-spinner"></span>
+        <span id="btn-text">Analyze →</span>
+      </button>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-msg" id="status-msg">Idle</span>
+      <span class="status-elapsed" id="status-elapsed"></span>
+    </div>
+    <div class="progress-track" id="progress-track" style="display:none">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="error-panel" id="error-panel" style="display:none"></div>
+
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="section-label" style="margin-top:48px">02 — Application Summary</div>
+    <div class="summary-cards" id="kpi-cards"></div>
+
+    <div class="section-label">03 — Stage Breakdown</div>
+    <div class="table-wrap">
+      <table id="stage-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="stage_id">#</th><th class="sortable" data-sort="name">Stage Name</th><th class="sortable" data-sort="num_tasks">Tasks</th>
+            <th class="sortable" data-sort="duration_ms">Duration</th><th class="sortable" data-sort="input_bytes">Input</th>
+            <th class="sortable" data-sort="shuffle_read_bytes">Shuffle Read</th><th class="sortable" data-sort="shuffle_write_bytes">Shuffle Write</th>
+            <th class="sortable" data-sort="skew_ratio">Skew Ratio</th><th class="sortable" data-sort="task_duration_p95_ms">p95 Task</th>
+          </tr>
+        </thead>
+        <tbody id="stage-tbody"></tbody>
+      </table>
+    </div>
+    <div class="stages-actions">
+      <button id="expand-stages-btn" class="expand-btn" style="display:none;" onclick="toggleExpandStages()"></button>
+    </div>
+
+    <div id="llm-section" style="display:none">
+      <div class="section-label">04 — AI Analysis</div>
+      <div class="analysis-panel">
+        <div class="inner" id="llm-inner"></div>
+      </div>
+    </div>
+
+    <div class="section-label">05 — Export</div>
+    <div class="download-bar" id="dl-bar"></div>
+
+  </div><!-- /results -->
+
+  <!-- History section -->
+  <div style="margin-top: 32px;">
+    <div class="section-label" id="history-label">Histórico</div>
+    <div id="history-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<footer style="margin-top: 60px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim);">
+  <p>Created by <strong>Alex Valsechi</strong> | <a href="https://www.linkedin.com/in/alex-valsechi/" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">LinkedIn</a></p>
+</footer>
+
+<script>
+/* ── State ──────────────────────────────────────────── */
+let currentJobId = null;
+let pollTimer    = null;
+let startTs      = null;
+let elapsedTimer = null;
+let zipFile      = null;
+let pyFiles      = [];
+let currentOAuthUser = null;
+let currentOAuthProvider = null;
+let currentLang = 'en';
+let statusCycleTimer = null;
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
+let originalStages = [];
+let analysisHistory = [];
+let stagesTableExpanded = false;
+let totalStagesCount = 0;
+const fallbackGithubRepo = 'alexvalsechi/spark-log-analyzer';
+
+function detectPagesRepository() {
+  const host = window.location.hostname.toLowerCase();
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  if (host.endsWith('github.io')) {
+    const owner = host.split('.')[0];
+    const repo = pathParts[0];
+    if (owner && repo) {
+      return { owner, repo };
+    }
+  }
+
+  const [owner, repo] = fallbackGithubRepo.split('/');
+  if (!owner || !repo) {
+    return null;
+  }
+  return { owner, repo };
+}
+
+function setDesktopDownloadLink(label, href, disabled) {
+  const link = document.getElementById('desktop-download-link');
+  if (!link) {
+    return;
+  }
+  link.textContent = label;
+  link.href = href || '#';
+  link.classList.toggle('disabled', !!disabled);
+}
+
+async function hydrateDesktopDownloadLink() {
+  const repoInfo = detectPagesRepository();
+  if (!repoInfo) {
+    setDesktopDownloadLink('Desktop EXE: open release', `https://github.com/${fallbackGithubRepo}/releases/tag/master-latest`, false);
+    return;
+  }
+
+  const releaseApi = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/releases/tags/master-latest`;
+  try {
+    const res = await fetch(releaseApi, {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if (!res.ok) {
+      throw new Error(`release lookup failed (${res.status})`);
+    }
+
+    const release = await res.json();
+    const exeAsset = (release.assets || []).find((asset) =>
+      typeof asset.name === 'string' && asset.name.toLowerCase().endsWith('.exe')
+    );
+
+    if (exeAsset && exeAsset.browser_download_url) {
+      setDesktopDownloadLink('Download Desktop EXE', exeAsset.browser_download_url, false);
+      return;
+    }
+
+    setDesktopDownloadLink('Desktop EXE: open release', release.html_url, false);
+  } catch {
+    const fallbackUrl = `https://github.com/${repoInfo.owner}/${repoInfo.repo}/releases/tag/master-latest`;
+    setDesktopDownloadLink('Desktop EXE: open release', fallbackUrl, false);
+  }
+}
+
+const translations = {
+  en: {
+    authLabel: '00 — Authentication (Optional)',
+    loginOpenAI: '🔑 Login with OpenAI',
+    loginAnthropic: '🧠 Login with Anthropic',
+    loginGemini: '✨ Login with Google Gemini',
+    tip: 'Tip: Login with OAuth2 to avoid pasting API keys. Alternatively, you can still provide your API key manually below.',
+    llmProviderLabel: 'LLM Provider',
+    apiKeyLabel: 'API Key (optional if OAuth logged in)',
+    outputModeLabel: 'Output Mode',
+    compactReport: 'Compact report',
+    uploadLabel: '01 — Upload',
+    eventLogZip: 'Event Log ZIP',
+    pysparkFiles: 'PySpark Source Files',
+    analyzeButton: 'Analyze →',
+    statusIdle: 'Idle',
+    statusUploading: 'Uploading…',
+    statusProcessing: 'Processing event log…',
+    statusAnalyzing: 'Analyzing stages & calling LLM…',
+    statusComplete: 'Analysis complete',
+    statusError: 'Error',
+    historyLabel: 'History',
+    noHistory: 'No previous analyses.',
+    processedAtLabel: 'Processed at'
+  },
+  pt: {
+    authLabel: '00 — Autenticação (Opcional)',
+    loginOpenAI: '🔑 Login com OpenAI',
+    loginAnthropic: '🧠 Login com Anthropic',
+    loginGemini: '✨ Login com Google Gemini',
+    tip: 'Dica: faça login com OAuth2 para evitar colar chaves de API. Alternativamente, você ainda pode fornecer sua chave manualmente abaixo.',
+    llmProviderLabel: 'Provedor LLM',
+    apiKeyLabel: 'Chave API (opcional se logado via OAuth)',
+    outputModeLabel: 'Modo de Saída',
+    compactReport: 'Relatório compacto',
+    uploadLabel: '01 — Enviar',
+    eventLogZip: 'ZIP de Log',
+    pysparkFiles: 'Arquivos PySpark',
+    analyzeButton: 'Analisar →',
+    statusIdle: 'Inativo',
+    statusUploading: 'Enviando…',
+    statusProcessing: 'Processando log…',
+    statusAnalyzing: 'Analisando estágios e chamando LLM…',
+    statusComplete: 'Análise concluída',
+    statusError: 'Erro',
+    historyLabel: 'Histórico',
+    noHistory: 'Nenhuma análise anterior.',
+    processedAtLabel: 'Processado em'
+  }
+};
+
+function updateLanguage() {
+  const t = translations[currentLang] || translations.en;
+
+  // Safe element updates with null checks
+  const lblAuth = document.getElementById('lbl-auth');
+  if (lblAuth) lblAuth.textContent = t.authLabel;
+
+  const btnOpenAI = document.getElementById('btn-oauth-openai');
+  if (btnOpenAI) btnOpenAI.textContent = t.loginOpenAI;
+
+  const btnAnthropic = document.getElementById('btn-oauth-anthropic');
+  if (btnAnthropic) btnAnthropic.textContent = t.loginAnthropic;
+
+  const btnGemini = document.getElementById('btn-oauth-gemini');
+  if (btnGemini) btnGemini.textContent = t.loginGemini;
+
+  const tipText = document.getElementById('tip-text');
+  if (tipText) tipText.innerHTML = `<strong>${currentLang==='pt'?'Dica':'Tip'}:</strong> ${t.tip}`;
+
+  // update optional label if necessary
+  const pyTitle = currentLang === 'pt'
+    ? t.pysparkFiles.replace('(optional)', '(opcional)')
+    : t.pysparkFiles + ' <span style="opacity:.5;font-size:.75em">(optional)</span>';
+  const pyTitleEl = document.getElementById('py-title');
+  if (pyTitleEl) pyTitleEl.innerHTML = pyTitle;
+
+  const providerLabel = document.querySelector('label[for="sel-provider"]');
+  if (providerLabel) providerLabel.textContent = t.llmProviderLabel;
+
+  const apiKeyFieldLabel = document.querySelector('#api-key-field label');
+  if (apiKeyFieldLabel && apiKeyFieldLabel.firstChild) {
+    apiKeyFieldLabel.firstChild.textContent = t.apiKeyLabel;
+  }
+
+  const compactLabel = document.querySelector('label[for="chk-compact"]');
+  if (compactLabel) compactLabel.textContent = t.outputModeLabel;
+
+  const toggleLabel = document.querySelector('.toggle-label');
+  if (toggleLabel) toggleLabel.textContent = t.compactReport;
+
+  const historyLabel = document.getElementById('history-label');
+  if (historyLabel) historyLabel.textContent = t.historyLabel;
+
+  const zipTitle = document.querySelector('#zone-zip .drop-title');
+  if (zipTitle) zipTitle.textContent = t.eventLogZip;
+
+  const pyDropTitle = document.querySelector('#zone-py .drop-title');
+  if (pyDropTitle) pyDropTitle.innerHTML = t.pysparkFiles + ' <span style="opacity:.5;font-size:.75em">(optional)</span>';
+
+  const submitBtnText = document.getElementById('btn-text');
+  if (submitBtnText) submitBtnText.textContent = t.analyzeButton;
+}
+
+function setStatus(status, msg) {
+  const t = translations[currentLang] || translations.en;
+  const statusMsgEl = document.getElementById('status-msg');
+  statusMsgEl.textContent = msg || (
+    status === 'pending' ? t.statusUploading :
+    status === 'running' ? t.statusAnalyzing :
+    status === 'done' ? t.statusComplete :
+    status === 'error' ? t.statusError : t.statusIdle
+  );
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + status;
+}
+
+// language selector handler
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired');
+
+  // Setup language selector first
+  const sel = document.getElementById('lang-select');
+  console.log('lang-select element:', sel);
+  if (sel) {
+    const saved = localStorage.getItem('sparkui_lang');
+    if (saved) {
+      currentLang = saved;
+      sel.value = saved;
+    }
+    sel.addEventListener('change', () => {
+      currentLang = sel.value;
+      localStorage.setItem('sparkui_lang', currentLang);
+      updateLanguage();
+    });
+  }
+
+  updateLanguage();
+  hydrateDesktopDownloadLink();
+  handleOAuthCallback();
+  loadHistory();
+
+  // Setup file input handlers with more robust checks
+  const zipInput = document.getElementById('input-zip');
+  const pyInput = document.getElementById('input-py');
+  console.log('input-zip element:', zipInput);
+  console.log('input-py element:', pyInput);
+
+  if (zipInput) {
+    zipInput.addEventListener('change', (event) => {
+      console.log('ZIP input change event fired:', event);
+      console.log('Files selected:', event.target.files);
+      onFileChange('zip');
+    });
+    zipInput.addEventListener('click', (event) => {
+      console.log('ZIP input click event fired:', event);
+    });
+    console.log('Added change and click listeners to input-zip');
+  } else {
+    console.error('input-zip element not found!');
+  }
+
+  if (pyInput) {
+    pyInput.addEventListener('change', (event) => {
+      console.log('PY input change event fired:', event);
+      onFileChange('py');
+    });
+    console.log('Added change listener to input-py');
+  } else {
+    console.error('input-py element not found!');
+  }
+
+  // Test if elements are clickable
+  const zipZone = document.getElementById('zone-zip');
+  if (zipZone) {
+    console.log('zone-zip element found, clickable:', zipZone);
+  } else {
+    console.error('zone-zip element not found!');
+  }
+
+});
+
+/* ── File handlers ──────────────────────────────────── */
+function onFileChange(type) {
+  console.log('onFileChange called with type:', type);
+  if (type === 'zip') {
+    const input = document.getElementById('input-zip');
+    const f = input.files[0];
+    console.log('ZIP input element:', input);
+    console.log('ZIP file selected:', f);
+    if (f) { 
+      zipFile = f; 
+      updateZoneUI('zip', f.name);
+      
+      // Warn if file is large (>400 MB)
+      const sizeMB = f.size / (1024 * 1024);
+      if (sizeMB > 400) {
+        alert(`Warning: Large file detected (${sizeMB.toFixed(1)} MB). Upload may take time and consume server resources.`);
+      }
+      
+      console.log('ZIP file stored and UI updated');
+    } else {
+      console.log('No file selected');
+    }
+  } else {
+    const input = document.getElementById('input-py');
+    pyFiles = Array.from(input.files);
+    console.log('PY input element:', input);
+    console.log('PY files selected:', pyFiles);
+    updateZoneUI('py', pyFiles.map(f => f.name).join(', ') || '');
+  }
+  checkReady();
+}
+function updateZoneUI(type, name) {
+  console.log('updateZoneUI called with type:', type, 'name:', name);
+  const zone = document.getElementById('zone-' + type);
+  const label = document.getElementById('name-' + type);
+  console.log('Zone element:', zone, 'Label element:', label);
+  if (name) { 
+    zone.classList.add('has-file'); 
+    label.textContent = '✓ ' + name; 
+    console.log('Added has-file class and updated label');
+  }
+  else { 
+    zone.classList.remove('has-file'); 
+    label.textContent = ''; 
+    console.log('Removed has-file class and cleared label');
+  }
+}
+function onDragOver(e, type) {
+  e.preventDefault();
+  document.getElementById('zone-' + type).classList.add('drag-over');
+}
+function onDragLeave(type) {
+  document.getElementById('zone-' + type).classList.remove('drag-over');
+}
+function onDrop(e, type) {
+  e.preventDefault();
+  onDragLeave(type);
+  const files = e.dataTransfer.files;
+  console.log('onDrop called with type:', type, 'files:', files);
+  if (!files.length) {
+    console.log('No files in drop event');
+    return;
+  }
+  if (type === 'zip') {
+    const file = files[0];
+    console.log('ZIP file dropped:', file.name, 'type:', file.type, 'size:', file.size);
+    if (file.name.endsWith('.zip')) {
+      zipFile = file;
+      updateZoneUI('zip', file.name);
+      console.log('ZIP file accepted');
+    } else {
+      console.log('File does not end with .zip');
+    }
+  } else {
+    pyFiles = Array.from(files).filter(f => f.name.endsWith('.py'));
+    console.log('PY files dropped:', pyFiles);
+    if (pyFiles.length) updateZoneUI('py', pyFiles.map(f => f.name).join(', '));
+  }
+  checkReady();
+}
+function checkReady() {
+  console.log('checkReady called, zipFile:', zipFile);
+  const btn = document.getElementById('btn-submit');
+  const isReady = !!zipFile;
+  console.log('Button should be enabled:', isReady);
+  btn.disabled = !isReady;
+}
+
+/* ── OAuth2 ─────────────────────────────────────────── */
+
+function initiateOAuth(provider) {
+  // Redirect to backend OAuth login endpoint
+  const loginUrl = `/api/auth/login/${provider}`;
+  window.location.href = loginUrl;
+}
+
+function handleOAuthCallback() {
+  // Called on page load to check for OAuth callback params
+  const params = new URLSearchParams(window.location.search);
+  const oauthUser = params.get('oauth_user');
+  const provider = params.get('provider');
+
+  if (oauthUser && provider) {
+    currentOAuthUser = oauthUser;
+    currentOAuthProvider = provider;
+    displayOAuthStatus();
+    
+    // Update provider selector
+    document.getElementById('sel-provider').value = provider;
+    
+    // Clear the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+function displayOAuthStatus() {
+  const statusDiv = document.getElementById('oauth-status');
+  const statusText = document.getElementById('oauth-status-text');
+  const apiKeyField = document.getElementById('api-key-field');
+  
+  if (currentOAuthUser && currentOAuthProvider) {
+    statusText.textContent = `✓ Logged in with ${currentOAuthProvider.toUpperCase()} (User: ${currentOAuthUser.substring(0, 8)}…)`;
+    statusDiv.style.display = 'flex';
+    statusDiv.style.justifyContent = 'space-between';
+    statusDiv.style.alignItems = 'center';
+    
+    // Hide API key field when OAuth is active
+    apiKeyField.style.display = 'none';
+    
+    // Auto-select provider
+    document.getElementById('sel-provider').value = currentOAuthProvider;
+  } else {
+    statusDiv.style.display = 'none';
+    
+    // Show API key field when no OAuth
+    apiKeyField.style.display = 'block';
+  }
+}
+
+function clearOAuthSession() {
+  currentOAuthUser = null;
+  currentOAuthProvider = null;
+  document.getElementById('oauth-status').style.display = 'none';
+  document.getElementById('sel-provider').value = '';
+  document.getElementById('api-key-field').style.display = 'block'; // Show API key field again
+}
+
+/* ── History Management ─────────────────────────────────── */
+function loadHistory() {
+  const stored = localStorage.getItem('sparkui_history');
+  if (stored) {
+    analysisHistory = JSON.parse(stored);
+  }
+  renderHistory();
+}
+
+function saveHistory(analysis) {
+  analysisHistory.unshift(analysis); // Add to beginning
+  if (analysisHistory.length > 10) { // Limit to 10
+    analysisHistory = analysisHistory.slice(0, 10);
+  }
+  localStorage.setItem('sparkui_history', JSON.stringify(analysisHistory));
+  renderHistory();
+}
+
+function renderHistory() {
+  const t = translations[currentLang] || translations.en;
+  const container = document.getElementById('history-list');
+  if (analysisHistory.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-dim); font-size: 0.9rem;">${t.noHistory}</p>`;
+    return;
+  }
+  container.innerHTML = analysisHistory.map((item) => `
+    <div style="border-bottom: 1px solid var(--border); padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <strong>${item.appName || 'App'}</strong>
+        <br><small style="color: var(--text-dim);">${t.processedAtLabel}: ${item.processedAtLocal || new Date(item.timestamp || Date.now()).toLocaleString()}</small>
+        <br><small style="color: var(--text-dim);">Duração: ${item.duration}, Stages: ${item.numStages}</small>
+      </div>
+      <div>
+        <a href="/api/download/${item.jobId}/md" class="btn-dl" style="margin-right: 8px;">MD</a>
+        <a href="/api/download/${item.jobId}/json" class="btn-dl">JSON</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Status step cycle ─────────────────────────────── */
+const pipelineMessages = {
+  en: [
+    'Preparing upload…',
+    'Sending ZIP to server…',
+    'Uploading event log…',
+    'Unpacking log files…',
+    'Reading Spark events…',
+    'Identifying stages & tasks…',
+    'Computing performance metrics…',
+    'Detecting bottlenecks & data skew…',
+    'Preparing AI analysis context…',
+    'Sending context to LLM…',
+    'Waiting for AI response…',
+    'Analyzing stage performance…',
+    'Generating optimization suggestions…',
+    'Formatting final report…',
+  ],
+  pt: [
+    'Preparando envio…',
+    'Enviando ZIP para o servidor…',
+    'Fazendo upload do log…',
+    'Descompactando arquivos de log…',
+    'Lendo eventos do Spark…',
+    'Identificando stages e tarefas…',
+    'Calculando métricas de performance…',
+    'Detectando gargalos e skew de dados…',
+    'Preparando contexto para análise IA…',
+    'Enviando contexto para a LLM…',
+    'Aguardando resposta da inteligência artificial…',
+    'Analisando performance dos stages…',
+    'Gerando sugestões de otimização…',
+    'Formatando relatório final…',
+  ]
+};
+
+function startStatusCycle(dotStatus) {
+  stopStatusCycle();
+  const lang = pipelineMessages[currentLang] ? currentLang : 'en';
+  const msgs = pipelineMessages[lang];
+  let idx = 0;
+  const el = document.getElementById('status-msg');
+  const dot = document.getElementById('status-dot');
+  const bar = document.getElementById('status-bar');
+  if (bar) bar.classList.add('visible');
+  if (dot) dot.className = 'status-dot ' + (dotStatus || 'pending');
+  function showStep() {
+    if (!el) return;
+    el.classList.remove('stepping');
+    void el.offsetWidth;
+    el.textContent = msgs[idx % msgs.length];
+    el.classList.add('stepping');
+    idx++;
+  }
+  showStep();
+  statusCycleTimer = setInterval(showStep, 2500);
+}
+
+function stopStatusCycle() {
+  if (statusCycleTimer) {
+    clearInterval(statusCycleTimer);
+    statusCycleTimer = null;
+  }
+  const el = document.getElementById('status-msg');
+  if (el) el.classList.remove('stepping');
+}
+
+function updateStatusDot(status) {
+  const dot = document.getElementById('status-dot');
+  if (dot) dot.className = 'status-dot ' + status;
+}
+
+/* ── Submit ─────────────────────────────────────────── */
+async function submitJob() {
+  if (!zipFile) return;
+  resetUI();
+  
+  // Disable button and show spinner
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = true;
+  spinner.classList.remove('hidden');
+
+  const fd = new FormData();
+  fd.append('log_zip', zipFile, zipFile.name);
+  pyFiles.forEach(f => fd.append('pyspark_files', f, f.name));
+  fd.append('compact',      document.getElementById('chk-compact').checked);
+  fd.append('language',     currentLang);
+  
+  // Use OAuth if available, otherwise fall back to manual API key
+  if (currentOAuthUser && currentOAuthProvider) {
+    fd.append('user_id', currentOAuthUser);
+    fd.append('provider', currentOAuthProvider);
+  } else {
+    fd.append('llm_provider', document.getElementById('sel-provider').value || '');
+    fd.append('api_key',      document.getElementById('input-key').value || '');
+  }
+
+  startStatusCycle('pending');
+  startTs = Date.now();
+  startElapsed();
+  showProgressBar();
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || 'Upload failed');
+    }
+    const data = await res.json();
+    currentJobId = data.job_id;
+    updateStatusDot('running');
+    animateProgress(15, 75, 12000);
+    startPolling();
+  } catch (e) {
+    stopStatusCycle();
+    showError(e.message);
+    setStatus('error', 'Upload failed');
+  }
+}
+
+function startPolling() {
+  pollTimer = setInterval(async () => {
+    if (!currentJobId) return;
+    try {
+      const res = await fetch('/api/status/' + currentJobId);
+      if (!res.ok) {
+        if (res.status === 429) {
+          updateStatusDot('running');
+          return;
+        }
+        if (res.status >= 500) {
+          updateStatusDot('running');
+          return;
+        }
+        throw new Error('Status check failed: ' + res.status);
+      }
+      const data = await res.json();
+      if (data.status === 'done') {
+        clearInterval(pollTimer);
+        animateProgress(75, 100, 600);
+        setTimeout(() => {
+          stopStatusCycle();
+          setStatus('done', 'Analysis complete');
+          stopElapsed();
+          renderResults(data);
+          hideProgressBar();
+        }, 650);
+      } else if (data.status === 'error') {
+        clearInterval(pollTimer);
+        stopStatusCycle();
+        showError(data.error || 'Unknown error during processing');
+        setStatus('error', 'Processing failed');
+        stopElapsed();
+        hideProgressBar();
+      } else if (data.status === 'running') {
+        updateStatusDot('running');
+      }
+    } catch {
+      updateStatusDot('running');
+    }
+  }, 1500);
+}
+
+/* ── Render Results ─────────────────────────────────── */
+function renderResults(data) {
+  // KPI cards
+  const s = data.summary;
+  if (s) {
+    const cards = [
+      { label: 'App', value: s.app_name, cls: 'accent' },
+      { label: 'Duration', value: fmtMs(s.total_duration_ms), cls: '' },
+      { label: 'Stages', value: s.num_stages, cls: '' },
+      { label: 'Tasks', value: s.num_tasks.toLocaleString(), cls: '' },
+      { label: 'Executors', value: s.executor_count, cls: 'green' },
+      { label: 'Input', value: fmtBytes(s.total_input_bytes), cls: '' },
+      { label: 'Shuffle Read', value: fmtBytes(s.total_shuffle_read_bytes), cls: s.total_shuffle_read_bytes > 1e9 ? 'yellow' : '' },
+      { label: 'Spark', value: s.spark_version, cls: '' },
+    ];
+    const container = document.getElementById('kpi-cards');
+    container.innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value ${c.cls}">${c.value}</div>
+      </div>
+    `).join('');
+
+    // Stage table
+    if (s.stages && s.stages.length) {
+      originalStages = [...s.stages]; // Store original data
+      renderStageTable(s.stages);
+      
+      // Add sort listeners
+      document.querySelectorAll('#stage-table th[data-sort]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => sortTable(th.dataset.sort));
+      });
+    }
+  }
+
+  // LLM analysis
+  if (data.llm_analysis && data.llm_analysis.trim()) {
+    document.getElementById('llm-section').style.display = '';
+    document.getElementById('llm-inner').innerHTML = mdToHtml(data.llm_analysis);
+  }
+
+  // Download buttons
+  const dlBar = document.getElementById('dl-bar');
+  dlBar.innerHTML = `
+    <a class="btn-dl" href="/api/download/${currentJobId}/md">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Markdown
+    </a>
+    <a class="btn-dl" href="/api/download/${currentJobId}/json">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download JSON
+    </a>
+  `;
+
+  // Reveal
+  const el = document.getElementById('results');
+  el.classList.add('visible');
+
+  // Save to history
+  const analysis = {
+    jobId: currentJobId,
+    timestamp: Date.now(),
+    processedAtLocal: new Date().toLocaleString(),
+    appName: s.app_name,
+    duration: fmtMs(s.total_duration_ms),
+    numStages: s.num_stages,
+    numTasks: s.num_tasks
+  };
+  saveHistory(analysis);
+  
+  // Re-enable button and hide spinner for potential re-analysis
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = false;
+  spinner.classList.add('hidden');
+}
+
+function renderStageTable(stages) {
+  const maxDur = Math.max(...stages.map(st => st.duration_ms || 0));
+  totalStagesCount = stages.length;
+  document.getElementById('stage-tbody').innerHTML = stages.map((st, idx) => {
+    const pct = maxDur > 0 ? Math.round((st.duration_ms / maxDur) * 100) : 0;
+    const skewTag = st.skew_ratio > 3
+      ? `<span class="tag-skew" title="High skew ratio (${st.skew_ratio}×): This stage has uneven task distribution, which can cause performance issues. Tasks may take significantly different times to complete, leading to wasted resources and longer overall job duration.">⚠ ${st.skew_ratio}×</span>`
+      : (st.skew_ratio ? st.skew_ratio + '×' : '—');
+    const rowClass = !stagesTableExpanded && idx >= 5 ? 'row-hidden' : '';
+    return `<tr class="${rowClass}">
+      <td>${st.stage_id}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(st.name)}">${esc(st.name)}</td>
+      <td>${st.num_tasks}</td>
+      <td class="bar-cell">
+        ${fmtMs(st.duration_ms)}
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+      </td>
+      <td>${fmtBytes(st.input_bytes)}</td>
+      <td>${fmtBytes(st.shuffle_read_bytes)}</td>
+      <td>${fmtBytes(st.shuffle_write_bytes)}</td>
+      <td>${skewTag}</td>
+      <td>${st.task_duration_p95_ms != null ? fmtMs(st.task_duration_p95_ms) : '—'}</td>
+    </tr>`;
+  }).join('');
+  
+  updateExpandButton();
+}
+
+function updateExpandButton() {
+  const btn = document.getElementById('expand-stages-btn');
+  if (totalStagesCount <= 5) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  if (stagesTableExpanded) {
+    btn.textContent = '▼ Collapse (' + totalStagesCount + ' stages)';
+  } else {
+    btn.textContent = '▶ Show all ' + totalStagesCount + ' stages';
+  }
+}
+
+function toggleExpandStages() {
+  stagesTableExpanded = !stagesTableExpanded;
+  const rows = document.querySelectorAll('#stage-tbody tr');
+  rows.forEach((row, idx) => {
+    if (idx >= 5) {
+      if (stagesTableExpanded) {
+        row.classList.remove('row-hidden');
+      } else {
+        row.classList.add('row-hidden');
+      }
+    }
+  });
+  updateExpandButton();
+}
+
+function sortTable(column) {
+  if (currentSortColumn === column) {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortColumn = column;
+    currentSortDirection = 'asc';
+  }
+  
+  // Update header classes
+  document.querySelectorAll('#stage-table th.sortable').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (th.dataset.sort === column) {
+      th.classList.add(`sorted-${currentSortDirection}`);
+    }
+  });
+  
+  const sortedStages = [...originalStages].sort((a, b) => {
+    let aVal = a[column];
+    let bVal = b[column];
+    
+    // Handle null/undefined values
+    if (aVal == null) aVal = currentSortDirection === 'asc' ? -Infinity : Infinity;
+    if (bVal == null) bVal = currentSortDirection === 'asc' ? -Infinity : Infinity;
+    
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+    
+    if (currentSortDirection === 'asc') {
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    } else {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+  });
+  
+  renderStageTable(sortedStages);
+  updateExpandButton();
+}
+
+/* ── Minimal Markdown → HTML ────────────────────────── */
+function parseTableRow(line) {
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+}
+
+function isSeparatorRow(line) {
+  const cells = parseTableRow(line);
+  return cells.length > 0 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+}
+
+function normalizeLooseTableRows(md) {
+  return md
+    .split(/\r?\n/)
+    .map((line) => {
+      if (!line.trim().startsWith('|') || !line.includes(' || ')) {
+        return line;
+      }
+      // Split rows that were concatenated in a single line using markdown separators.
+      const parts = line.split(/\s\|\|\s/g).map(p => p.trim()).filter(Boolean);
+      return parts.map((part) => (part.startsWith('|') ? part : `| ${part}`)).join('\n');
+    })
+    .join('\n');
+}
+
+function renderMarkdownTables(md) {
+  const lines = md.split(/\r?\n/);
+  const out = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const headerLine = lines[i] || '';
+    const separatorLine = lines[i + 1] || '';
+
+    const isTableStart = headerLine.trim().startsWith('|')
+      && separatorLine.trim().startsWith('|')
+      && isSeparatorRow(separatorLine);
+
+    if (!isTableStart) {
+      const isLooseRowTable = headerLine.trim().startsWith('|')
+        && !separatorLine.trim().startsWith('|')
+        && parseTableRow(headerLine).length >= 2;
+
+      if (!isLooseRowTable) {
+        out.push(headerLine);
+        continue;
+      }
+
+      const looseRows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && !isSeparatorRow(lines[i])) {
+        const row = parseTableRow(lines[i]);
+        if (row.length >= 2) {
+          looseRows.push([row[0], row.slice(1).join(' | ')]);
+        }
+        i++;
+      }
+      i -= 1;
+
+      const thead = '<thead><tr><th>Field</th><th>Detail</th></tr></thead>';
+      const tbody = `<tbody>${looseRows.map(row => `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</tbody>`;
+      out.push(`<table>${thead}${tbody}</table>`);
+      continue;
+    }
+
+    const headerCells = parseTableRow(headerLine);
+    const rows = [];
+    i += 2;
+
+    while (i < lines.length && lines[i].trim().startsWith('|')) {
+      rows.push(parseTableRow(lines[i]));
+      i++;
+    }
+
+    i -= 1;
+
+    const thead = `<thead><tr>${headerCells.map(cell => `<th>${cell}</th>`).join('')}</tr></thead>`;
+    const tbody = rows.length
+      ? `<tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`
+      : '';
+    out.push(`<table>${thead}${tbody}</table>`);
+  }
+
+  return out.join('\n');
+}
+
+function mdToHtml(md) {
+  let html = normalizeLooseTableRows(md)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    ;
+
+  const codeBlocks = [];
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const token = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(`<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`);
+    return token;
+  });
+
+  html = renderMarkdownTables(html)
+    // inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // hr
+    .replace(/^---$/gm, '<hr>')
+    // bullet lists
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    // numbered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // paragraphs
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/^([^<\n].+)$/gm, (line) =>
+      line.startsWith('<') ? line : line)
+    .replace(/^(?!<)(.+)$/gm, '$1')
+    ;
+
+  codeBlocks.forEach((block, idx) => {
+    html = html.replace(`__CODE_BLOCK_${idx}__`, block);
+  });
+
+  return html;
+}
+
+/* ── UI helpers ─────────────────────────────────────── */
+function showError(msg) {
+  const el = document.getElementById('error-panel');
+  el.textContent = '✗ ' + msg;
+  el.style.display = '';
+}
+function resetUI() {
+  stopStatusCycle();
+  clearInterval(pollTimer);
+  clearInterval(elapsedTimer);
+  document.getElementById('status-bar').classList.remove('visible');
+  
+  // Enable button and hide spinner
+  const btn = document.getElementById('btn-submit');
+  const spinner = document.getElementById('btn-spinner');
+  btn.disabled = false;
+  spinner.classList.add('hidden');
+  
+  document.getElementById('error-panel').style.display = 'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('kpi-cards').innerHTML = '';
+  document.getElementById('stage-tbody').innerHTML = '';
+  document.getElementById('llm-inner').innerHTML = '';
+  document.getElementById('llm-section').style.display = 'none';
+  document.getElementById('dl-bar').innerHTML = '';
+  document.getElementById('status-elapsed').textContent = '';
+  // Reset sort state
+  currentSortColumn = null;
+  currentSortDirection = 'asc';
+  originalStages = [];
+  stagesTableExpanded = false;
+  totalStagesCount = 0;
+  document.querySelectorAll('#stage-table th.sortable').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+  });
+}
+function showProgressBar() {
+  document.getElementById('progress-track').style.display = '';
+  setProgressWidth(0);
+}
+function hideProgressBar() {
+  setTimeout(() => { document.getElementById('progress-track').style.display = 'none'; }, 800);
+}
+function setProgressWidth(w) {
+  document.getElementById('progress-fill').style.width = w + '%';
+}
+function animateProgress(from, to, ms) {
+  const step = (to - from) / (ms / 60);
+  let cur = from;
+  const timer = setInterval(() => {
+    cur = Math.min(cur + step, to);
+    setProgressWidth(cur);
+    if (cur >= to) clearInterval(timer);
+  }, 60);
+}
+function startElapsed() {
+  elapsedTimer = setInterval(() => {
+    const s = ((Date.now() - startTs) / 1000).toFixed(1);
+    document.getElementById('status-elapsed').textContent = s + 's';
+  }, 200);
+}
+function stopElapsed() { clearInterval(elapsedTimer); }
+
+/* ── Formatting ─────────────────────────────────────── */
+function fmtMs(ms) {
+  if (!ms) return '0 ms';
+  if (ms < 1000) return ms + ' ms';
+  if (ms < 60000) return (ms / 1000).toFixed(1) + ' s';
+  return (ms / 60000).toFixed(1) + ' min';
+}
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }
+  return b.toFixed(1) + ' ' + units[i];
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
