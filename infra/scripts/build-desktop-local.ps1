@@ -34,13 +34,9 @@ if (-not $SkipInstall) {
 }
 
 Write-Host "Building Python backend executable..."
-Invoke-Expression "$pythonCmd -m pip install --upgrade pip"
-Invoke-Expression "$pythonCmd -m pip install pyinstaller -r backend/requirements.txt"
-New-Item -ItemType Directory -Path "apps/desktop/resources/backend" -Force | Out-Null
-Invoke-Expression "$pythonCmd -m PyInstaller backend/app.py --onefile --name server --collect-submodules celery --distpath apps/desktop/resources/backend --workpath '$env:TEMP/pyinstaller-build' --specpath '$env:TEMP/pyinstaller-spec'"
-
-if (-not (Test-Path "apps/desktop/resources/backend/server.exe")) {
-  throw "Missing apps/desktop/resources/backend/server.exe"
+& powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "infra/scripts/build-python.ps1")
+if ($LASTEXITCODE -ne 0) {
+  throw "backend build failed"
 }
 
 function Ensure-FromNpmTarball {
