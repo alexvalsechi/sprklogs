@@ -3,7 +3,7 @@
   <h1>SprkLogs</h1>
   <p><strong>LLMs can't read your Spark logs. SprkLogs can.</strong></p>
 
-  [![Website](https://alexvalsechi.github.io/sprklogs/)
+  [![Website](https://alexvalsechi.github.io/sprklogs/)]
   [![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows)](https://github.com/alexvalsechi/sprklogs/releases)
   [![Electron](https://img.shields.io/badge/Electron-31-47848f?logo=electron)](https://www.electronjs.org/)
   [![Python](https://img.shields.io/badge/Python-3.11+-ffd343?logo=python)](https://www.python.org/)
