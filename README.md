@@ -20,7 +20,10 @@ You bring the ZIP. SprkLogs delivers the diagnosis.
 ## Demo
 
 <div align="center">
-  <video src="apps/web/sprklogs-how-to-use.mp4" autoplay loop muted playsinline width="100%"></video>
+  <img src="apps/web/spark-history-server.png" alt="Spark History Server" width="100%" />
+  <br />
+  <br />
+  <img src="apps/web/sprklogs-how-to-use.gif" alt="SprkLogs demo" width="100%" />
 </div>
 
 ---
