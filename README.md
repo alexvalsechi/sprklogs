@@ -13,9 +13,12 @@
       <img src="https://img.shields.io/badge/Visit%20Website-SprkLogs-0ea5e9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Visit Website" />
     </a>
   </p>
+  <p>
+  [![Star no GitHub](https://img.shields.io/badge/⭐_Star_no_GitHub-black?style=for-the-badge&logo=github)](https://github.com/alexvalsechi/SprkLogs)
+      </p>
 </div>
 
-[![Star no GitHub](https://img.shields.io/badge/⭐_Star_no_GitHub-black?style=for-the-badge&logo=github)](https://github.com/usuario/SprkLogs)
+
 
 ---
 
