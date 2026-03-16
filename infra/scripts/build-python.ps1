@@ -4,12 +4,19 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = (Resolve-Path (Join-Path $ScriptDir "../..")).Path
 $OutDir = Join-Path $Root "apps/desktop/resources/backend"
 $BackendExe = Join-Path $OutDir "server.exe"
+$StartupTimeoutMs = 60000
 
 Write-Host "[build-python] Upgrading pip..."
 python -m pip install --upgrade pip
+if ($LASTEXITCODE -ne 0) {
+  throw "pip upgrade failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "[build-python] Installing backend dependencies + pyinstaller..."
 pip install pyinstaller -r (Join-Path $Root "backend/requirements.txt")
+if ($LASTEXITCODE -ne 0) {
+  throw "dependency installation failed with exit code $LASTEXITCODE"
+}
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 
@@ -20,6 +27,9 @@ pyinstaller (Join-Path $Root "backend/app.py") `
   --distpath $OutDir `
   --workpath "$env:RUNNER_TEMP/pyinstaller-build" `
   --specpath "$env:RUNNER_TEMP/pyinstaller-spec"
+if ($LASTEXITCODE -ne 0) {
+  throw "pyinstaller build failed with exit code $LASTEXITCODE"
+}
 
 if (-not (Test-Path $BackendExe)) {
   throw "Missing backend executable: $BackendExe"
@@ -33,7 +43,7 @@ try {
   $backendProc = Start-Process -FilePath $BackendExe -ArgumentList @("--port", "$healthPort") -PassThru -WindowStyle Hidden
 
   $healthy = $false
-  for ($i = 0; $i -lt 40; $i++) {
+  for ($i = 0; $i -lt ($StartupTimeoutMs / 250); $i++) {
     Start-Sleep -Milliseconds 250
     try {
       $response = Invoke-WebRequest -Uri "http://127.0.0.1:$healthPort/api/health" -UseBasicParsing -TimeoutSec 2
@@ -49,7 +59,7 @@ try {
   }
 
   if (-not $healthy) {
-    throw "Backend smoke test failed: /api/health did not become ready in time"
+    throw "Backend smoke test failed: /api/health did not become ready within $StartupTimeoutMs ms"
   }
 } finally {
   if ($backendProc -and -not $backendProc.HasExited) {
