@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.0](https://github.com/alexvalsechi/sprklogs/compare/v0.9.0...v0.10.0) (2026-03-16)
+
+
+### Features
+
+* add documentation files including README updates, issue templat… ([77853fb](https://github.com/alexvalsechi/sprklogs/commit/77853fba296378a504c5f624af8bef083c25dde8))
+* add documentation files including README updates, issue templates, contribution guidelines, license, and security policy ([dd0bbc3](https://github.com/alexvalsechi/sprklogs/commit/dd0bbc356353a01f9190581ddfed2c8fcc78d56a))
+* update CI/CD pipeline to ignore additional paths during push ev… ([4aba37c](https://github.com/alexvalsechi/sprklogs/commit/4aba37c60af2a8c8aee7fe2fc1f8eaa5eb4d3e78))
+* update CI/CD pipeline to ignore additional paths during push events ([35e311c](https://github.com/alexvalsechi/sprklogs/commit/35e311c5938408fae65d14073dcd16d300070850))
+
 ## [0.9.0](https://github.com/alexvalsechi/sprklogs/compare/v0.8.0...v0.9.0) (2026-03-16)
 
 
