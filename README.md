@@ -45,8 +45,6 @@ You bring the ZIP. SprkLogs delivers the diagnosis.
 ## Quick Start
 
 **Download the installer (Windows):**
-<br>
-***You need to have Python installed on your computer to run the .exe file.***
 
 1. Go to [Releases](https://github.com/alexvalsechi/sprklogs/releases)
 2. Download `SprkLogs-setup-vX.X.X.exe`
