@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/alexvalsechi/sprklogs/compare/v0.8.0...v0.9.0) (2026-03-16)
+
+
+### Features
+
+* enhance Python backend startup process with improved error hand… ([e361860](https://github.com/alexvalsechi/sprklogs/commit/e361860c8bd9505671aa61a157a0385b924ee169))
+* enhance Python backend startup process with improved error handling and output formatting ([755535a](https://github.com/alexvalsechi/sprklogs/commit/755535a6642b642b7860e06efe407f75227e87d5))
+
 ## [0.8.0](https://github.com/alexvalsechi/sprklogs/compare/v0.7.0...v0.8.0) (2026-03-16)
 
 
