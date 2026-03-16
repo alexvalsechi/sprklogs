@@ -137,7 +137,7 @@ nav {
 .hero-left {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 80px 48px 80px 40px;
   border-right: 1px solid var(--line);
 }
@@ -927,12 +927,21 @@ footer {
   </div>
 
   <div class="hero-right fade">
+    <video
+      src="sprklogs-how-to-use.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      style="width:100%; border-radius:4px; border:1px solid var(--line); display:block; margin-bottom:24px;"
+    ></video>
     <p class="rv-label" data-i18n="hero.rvLabel">What SprkLogs delivers</p>
 
     <div style="display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:3px; overflow:hidden; margin-bottom:32px;">
       <div style="padding:20px 24px; background:var(--surface); border-bottom:1px solid var(--line);">
         <div style="font-family:var(--mono); font-size:11px; color:var(--dim); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;" data-i18n="hero.youBringLabel">You bring</div>
         <div style="font-size:16px; font-weight:300; color:var(--text);" data-i18n="hero.youBringText">The Spark job event log — can be 400 MB, can be 1 GB.</div>
+        <img src="spark-history-server.png" alt="Spark History Server" style="width:100%; margin-top:16px; border-radius:3px; border:1px solid var(--line); display:block;" />
       </div>
       <div style="padding:20px 24px; background:var(--surface);">
         <div style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:8px;" data-i18n="hero.deliversLabel">SprkLogs delivers</div>

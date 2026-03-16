@@ -33,46 +33,26 @@ class OAuthProvider:
 
 
 class OpenAIProvider(OAuthProvider):
-    """OpenAI OAuth2 (platform.openai.com)."""
-    
-    AUTH_URL = "https://platform.openai.com/account/auth/login"
-    TOKEN_URL = "https://api.openai.com/oauth/authorize"
-    
-    def get_auth_url(self, state: str) -> str:
-        return (
-            f"https://platform.openai.com/authorizing?redirect={self.redirect_uri}"
-            f"&client_id={self.client_id}&state={state}"
-        )
-    
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
-        """Exchange code for API key."""
-        # OpenAI uses a custom flow; code is actually the API key
-        # In real flow, you'd exchange via their OAuth endpoint
-        return {
-            "access_token": code,
-            "token_type": "bearer",
-            "provider": "openai",
-            "expires_in": 86400 * 90,  # 90 days
+    """OpenAI OAuth2 (auth.openai.com)."""
+
+    AUTH_URL = "https://auth.openai.com/authorize"
+    TOKEN_URL = "https://auth.openai.com/oauth/token"
+
+    def get_auth_url(self, state: str, redirect_uri: str | None = None) -> str:
+        from urllib.parse import urlencode
+        uri = redirect_uri or self.redirect_uri
+        params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": uri,
+            "scope": "openid profile email",
+            "state": state,
         }
+        return f"{self.AUTH_URL}?{urlencode(params)}"
 
-
-class AnthropicProvider(OAuthProvider):
-    """Anthropic OAuth2 (console.anthropic.com)."""
-    
-    AUTH_URL = "https://console.anthropic.com/login"
-    TOKEN_URL = "https://console.anthropic.com/oauth/token"
-    
-    def get_auth_url(self, state: str) -> str:
-        return (
-            f"{self.TOKEN_URL}?"
-            f"client_id={self.client_id}"
-            f"&response_type=code"
-            f"&redirect_uri={self.redirect_uri}"
-            f"&state={state}"
-        )
-    
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
-        """Exchange auth code for API key."""
+    async def exchange_code(self, code: str, redirect_uri: str | None = None) -> Dict[str, Any]:
+        """Exchange authorization code for tokens."""
+        uri = redirect_uri or self.redirect_uri
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 self.TOKEN_URL,
@@ -81,7 +61,49 @@ class AnthropicProvider(OAuthProvider):
                     "code": code,
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
-                    "redirect_uri": self.redirect_uri,
+                    "redirect_uri": uri,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return {
+                "access_token": data.get("access_token"),
+                "token_type": "bearer",
+                "provider": "openai",
+                "expires_in": data.get("expires_in", 86400 * 90),
+                "refresh_token": data.get("refresh_token"),
+            }
+
+
+class AnthropicProvider(OAuthProvider):
+    """Anthropic OAuth2 (console.anthropic.com)."""
+    
+    AUTH_URL = "https://console.anthropic.com/login"
+    TOKEN_URL = "https://console.anthropic.com/oauth/token"
+    
+    def get_auth_url(self, state: str, redirect_uri: str | None = None) -> str:
+        from urllib.parse import urlencode
+        uri = redirect_uri or self.redirect_uri
+        params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": uri,
+            "state": state,
+        }
+        return f"{self.TOKEN_URL}?{urlencode(params)}"
+
+    async def exchange_code(self, code: str, redirect_uri: str | None = None) -> Dict[str, Any]:
+        """Exchange auth code for tokens."""
+        uri = redirect_uri or self.redirect_uri
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                self.TOKEN_URL,
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "redirect_uri": uri,
                 }
             )
             resp.raise_for_status()
@@ -102,18 +124,21 @@ class GoogleGeminiProvider(OAuthProvider):
     TOKEN_URL = "https://oauth2.googleapis.com/token"
     SCOPE = "https://www.googleapis.com/auth/generativelanguage"
     
-    def get_auth_url(self, state: str) -> str:
-        return (
-            f"{self.AUTH_URL}?"
-            f"client_id={self.client_id}"
-            f"&response_type=code"
-            f"&scope={self.SCOPE}"
-            f"&redirect_uri={self.redirect_uri}"
-            f"&state={state}"
-        )
-    
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
+    def get_auth_url(self, state: str, redirect_uri: str | None = None) -> str:
+        from urllib.parse import urlencode
+        uri = redirect_uri or self.redirect_uri
+        params = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "scope": self.SCOPE,
+            "redirect_uri": uri,
+            "state": state,
+        }
+        return f"{self.AUTH_URL}?{urlencode(params)}"
+
+    async def exchange_code(self, code: str, redirect_uri: str | None = None) -> Dict[str, Any]:
         """Exchange auth code for tokens."""
+        uri = redirect_uri or self.redirect_uri
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 self.TOKEN_URL,
@@ -122,7 +147,7 @@ class GoogleGeminiProvider(OAuthProvider):
                     "code": code,
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
-                    "redirect_uri": self.redirect_uri,
+                    "redirect_uri": uri,
                 }
             )
             resp.raise_for_status()

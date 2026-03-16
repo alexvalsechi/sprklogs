@@ -47,15 +47,19 @@ async def login(provider: str, request: Request):
     """Redirect user to OAuth provider's login page."""
     if provider not in providers or not providers[provider]:
         raise HTTPException(status_code=400, detail=f"Provider '{provider}' not configured")
-    
+
     # Generate state token
     state = generate_state_token(settings.secret_key)
-    
-    # Store state in session (or cookie)
-    response = RedirectResponse(url=providers[provider].get_auth_url(state))
+
+    # Derive redirect_uri from the actual request host so the callback URL
+    # always matches the running backend port, regardless of settings.frontend_url.
+    base = str(request.base_url).rstrip("/")
+    redirect_uri = f"{base}/auth/callback/{provider}"
+
+    response = RedirectResponse(url=providers[provider].get_auth_url(state, redirect_uri))
     response.set_cookie("oauth_state", state, max_age=3600, httponly=True)
-    
-    logger.info(f"Initiating OAuth login for provider: {provider}")
+
+    logger.info(f"Initiating OAuth login for provider: {provider}, redirect_uri: {redirect_uri}")
     return response
 
 
@@ -72,24 +76,24 @@ async def callback(provider: str, code: str = Query(...), state: str = Query(...
     
     # Exchange code for token
     try:
-        token_data = await providers[provider].exchange_code(code)
-        
-        # Generate user ID (in real app, extract from token claims)
-        # For now, use a simple session-based user ID
+        base = str(request.base_url).rstrip("/")
+        redirect_uri = f"{base}/auth/callback/{provider}"
+        token_data = await providers[provider].exchange_code(code, redirect_uri)
+
         user_id = str(uuid.uuid4())
-        
-        # Store token
+
         if token_manager:
             token_manager.store_token(user_id, provider, token_data)
             logger.info(f"Successfully authenticated user for {provider}")
-        
-        # Redirect to frontend with user_id and provider (or store in cookie)
+
+        # Redirect back to the Electron renderer root with auth params so the
+        # OAuth BrowserWindow navigation listener can capture the result.
         response = RedirectResponse(
-            url=f"{settings.frontend_url}/?oauth_user={user_id}&provider={provider}"
+            url=f"{base}/?oauth_user={user_id}&provider={provider}"
         )
         response.delete_cookie("oauth_state")
         return response
-    
+
     except Exception as e:
         logger.error(f"OAuth callback failed for {provider}: {e}")
         raise HTTPException(status_code=500, detail="Authentication failed")

@@ -1,6 +1,8 @@
 appId: com.sparklogs.analyzer.desktop
 productName: SprkLogs
 electronVersion: 31.7.7
+extraMetadata:
+  name: sprklogs
 directories:
   output: dist
 npmRebuild: false

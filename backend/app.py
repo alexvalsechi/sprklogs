@@ -17,12 +17,10 @@ import uvicorn
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent.parent))
     from backend.api.routes.core import router
-    from backend.api.routes.oauth_routes import router as oauth_router
     from backend.utils.config import get_settings
     from backend.utils.logging_config import setup_logging
 else:
     from .api.routes.core import router
-    from .api.routes.oauth_routes import router as oauth_router
     from .utils.config import get_settings
     from .utils.logging_config import setup_logging
 
@@ -60,7 +58,6 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api")
-app.include_router(oauth_router, prefix="/api")
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent

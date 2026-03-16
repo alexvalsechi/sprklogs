@@ -1,65 +1,142 @@
-# SprkLogs - Electron Hybrid Branch
+<div align="center">
+  <img src="apps/web/favicon-96x96.png" alt="SprkLogs" width="96" />
+  <h1>SprkLogs</h1>
+  <p><strong>LLMs can't read your Spark logs. SprkLogs can.</strong></p>
 
-This branch contains the Electron-hybrid monorepo context.
+  [![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows)](https://github.com/alexvalsechi/sprklogs/releases)
+  [![Electron](https://img.shields.io/badge/Electron-31-47848f?logo=electron)](https://www.electronjs.org/)
+  [![Python](https://img.shields.io/badge/Python-3.11+-ffd343?logo=python)](https://www.python.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+</div>
 
-## Scope
+---
 
-- Desktop app in `apps/desktop/` handles local ZIP ingestion and local Python reduction.
-- Backend in `backend/` is API/governance for OAuth2, usage policy points, and LLM processing from reduced logs.
-- Static web/landing assets live in `apps/web/`.
+Spark production logs can reach 1 GB. Sending that directly to an LLM blows up the context window or generates an absurd token bill. **SprkLogs processes the log locally first** — extracting and compressing only what matters — then sends a lean diagnostic report to the LLM of your choice.
 
-## Runtime Flow
+You bring the ZIP. SprkLogs delivers the diagnosis.
 
-1. User selects ZIP locally in Electron.
-2. Electron runs Python reducer locally and generates `reduced_report`.
-3. Electron sends only `reduced_report` + optional `.py` files to `POST /api/upload-reduced`.
-4. Backend enqueues async LLM analysis and returns `job_id`.
+---
 
-## Run Backend
+## Demo
+
+<div align="center">
+  <video src="apps/web/sprklogs-how-to-use.mp4" autoplay loop muted playsinline width="100%"></video>
+</div>
+
+---
+
+## Quick Start
+
+**Download the installer (Windows):**
+
+1. Go to [Releases](https://github.com/alexvalsechi/sprklogs/releases)
+2. Download `SprkLogs-setup-vX.X.X.exe`
+3. Run the installer — no configuration required
+
+**Or run from source:**
 
 ```bash
-docker compose up -d
-```
+git clone https://github.com/alexvalsechi/sprklogs.git
+cd sprklogs
 
-## Run Desktop
+# Backend
+pip install -r backend/requirements.txt
+python -m backend.app
 
-```bash
+# Desktop (separate terminal)
 cd apps/desktop
 npm install
 npm start
 ```
 
-## CI/CD (Trunk-Based)
+---
 
-This repository now uses a trunk-based release flow on GitHub Actions.
+## How it works
 
-### Day-to-day flow
+| Step | What happens |
+|---|---|
+| **1** | Drag a Spark event log ZIP (even 1 GB) into SprkLogs |
+| **2** | The log is processed **locally** — nothing is uploaded to any cloud |
+| **3** | A compressed diagnostic report is generated on your machine |
+| **4** | Only the report is sent to the LLM (OpenAI, Gemini, or Anthropic) |
+| **5** | You receive a full technical diagnosis: bottlenecks by stage, root cause, and actionable recommendations |
 
-1. Create a short-lived branch from `main` (or `master`).
-2. Open a pull request back to `main` (or `master`).
-3. CI validates backend tests, desktop integrity, and static frontend files.
-4. Merge after checks pass.
-5. Release Please opens/updates a Release PR with semantic version and changelog.
-6. Merging the Release PR creates tag `vX.Y.Z`.
-7. Tag `vX.Y.Z` triggers Windows `.exe` build and uploads artifacts to GitHub Release.
-8. Pushes to `main`/`master` also publish a rolling desktop installer release at tag `master-latest`.
-9. Pushes to `main`/`master` deploy static site files from `apps/web/` to GitHub Pages.
+---
 
-### Workflows
+## Features
 
-- `.github/workflows/pipeline.yml`: Unified workflow with parallel jobs for PR quality gate, release-please automation, `master-latest` desktop build, versioned release asset publishing, Python backend multi-OS build (when backend paths change), and GitHub Pages deployment.
+- Local ZIP processing — file size is no longer a limitation
+- Multi-provider LLM support (OpenAI · Google Gemini · Anthropic)
+- BYOK — bring your own API key, no subscription required
+- Stage-by-stage breakdown table with sorting
+- AI-generated diagnosis with bottlenecks, root cause, and recommendations
+- Export analysis as Markdown report
+- Analysis history stored locally
+- Dark theme, bilingual interface (EN / PT)
+- Privacy-first: no telemetry, no cloud storage, no account required
 
-### GitHub Pages setup (one-time)
+---
 
-1. In repository settings, open **Pages** and set **Source** to **GitHub Actions**.
-2. Ensure Actions permissions allow workflow runs with write access to Pages.
-3. After first deploy, access:
-	- `https://<owner>.github.io/<repo>/` (institutional landing)
-4. The pages automatically expose the desktop download link by reading release tag `master-latest`.
+## Tech Stack
 
-### Required repository settings (one-time)
+| Layer | Stack |
+|---|---|
+| Desktop | Electron 31, TypeScript |
+| Renderer | HTML, CSS, vanilla JS |
+| Backend | Python, FastAPI |
+| Log processing | Python (local, in-process) |
+| LLM providers | OpenAI, Google Gemini, Anthropic |
+| Packaging | electron-builder, NSIS |
+| Monorepo | Turborepo |
 
-1. Protect `main` (or `master`) and require pull request reviews.
-2. Require status checks for CI workflow before merge.
-3. Allow GitHub Actions read/write permissions for repository contents.
-4. Add release signing secrets later when code signing is enabled.
+---
+
+## License
+
+<details>
+<summary><strong>MIT License</strong></summary>
+
+```
+MIT License
+
+Copyright (c) 2024 Alex Valsechi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+</details>
+
+<details>
+<summary><strong>Third-party licenses</strong></summary>
+
+| Dependency | License |
+|---|---|
+| [Electron](https://github.com/electron/electron) | MIT |
+| [FastAPI](https://github.com/tiangolo/fastapi) | MIT |
+| [Python](https://www.python.org/) | PSF |
+| [Turborepo](https://github.com/vercel/turbo) | MIT |
+| [electron-builder](https://github.com/electron-userland/electron-builder) | MIT |
+
+</details>
+
+---
+
+<div align="center">
+  Made by <a href="https://www.linkedin.com/in/alex-valsechi/">Alex Valsechi</a> &nbsp;·&nbsp; <a href="https://alexvalsechi.github.io/sprklogs/">sprklogs website</a>
+</div>

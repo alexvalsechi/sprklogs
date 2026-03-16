@@ -130,6 +130,23 @@
       padding: 4px 10px; border-radius: 2px;
       opacity: 0.85;
     }
+    .btn-header-link {
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 5px 10px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .btn-header-link:hover {
+      border-color: var(--accent);
+      background: rgba(227, 89, 20, 0.1);
+    }
 
     /* ── Section titles ────────────────────────────────────── */
     .section-label {
@@ -314,40 +331,6 @@
       display: none;
     }
 
-    /* ── OAuth buttons ──────────────────────────────────────── */
-    .btn-oauth {
-      padding: 10px 16px;
-      background: transparent;
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      font-family: var(--mono); font-size: 0.85rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text); cursor: pointer;
-      transition: all var(--transition);
-      white-space: nowrap;
-    }
-    .btn-oauth:hover {
-      background: rgba(227, 89, 20, 0.12);
-      border-color: var(--accent);
-    }
-    .btn-oauth:active {
-      transform: scale(0.95);
-    }
-
-    .btn-oauth.oauth-openai {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .oauth-icon {
-      width: 18px;
-      height: 18px;
-      display: inline-block;
-      flex-shrink: 0;
-    }
-
     .provider-picker {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -380,24 +363,6 @@
       display: flex;
       flex-direction: column;
       backdrop-filter: blur(8px);
-    }
-
-    .oauth-wrap {
-      background: rgba(15, 15, 15, 0.9);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      backdrop-filter: blur(8px);
-    }
-
-    .auth-panels {
-      display: grid;
-      grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.4fr);
-      gap: 12px;
-      align-items: stretch;
     }
 
     .byok-row {
@@ -1062,7 +1027,6 @@
       .header-text h1 { font-size: 1.7rem; }
       .header-text p { display: none; }
       .version-badge { display: none; }
-      .auth-panels { grid-template-columns: 1fr; }
       .byok-row { grid-template-columns: 1fr; }
       .provider-picker { grid-template-columns: 1fr; }
     }
@@ -1086,6 +1050,7 @@
         <option value="en">English</option>
         <option value="pt">Português (Brasil)</option>
       </select>
+      <button id="btn-website" class="btn-header-link" type="button" onclick="openWebsite()">Website</button>
       <span class="version-badge" id="app-version-badge">v-</span>
     </div>
   </header>
@@ -1098,36 +1063,13 @@
 
   <section id="tab-home" class="tab-pane active">
 
-  <!-- OAuth2 Authentication -->
+  <!-- Authentication -->
   <div style="margin-top: 40px; margin-bottom: 40px;">
     <div class="section-label" id="lbl-auth">00 — Authentication</div>
 
-    <div class="auth-panels" style="margin-top: 8px;">
-      <div class="oauth-wrap">
-        <div class="auth-subtitle" id="oauth-subtitle">OAuth2</div>
-        <div class="auth-helper" id="oauth-helper">Use this first option to authenticate with OAuth2.</div>
-
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
-          <button class="btn-oauth oauth-openai" id="btn-oauth-openai" onclick="initiateOAuth('openai')">
-            <svg class="oauth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-              <path d="M12 3.7l3.8 2.2v4.4L12 12.5l-3.8-2.2V5.9L12 3.7z"/>
-              <path d="M6.2 7.1L2.5 9.2v4.4l3.7 2.1 3.8-2.2v-4.4L6.2 7.1z"/>
-              <path d="M17.8 7.1L14 9.2v4.4l3.8 2.2 3.7-2.1V9.2l-3.7-2.1z"/>
-              <path d="M12 12.5l3.8 2.2v4.4L12 21.3l-3.8-2.2v-4.4L12 12.5z"/>
-            </svg>
-            <span id="btn-oauth-openai-text">Login with OpenAI</span>
-          </button>
-        </div>
-
-        <div id="oauth-status" style="display: none; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-          <span id="oauth-status-text"></span>
-          <button onclick="clearOAuthSession()" style="margin-left: auto; padding: 4px 8px; cursor: pointer;">×</button>
-        </div>
-      </div>
-
-      <div class="byok-wrap" id="api-key-field" style="display: block; margin-top: 0;">
-        <div class="auth-subtitle" id="byok-subtitle" style="margin-bottom:6px;">BYOK</div>
-        <div class="auth-helper" id="byok-helper" style="margin-bottom:10px;">Or use your own API key below (Bring Your Own Key).</div>
+    <div class="byok-wrap" id="api-key-field" style="display: block; margin-top: 8px;">
+      <div class="auth-subtitle" id="byok-subtitle" style="margin-bottom:6px;">BYOK</div>
+      <div class="auth-helper" id="byok-helper" style="margin-bottom:10px;">Bring Your Own Key — paste your LLM API key below.</div>
         <label id="provider-label" style="display:block; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">LLM Provider</label>
         <div class="byok-row">
           <div class="provider-picker">
@@ -1194,7 +1136,6 @@
           </div>
         </div>
       </div>
-    </div>
   </div>
 
   <!-- Upload section -->
@@ -1330,7 +1271,7 @@
 </div><!-- /shell -->
 
 <footer style="margin-top: 60px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--text-dim); background: rgba(0,0,0,0.94);">
-  <p>Created by <strong>Alex Valsechi</strong> | <a href="https://www.linkedin.com/in/alex-valsechi/" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">LinkedIn</a></p>
+  <p>Author: <strong>Alex Valsechi</strong> | <a href="https://www.linkedin.com/in/alex-valsechi/" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">LinkedIn</a></p>
 </footer>
 
 <div id="doc-modal" class="doc-modal" onclick="onDocModalBackdrop(event)">
@@ -1351,8 +1292,6 @@ let startTs      = null;
 let elapsedTimer = null;
 let zipFile      = null;
 let pyFiles      = [];
-let currentOAuthUser = null;
-let currentOAuthProvider = null;
 let currentLocalSummary = null;
 let currentReducedReport = null; // kept locally — never re-fetched from server
 let currentLang = 'en';
@@ -1364,6 +1303,7 @@ let analysisHistory = [];
 let stagesTableExpanded = false;
 let totalStagesCount = 0;
 const DEFAULT_API_BASE_URL = 'http://localhost:8000';
+const LANDING_WEBSITE_URL = 'https://alexvalsechi.github.io/sprklogs/';
 
 function getApiBaseUrl() {
   const saved = (localStorage.getItem('sparkui_api_base_url') || '').trim();
@@ -1407,15 +1347,15 @@ function apiUrl(path) {
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
+function openWebsite() {
+  window.open(LANDING_WEBSITE_URL, '_blank', 'noopener,noreferrer');
+}
+
 const translations = {
   en: {
     authLabel: '00 — Authentication',
-    oauthSubtitle: 'OAuth2',
-    oauthHelper: 'Use this first option to authenticate with OAuth2.',
-    loginOpenAI: 'Login with OpenAI',
-    tip: 'Or',
     byokSubtitle: 'BYOK',
-    byokHelper: 'Or use your own API key below (Bring Your Own Key).',
+    byokHelper: 'Bring Your Own Key — paste your LLM API key below.',
     llmProviderLabel: 'LLM Provider',
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Paste your API key',
@@ -1436,6 +1376,7 @@ const translations = {
     noHistory: 'No previous analyses.',
     processedAtLabel: 'Processed at',
     headerSubtitle: 'Performance Analysis · Apache Spark',
+    websiteButton: 'Website',
     tabHome: 'Home',
     tabHistory: 'History',
     tabHelp: 'Help',
@@ -1455,12 +1396,8 @@ const translations = {
   },
   pt: {
     authLabel: '00 — Autenticação',
-    oauthSubtitle: 'OAuth2',
-    oauthHelper: 'Use esta primeira opcao para autenticar via OAuth2.',
-    loginOpenAI: 'Login com OpenAI',
-    tip: 'Ou',
     byokSubtitle: 'BYOK',
-    byokHelper: 'Ou use sua propria chave de API abaixo (Bring Your Own Key).',
+    byokHelper: 'Bring Your Own Key — cole sua chave de API abaixo.',
     llmProviderLabel: 'Provedor LLM',
     apiKeyLabel: 'Chave API',
     apiKeyPlaceholder: 'Cole sua chave de API',
@@ -1481,6 +1418,7 @@ const translations = {
     noHistory: 'Nenhuma análise anterior.',
     processedAtLabel: 'Processado em',
     headerSubtitle: 'Análise de Performance · Apache Spark',
+    websiteButton: 'Website',
     tabHome: 'Início',
     tabHistory: 'Histórico',
     tabHelp: 'Ajuda',
@@ -1506,18 +1444,6 @@ function updateLanguage() {
   // Safe element updates with null checks
   const lblAuth = document.getElementById('lbl-auth');
   if (lblAuth) lblAuth.textContent = t.authLabel;
-
-  const oauthSubtitle = document.getElementById('oauth-subtitle');
-  if (oauthSubtitle) oauthSubtitle.textContent = t.oauthSubtitle;
-
-  const oauthHelper = document.getElementById('oauth-helper');
-  if (oauthHelper) oauthHelper.textContent = t.oauthHelper;
-
-  const btnOpenAI = document.getElementById('btn-oauth-openai-text');
-  if (btnOpenAI) btnOpenAI.textContent = t.loginOpenAI;
-
-  const tipText = document.getElementById('tip-text');
-  if (tipText) tipText.textContent = t.tip;
 
   const byokSubtitle = document.getElementById('byok-subtitle');
   if (byokSubtitle) byokSubtitle.textContent = t.byokSubtitle;
@@ -1564,6 +1490,9 @@ function updateLanguage() {
 
   const headerSubtitle = document.getElementById('header-subtitle');
   if (headerSubtitle) headerSubtitle.textContent = t.headerSubtitle;
+
+  const websiteButton = document.getElementById('btn-website');
+  if (websiteButton) websiteButton.textContent = t.websiteButton;
 
   const tabHome = document.getElementById('tab-btn-home');
   if (tabHome) tabHome.textContent = t.tabHome;
@@ -1674,7 +1603,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadAppVersionBadge();
   updateLanguage();
-  handleOAuthCallback();
   loadHistory();
 
   // Setup file input handlers with more robust checks
@@ -1803,57 +1731,6 @@ function checkReady() {
   const isReady = !!zipFile;
   console.log('Button should be enabled:', isReady);
   btn.disabled = !isReady;
-}
-
-/* ── OAuth2 ─────────────────────────────────────────── */
-
-function initiateOAuth(provider) {
-  // Redirect to backend OAuth login endpoint
-  const loginUrl = apiUrl(`/api/auth/login/${provider}`);
-  window.location.href = loginUrl;
-}
-
-function handleOAuthCallback() {
-  // Called on page load to check for OAuth callback params
-  const params = new URLSearchParams(window.location.search);
-  const oauthUser = params.get('oauth_user');
-  const provider = params.get('provider');
-
-  if (oauthUser && provider) {
-    currentOAuthUser = oauthUser;
-    currentOAuthProvider = provider;
-    displayOAuthStatus();
-    
-    // Update provider selector
-    setSelectedProvider(provider);
-    
-    // Clear the URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}
-
-function displayOAuthStatus() {
-  const statusDiv = document.getElementById('oauth-status');
-  const statusText = document.getElementById('oauth-status-text');
-  
-  if (currentOAuthUser && currentOAuthProvider) {
-    statusText.textContent = `Logged in with ${currentOAuthProvider.toUpperCase()} (User: ${currentOAuthUser.substring(0, 8)}...)`;
-    statusDiv.style.display = 'flex';
-    statusDiv.style.justifyContent = 'space-between';
-    statusDiv.style.alignItems = 'center';
-
-    // Auto-select provider
-    setSelectedProvider(currentOAuthProvider);
-  } else {
-    statusDiv.style.display = 'none';
-  }
-}
-
-function clearOAuthSession() {
-  currentOAuthUser = null;
-  currentOAuthProvider = null;
-  document.getElementById('oauth-status').style.display = 'none';
-  document.getElementById('api-key-field').style.display = 'block'; // Show API key field again
 }
 
 /* ── History Management ─────────────────────────────────── */
@@ -2080,11 +1957,9 @@ async function submitJob() {
       apiBaseUrl: API_BASE_URL,
       reducedReport,
       pyFilePaths: pyFiles.map(f => f.path).filter(Boolean),
-      llmProvider: currentOAuthProvider || getSelectedProvider() || '',
-      apiKey: currentOAuthUser ? '' : (document.getElementById('input-key').value || ''),
+      llmProvider: getSelectedProvider() || '',
+      apiKey: document.getElementById('input-key').value || '',
       language: currentLang,
-      userId: currentOAuthUser || '',
-      provider: currentOAuthProvider || '',
     };
 
     const data = await window.desktopApi.submitReducedForAnalysis(payload);

@@ -14,7 +14,6 @@ export function registerAuthHandlers(_pyBaseUrl: string): void {
       throw new Error('email and password are required')
     }
 
-    // TODO: revisar integracao real com backend de autenticacao/OAuth.
     session = {
       user: {
         id: Buffer.from(email).toString('base64url'),
