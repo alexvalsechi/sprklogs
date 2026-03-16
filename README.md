@@ -8,6 +8,12 @@
   [![Electron](https://img.shields.io/badge/Electron-31-47848f?logo=electron)](https://www.electronjs.org/)
   [![Python](https://img.shields.io/badge/Python-3.11+-ffd343?logo=python)](https://www.python.org/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+  <p>
+    <a href="https://alexvalsechi.github.io/sprklogs/">
+      <img src="https://img.shields.io/badge/Visit%20Website-SprkLogs-0ea5e9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Visit Website" />
+    </a>
+  </p>
 </div>
 
 ---
