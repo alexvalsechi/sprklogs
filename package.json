@@ -1,6 +1,7 @@
 {
   "name": "log-sparkui",
   "private": true,
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",

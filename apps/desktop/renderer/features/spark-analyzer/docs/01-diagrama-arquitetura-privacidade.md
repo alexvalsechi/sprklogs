@@ -1,52 +1,50 @@
 # 1. Diagrama de Arquitetura e Privacidade
 
-## Como o SparkUI protege os seus dados
+## Fluxo atual do desktop
 
 ```mermaid
 flowchart LR
-    subgraph seu_dispositivo["No seu dispositivo"]
-        A["Voce seleciona<br/>o arquivo de log"]
-        B["Reducao local<br/>extrai apenas metricas"]
-        C["Relatorio de metricas<br/>anonimizado"]
-        D["Resultado exibido<br/>na tela"]
-        E["Relatorio salvo<br/>localmente pelo usuario"]
+    subgraph device["No dispositivo do usuario"]
+        A["ZIP de event log<br/>selecionado na UI"]
+        B["Renderer Electron<br/>solicita reducao via preload IPC"]
+        C["Processo principal + backend local<br/>127.0.0.1 em porta dinamica"]
+        D["/api/reduce-local<br/>gera resumo e markdown reduzido"]
+        E["Relatorio reduzido mantido<br/>localmente na sessao"]
+        F["/api/upload-reduced<br/>envia somente relatorio reduzido<br/>+ .py opcionais"]
+        G["Resultado exibido na tela<br/>e salvo no historico local"]
+        H["Exportacao manual para .md<br/>em disco pelo usuario"]
     end
 
-    subgraph servidor["Servidor de analise"]
-        F["Analise de metricas<br/>via IA"]
-        G["Resultado em memoria<br/>descartado apos entrega"]
+    subgraph llm["Provedores externos de IA"]
+        I["OpenAI / Anthropic / Gemini"]
     end
 
-    subgraph ia_externa["Provedores de IA"]
-        H["OpenAI / Anthropic / Gemini"]
-    end
-
-    A --> B
-    B --> C
-    C --> F
-    F --> H
-    H --> G
-    G --> D
-    D --> E
+    A --> B --> C --> D --> E --> F --> I --> G --> H
 ```
 
-## O que acontece com os seus dados
+## O que permanece local
 
-**O log original nunca sai do seu computador.**
-Antes de qualquer envio, o sistema converte o arquivo de log em um resumo compacto de metricas de desempenho — sem eventos raw, sem dados de negocio, sem codigo-fonte do cliente.
+- O arquivo ZIP original e lido no computador do usuario e nao e enviado ao provedor de IA.
+- A reducao inicial do log e executada localmente pelo backend FastAPI embarcado no app Electron.
+- O relatorio reduzido fica disponivel na sessao local para renderizacao e download.
+- O historico da interface fica em `localStorage`, limitado a 10 analises recentes.
 
-**O que e enviado ao servidor de analise:**
-- Resumo de metricas agregadas do Spark (tempos de execucao, uso de memoria, contagem de tarefas)
-- Arquivos de configuracao do job, se fornecidos voluntariamente pelo usuario
-- Preferencia de idioma e qual provedor de IA utilizar
+## O que pode sair do dispositivo
 
-**O que nao e armazenado:**
-- O log original nunca e transmitido
-- O servidor nao persiste os dados apos entregar o resultado
-- Nao existe banco de dados de historico de analises no servidor
-- O historico de relatorios fica salvo apenas localmente, no proprio dispositivo do usuario
+- O backend local envia para analise apenas o relatorio reduzido em texto.
+- Arquivos `.py` sao opcionais e so seguem para a analise quando o usuario os anexa.
+- A chave de API digitada no campo BYOK pode ser enviada para autenticar a chamada ao provedor escolhido.
 
-**O que o usuario controla:**
-- A chave de API do provedor de IA e fornecida pelo proprio usuario
-- O relatorio final e salvo somente se o usuario optar por isso
-- A autenticacao OAuth opcional armazena somente o token de acesso, com prazo de validade
+## O que nao faz parte do fluxo principal atual
+
+- Nao ha upload do ZIP bruto para o backend de analise no fluxo desktop atual.
+- Nao ha banco de dados persistente para historico de jobs nessa experiencia desktop.
+- Nao ha login obrigatorio para usar a analise local + BYOK.
+- Handlers de sessao existentes no Electron representam apenas sessao local simplificada e nao validacao de identidade corporativa.
+
+## Controles relevantes de privacidade
+
+- `contextIsolation: true`, `sandbox: true` e `nodeIntegration: false` no BrowserWindow.
+- API do preload exposta de forma restrita para reducao local, envio do relatorio, sessao e exportacao.
+- Backend local escutando em `127.0.0.1` com porta dinamica por execucao.
+- Job store em memoria no backend local; os resultados sao consultados por polling e nao gravados em banco pelo fluxo atual.

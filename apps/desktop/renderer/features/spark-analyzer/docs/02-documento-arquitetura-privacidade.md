@@ -1,68 +1,115 @@
-# 2. Documento de Arquitetura de Privacidade (1 pagina)
+# 2. Documento de Arquitetura e Privacidade
+
+## Escopo deste documento
+
+Este documento descreve o comportamento atual da experiencia desktop do SprkLogs, revisada com base na implementacao do app Electron, do preload, dos handlers IPC e do backend FastAPI embarcado. O foco aqui e o fluxo de analise local do ZIP com envio apenas do relatorio reduzido para a etapa de IA.
 
 ## Objetivo do software
 
-O sistema analisa logs de execucao do Apache Spark e produz diagnostico tecnico com apoio de LLM. A interface desktop (Electron) permite enviar ZIP de event log e, opcionalmente, arquivos `.py` do job para enriquecer a analise.
+O SprkLogs recebe logs de execucao do Apache Spark em formato ZIP, reduz o material para um resumo tecnico e gera um diagnostico assistido por LLM. O app desktop tambem aceita arquivos `.py` opcionais para correlacionar comportamento do job com o codigo enviado pelo usuario.
 
-## Tratamento de dados do cliente
+## Componentes ativos no desktop
 
-Pelo codigo atual do renderer, o envio ocorre para backend via endpoint HTTP (`/api/upload`). Nesse caminho, o backend executa processamento de reducao do log e posterior analise por LLM.
+### 1. Renderer Electron
 
-No repositorio tambem existe um caminho de processamento local (desktop) ja implementado:
+- Exibe a UI, recebe o ZIP, arquivos `.py`, idioma e provedor LLM.
+- Nao acessa Node.js diretamente.
+- Armazena localmente idioma, aba ativa e historico das 10 analises mais recentes em `localStorage`.
 
-- IPC `reduce-zip-locally` em `apps/desktop/main/ipc/compress.handler.ts`
-- script local `apps/desktop/main/scripts/reduce_log.py`
-- uso de `LogReducer` para extrair resumo
+### 2. Preload bridge
 
-Esse caminho local reduz o ZIP no computador do usuario e depois envia somente relatorio reduzido para `/api/upload-reduced`. Entretanto, no estado atual, o renderer nao chama esse IPC diretamente.
+- Expoe somente uma API restrita para o renderer.
+- Principais chamadas: `reduceZipLocally`, `submitReducedForAnalysis`, `saveReportToDisk`, `getBackendUrl` e `getAppVersion`.
 
-## O que trafega externamente
+### 3. Processo principal Electron
 
-No backend, o envio para provedores externos ocorre somente na etapa LLM (`backend/adapters/llm_adapters.py`). O payload enviado e um prompt textual montado em `backend/services/llm_analyzer.py` com:
+- Cria a janela com `contextIsolation: true`, `sandbox: true` e `nodeIntegration: false`.
+- Sobe o backend local em `127.0.0.1` com porta dinamica.
+- Intercepta navegacao externa e abre links HTTP/HTTPS fora da janela principal.
 
-- trecho do relatorio reduzido (`reduced_report[:6000]`)
-- opcionalmente, trechos de codigo `.py` (`[:2000]` por arquivo)
+### 4. Backend local FastAPI
 
-Provedores externos suportados:
+- Executa no mesmo dispositivo do usuario.
+- Expoe `/api/reduce-local`, `/api/upload-reduced`, `/api/status/{job_id}` e `/api/health`.
+- Mantem o estado de jobs em memoria (`_jobs`) e processa analises em background com `ThreadPoolExecutor`.
+
+## Fluxo real de dados
+
+### Etapa A. Reducao local obrigatoria
+
+1. O usuario seleciona um ZIP no renderer.
+2. O renderer chama `window.desktopApi.reduceZipLocally(...)`.
+3. O processo principal envia o ZIP ao backend local via `/api/reduce-local`.
+4. O `LogReducer` gera `summary` e `reduced_report` localmente.
+
+Resultado: o ZIP original permanece no dispositivo; o que avanca no pipeline e um relatorio textual reduzido.
+
+### Etapa B. Analise por IA
+
+1. O renderer envia `reduced_report` para `submitReducedForAnalysis(...)`.
+2. O processo principal monta `FormData` com:
+	- relatorio reduzido
+	- idioma
+	- provedor LLM selecionado
+	- chave de API informada pelo usuario, quando houver
+	- arquivos `.py` opcionais
+3. O backend local recebe em `/api/upload-reduced` e cria um job em memoria.
+4. O `LocalReducedJobRunner` executa a analise assincrona.
+5. O renderer faz polling em `/api/status/{job_id}` ate o status `done` ou `error`.
+
+## Dados que podem ser transmitidos para terceiros
+
+No fluxo principal atual, os provedores externos recebem apenas o prompt montado a partir de:
+
+- trecho do relatorio reduzido
+- instrucoes de sistema do analisador
+- eventualmente trechos relevantes de arquivos `.py` enviados pelo usuario
+
+Provedores suportados pelo codigo:
 
 - OpenAI
 - Anthropic
 - Google Gemini
 
-A autenticacao pode ocorrer por API key recebida no formulario ou por token OAuth recuperado do Redis.
+## Dados que permanecem locais
 
-## Retorno ao usuario
+- ZIP de event log original
+- caminho local do arquivo selecionado
+- relatorio reduzido mantido na sessao do renderer para exibicao e exportacao
+- historico local salvo em `localStorage`
+- arquivo Markdown exportado, quando o usuario escolhe gravar em disco
 
-O frontend consulta `/api/status/{job_id}` ate concluido e renderiza:
+## Armazenamento e retencao observados
 
-- resumo/KPIs
-- tabela de stages
-- texto de analise AI
-- downloads em Markdown/JSON
+| Dado | Local | Comportamento atual |
+|---|---|---|
+| ZIP original | Dispositivo do usuario | Nao enviado ao fluxo LLM no desktop atual |
+| Jobs e status | RAM do backend local | Persistem enquanto o processo do backend estiver em execucao |
+| Historico da UI | `localStorage` do renderer | Limitado a 10 analises |
+| Chave de API digitada | Campo de formulario em memoria | Nao ha persistencia em `localStorage` observada |
+| Relatorio exportado | Disco local | So existe quando o usuario aciona a exportacao |
 
-Isso ocorre em `renderResults()` no `apps/desktop/renderer/features/spark-analyzer/index.html`.
+## Autenticacao e identidade no estado atual
 
-## Armazenamento e retencao no codigo atual
+- O uso principal do desktop hoje e BYOK, sem login obrigatorio.
+- Existem handlers `login/getSession/logout` no Electron, mas eles implementam apenas sessao local simplificada e nao autenticacao corporativa completa.
+- Ha codigo de OAuth no backend, porem ele nao e o mecanismo central do fluxo de analise atualmente exposto na UI desktop.
 
-- Memoria de jobs em RAM (`_jobs`), sem persistencia duravel dedicada.
-- Arquivos de download gerados temporariamente e removidos no `finally` do endpoint.
-- Tokens OAuth armazenados no Redis (`oauth_token:{user_id}:{provider}`).
-- Historico de execucoes no frontend em `localStorage`.
+## Controles de seguranca relevantes
 
-## Por que a arquitetura pode ser privacy-by-architecture
+- Isolamento de contexto no Electron.
+- Sandbox do renderer.
+- Backend local preso a loopback (`127.0.0.1`).
+- Limite de tamanho no endpoint `/api/upload-reduced`.
+- Job store sem banco persistente por padrao no desktop atual.
+- Abertura de links externos fora da WebView principal.
 
-A base do projeto contem um desenho tecnicamente favoravel a minimizacao de dados:
+## Limites desta arquitetura
 
-- ha componente de reducao local no desktop
-- ha limite/tamanho para payload reduzido no backend
-- o prompt ao LLM usa truncamento de conteudo
+- O historico local em `localStorage` nao possui politica automatica de expiracao por tempo; apenas limitacao por quantidade.
+- O backend em memoria nao implementa, neste fluxo, limpeza temporal formal de jobs concluidos.
+- Se uma implantacao futura habilitar OAuth real, telemetria, sincronizacao em nuvem ou persistencia adicional, este documento deve ser revisado.
 
-Contudo, para afirmar processamento local como comportamento efetivo padrao, e necessario que o renderer utilize o fluxo IPC local (`reduce-zip-locally` + `/upload-reduced`) de forma obrigatoria ou por feature flag ativa.
+## Conclusao
 
-## Lacunas que exigem alinhamento antes de declaracoes formais
-
-- Divergencia entre endpoint chamado pela UI (`/api/upload`) e rota implementada observada (`/upload-reduced`).
-- Fluxo local existente no Electron ainda nao conectado ao renderer atual.
-- Ausencia, no codigo, de politica explicita de retencao com prazos para `_jobs` e `localStorage`.
-
-Sem esses ajustes, qualquer garantia de "nunca envia ZIP bruto" ou "100% local" nao e sustentada de forma universal pelo estado atual do repositorio.
+No estado atual do projeto, a afirmacao tecnicamente sustentada e: o desktop reduz o ZIP localmente e envia para a etapa de IA somente o relatorio reduzido, mais anexos `.py` opcionais fornecidos pelo usuario. Isso reduz exposicao de dados em relacao a um upload bruto do event log, mas nao elimina a necessidade de governanca sobre o conteudo resumido e sobre eventuais arquivos de codigo anexados.

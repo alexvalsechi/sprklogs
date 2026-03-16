@@ -6,7 +6,7 @@
   [![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows)](https://github.com/alexvalsechi/sprklogs/releases)
   [![Electron](https://img.shields.io/badge/Electron-31-47848f?logo=electron)](https://www.electronjs.org/)
   [![Python](https://img.shields.io/badge/Python-3.11+-ffd343?logo=python)](https://www.python.org/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+  [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green.svg)](LICENSE)
 
   <p>
     <a href="https://alexvalsechi.github.io/sprklogs/">
@@ -111,44 +111,13 @@ npm start
 ## License
 
 <details>
-<summary><strong>MIT License</strong></summary>
+<summary><strong>GPL-3.0</strong></summary>
 
 ```
-MIT License
+This project is licensed under the GNU General Public License v3.0.
 
-Copyright (c) 2024 Alex Valsechi
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+See the full license text in the LICENSE file.
 ```
-
-</details>
-
-<details>
-<summary><strong>Third-party licenses</strong></summary>
-
-| Dependency | License |
-|---|---|
-| [Electron](https://github.com/electron/electron) | MIT |
-| [FastAPI](https://github.com/tiangolo/fastapi) | MIT |
-| [Python](https://www.python.org/) | PSF |
-| [Turborepo](https://github.com/vercel/turbo) | MIT |
-| [electron-builder](https://github.com/electron-userland/electron-builder) | MIT |
 
 </details>
 

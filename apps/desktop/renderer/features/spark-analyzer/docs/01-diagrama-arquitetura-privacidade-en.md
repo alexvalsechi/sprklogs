@@ -1,52 +1,50 @@
 # 1. Architecture and Privacy Diagram
 
-## How SprkLogs protects your data
+## Current desktop data flow
 
 ```mermaid
 flowchart LR
-    subgraph your_device["On your device"]
-        A["You select<br/>the log file"]
-        B["Local reduction<br/>extracts only metrics"]
-        C["Anonymized<br/>metrics report"]
-        D["Result displayed<br/>on screen"]
-        E["Report saved<br/>locally by the user"]
+    subgraph device["On the user's device"]
+        A["Spark event log ZIP<br/>selected in the UI"]
+        B["Electron renderer<br/>calls preload IPC"]
+        C["Main process + local backend<br/>127.0.0.1 on a dynamic port"]
+        D["/api/reduce-local<br/>builds summary and reduced markdown"]
+        E["Reduced report kept<br/>locally in session"]
+        F["/api/upload-reduced<br/>sends reduced report only<br/>+ optional .py files"]
+        G["Result rendered in UI<br/>and stored in local history"]
+        H["Manual Markdown export<br/>to the user's disk"]
     end
 
-    subgraph server["Analysis server"]
-        F["AI-powered<br/>metrics analysis"]
-        G["In-memory result<br/>discarded after delivery"]
+    subgraph llm["External AI providers"]
+        I["OpenAI / Anthropic / Gemini"]
     end
 
-    subgraph ai_providers["AI Providers"]
-        H["OpenAI / Anthropic / Gemini"]
-    end
-
-    A --> B
-    B --> C
-    C --> F
-    F --> H
-    H --> G
-    G --> D
-    D --> E
+    A --> B --> C --> D --> E --> F --> I --> G --> H
 ```
 
-## What happens with your data
+## What stays local
 
-**The original log never leaves your computer.**
-Before any transmission, the system converts the log file into a compact performance metrics summary — no raw events, no business data, no client source code.
+- The original ZIP file is read on the user's machine and is not sent to the AI provider.
+- The first reduction pass runs locally in the FastAPI backend bundled with the Electron app.
+- The reduced report remains available in the local session for rendering and export.
+- UI history is stored in `localStorage`, capped at 10 recent analyses.
 
-**What is sent to the analysis server:**
-- Aggregated Spark metrics summary (execution times, memory usage, task counts)
-- Job configuration files, if voluntarily provided by the user
-- Language preference and which AI provider to use
+## What may leave the device
 
-**What is NOT stored:**
-- The original log is never transmitted
-- The server does not persist data after delivering the result
-- There is no analysis history database on the server
-- The report history is saved only locally, on the user's own device
+- Only the reduced text report is sent to the AI analysis step.
+- `.py` files are optional and are forwarded only when the user attaches them.
+- The API key typed in BYOK mode may be sent to authenticate requests to the selected provider.
 
-**What the user controls:**
-- The AI provider API key is provided by the user themselves
-- The final report is saved only if the user chooses to do so
-- Optional OAuth authentication stores only the access token, with an expiry date
+## What is not part of the current primary flow
+
+- No raw ZIP upload is used in the current desktop flow.
+- There is no persistent server-side database for analysis history in this desktop experience.
+- No mandatory login is required for the main local + BYOK workflow.
+- Existing session handlers in Electron represent a lightweight local session only, not enterprise identity verification.
+
+## Relevant privacy controls
+
+- `contextIsolation: true`, `sandbox: true`, and `nodeIntegration: false` in the BrowserWindow.
+- Narrow preload API surface for local reduction, report submission, session access, and export.
+- Local backend bound to `127.0.0.1` on a per-run dynamic port.
+- In-memory job store on the local backend, with polling-based retrieval rather than database persistence in the current flow.

@@ -1,151 +1,196 @@
-# 3. Rascunho de Politica de Privacidade + Termos de Uso
+# 3. Politica de Privacidade + Termos de Uso
 
-## Politica de Privacidade (LGPD) — Rascunho
+> Modelo revisado para a experiencia desktop atual do SprkLogs. O texto abaixo foi ajustado para um projeto open-source mantido por pessoa fisica e colaboradores, sem exigir CNPJ ou estrutura corporativa formal. Em caso de distribuicao comercial ou institucional, recomenda-se revisao juridica especifica.
 
-### 1. Controlador
+## Politica de Privacidade
 
-Este software e operado por [PREENCHER RAZAO SOCIAL], CNPJ [PREENCHER], com sede em [PREENCHER], contato: [PREENCHER EMAIL/TELEFONE/DPO].
+### 1. Quem opera o software
+
+O SprkLogs e um projeto open-source mantido por Alex Valsechi e colaboradores.
+
+Na ausencia de pessoa juridica dedicada, referencias ao "operador" neste documento devem ser entendidas como referencia ao mantenedor do repositorio e a quem publicar distribuicoes oficiais do projeto.
+
+Canal principal de contato do projeto:
+
+- repositorio publico do projeto
+- pagina de Issues/discussoes, quando disponivel
+- contato publico informado pelo mantenedor
 
 ### 2. Finalidade do tratamento
 
-Tratamos dados para:
+Os dados tratados pela aplicacao sao usados para:
 
-- reduzir e analisar logs de execucao Spark
-- gerar diagnostico tecnico de performance
-- exibir resultado analitico e relatorios para o proprio usuario
+- reduzir logs de execucao do Apache Spark
+- gerar diagnostico tecnico de performance com apoio de IA
+- exibir resultados, historico local e relatorios exportados ao proprio usuario
+- manter a operacao tecnica do aplicativo desktop e do backend local embarcado
 
-### 3. Dados tratados
+### 3. Categorias de dados tratadas
 
-Conforme o fluxo do sistema, podem ser tratados:
+Dependendo do uso feito pelo usuario, o aplicativo pode tratar:
 
-- arquivo ZIP de event log Spark (dependendo do caminho de execucao habilitado)
-- arquivos `.py` opcionais enviados pelo usuario
-- parametros tecnicos da analise (idioma, provedor LLM, modo compacto)
-- credenciais de integracao (API key enviada manualmente) ou token OAuth
-- metadados tecnicos de processamento (status do job, tamanho de payload, logs operacionais)
+- arquivo ZIP de event log Spark selecionado localmente
+- arquivos `.py` opcionais anexados para analise conjunta
+- relatorio reduzido gerado a partir do ZIP
+- parametros de analise, como idioma e provedor LLM
+- chave de API informada manualmente no modo BYOK
+- metadados operacionais, como status do job e mensagens de erro
+- historico local de resultados salvo no navegador embarcado do Electron
 
-### 4. Processamento local e minimizacao
+### 4. Como os dados sao processados no desktop atual
 
-O codigo do desktop contem funcionalidade de reducao local do ZIP (`apps/desktop/main/ipc/compress.handler.ts` + `apps/desktop/main/scripts/reduce_log.py`) que permite enviar ao backend apenas relatorio reduzido.
+No fluxo principal atual do app Electron:
 
-No entanto, o comportamento efetivo depende do fluxo de UI ativo. No estado atual do renderer, ha envio HTTP para endpoint de upload (`/api/upload`). Portanto, a alegacao de "processamento sempre local" nao deve ser feita sem validacao/ajuste de fluxo.
+1. o ZIP e lido localmente no dispositivo do usuario;
+2. a reducao inicial acontece no backend local iniciado pelo proprio aplicativo;
+3. o ZIP original nao integra o payload enviado para a etapa LLM;
+4. somente o relatorio reduzido e, quando aplicavel, anexos `.py` seguem para a analise de IA.
+
+Esse desenho reduz a exposicao de dados em comparacao com o envio do log bruto, mas o relatorio reduzido ainda pode conter informacoes tecnicas relevantes do ambiente analisado.
 
 ### 5. Compartilhamento com terceiros
 
-Quando ha analise por IA, o sistema envia prompt textual para provedores externos configurados:
+Quando o usuario solicita analise por IA, o aplicativo pode compartilhar dados com o provedor selecionado entre os suportados pelo codigo atual:
 
 - OpenAI
 - Anthropic
 - Google Gemini
 
-O prompt pode conter trecho do relatorio reduzido e trechos de codigo `.py` (quando fornecidos).
+O compartilhamento pode incluir:
+
+- relatorio reduzido em formato textual
+- trechos ou arquivos `.py` anexados pelo usuario
+- dados tecnicos necessarios para autenticar a chamada ao provedor, como a chave de API informada manualmente
 
 ### 6. Armazenamento e retencao
 
-No codigo atual:
+No estado atual do desktop:
 
-- jobs sao mantidos em memoria de processo (`_jobs`)
-- arquivos de download sao temporarios e removidos ao final da resposta
-- tokens OAuth sao armazenados em Redis com TTL
-- historico local de analises fica em `localStorage` no cliente
+- o ZIP original permanece no dispositivo do usuario;
+- o backend local mantem jobs em memoria de processo, sem banco persistente por padrao;
+- o historico da interface e salvo localmente em `localStorage`, limitado a 10 analises;
+- a chave de API digitada no campo BYOK nao e gravada em `localStorage` pelo fluxo observado;
+- arquivos Markdown exportados so sao criados quando o usuario escolhe salvá-los em disco.
 
-Nao foi identificado, no codigo, mecanismo completo de politica de retencao com prazo formal para todos os artefatos.
+Nao existe, neste fluxo, uma politica automatica de expiracao temporal para o historico local alem da limitacao por quantidade.
 
-### 7. Bases legais (LGPD)
+### 7. Autenticacao
 
-Bases legais tipicamente aplicaveis, a serem validadas juridicamente:
+O fluxo principal atual da analise desktop nao exige login obrigatorio. O codigo do Electron contem handlers de sessao local simplificada, mas eles nao equivalem a um mecanismo formal de identidade corporativa. Se a distribuicao futura habilitar OAuth real ou login externo, esta politica devera ser atualizada.
 
-- execucao de contrato ou procedimentos preliminares
-- legitimo interesse para seguranca e melhoria tecnica
-- consentimento, quando exigido para integracoes especificas
+### 8. Bases legais
 
-[PREENCHER COM ENQUADRAMENTO JURIDICO OFICIAL]
+Quando aplicavel sob a LGPD e legislacao correlata, as bases legais podem incluir:
 
-### 8. Direitos do titular
+- execucao de contrato ou de procedimentos preliminares solicitados pelo usuario
+- legitimo interesse para operacao tecnica, seguranca e melhoria controlada do servico
+- consentimento, quando exigido para integracoes opcionais ou contextos especificos
 
-Titulares podem solicitar, nos termos da LGPD:
+O enquadramento final deve ser validado pelo operador do software para o contexto concreto de uso.
 
-- confirmacao e acesso
-- correcao
-- anonimização, bloqueio ou eliminacao quando cabivel
-- informacao sobre compartilhamentos
-- revisao de decisoes automatizadas, quando aplicavel
+### 9. Direitos dos titulares
 
-Canal de atendimento: [PREENCHER].
+Observada a legislacao aplicavel, o titular pode solicitar, quando cabivel:
 
-### 9. Seguranca
+- confirmacao do tratamento
+- acesso aos dados
+- correcao de dados incompletos ou desatualizados
+- eliminacao, anonimização, bloqueio ou restricao
+- informacoes sobre compartilhamento com terceiros
+- revisao de decisoes automatizadas, quando juridicamente pertinente
 
-Medidas tecnicas observadas no codigo incluem:
+Canal de atendimento: canais publicos do repositorio do projeto e demais contatos publicamente divulgados pelo mantenedor.
 
-- isolamento de contexto no Electron (`contextIsolation: true`, `sandbox: true`)
-- limites de tamanho para processamento de logs
-- armazenamento de token OAuth com TTL em Redis
+### 10. Seguranca
 
-Recomendacao obrigatoria de producao: configurar segredo forte (`SECRET_KEY`) e revisar exposicao de API keys.
+Medidas tecnicas observadas no projeto incluem:
 
-### 10. Alteracoes desta politica
+- `contextIsolation: true`
+- `sandbox: true`
+- `nodeIntegration: false`
+- backend local em `127.0.0.1`
+- API restrita exposta via preload
+- limite de tamanho para `reduced_report` no backend local
 
-Esta politica pode ser atualizada. Data da ultima atualizacao: [PREENCHER].
+Em ambientes de producao, o operador deve complementar esses controles com governanca de secrets, hardening do endpoint local, revisao de logs e politica organizacional para o uso de provedores externos de IA.
+
+### 11. Alteracoes desta politica
+
+Esta politica pode ser revisada para refletir mudancas tecnicas, regulatórias ou operacionais.
+
+Data da ultima revisao deste texto: 2026-03-16.
 
 ---
 
-## Termos de Uso — Rascunho
+## Termos de Uso
 
 ### 1. Aceite
 
-Ao utilizar o software, o usuario concorda com estes Termos.
+Ao instalar, acessar ou utilizar o SprkLogs, o usuario declara que leu e concorda com estes Termos.
 
 ### 2. Uso permitido
 
-E permitido usar o software para analise tecnica de performance de jobs Spark em ambiente autorizado pelo usuario.
+O software destina-se a analise tecnica de performance de workloads Spark, para ambientes, dados e codigos cujo uso e compartilhamento sejam autorizados pelo proprio usuario ou por sua organizacao.
 
-E vedado:
+Nao e permitido:
 
-- uso para atividade ilicita
-- envio de dados sem autorizacao legal ou contratual
-- tentativa de engenharia reversa para explorar vulnerabilidades do servico
+- utilizar a aplicacao para atividade ilicita ou abusiva
+- submeter dados sem base legal, contratual ou autorizacao adequada
+- usar o software para tentar comprometer terceiros, explorar vulnerabilidades ou burlar controles tecnicos
 
 ### 3. Responsabilidades do usuario
 
 O usuario e responsavel por:
 
-- garantir legitimidade dos dados enviados
-- revisar politicas internas antes de compartilhar logs/codigo com provedores externos de IA
-- proteger credenciais e chaves de API inseridas na ferramenta
+- verificar se pode compartilhar o conteudo analisado com provedores externos de IA
+- revisar ZIPs, anexos `.py` e demais insumos antes do envio
+- proteger as chaves de API inseridas no modo BYOK
+- validar tecnicamente as recomendacoes antes de aplicá-las em producao
 
-### 4. Limitacao de responsabilidade
+### 4. Natureza das respostas geradas por IA
 
-A analise gerada por IA e apoio tecnico e nao substitui validacao humana em ambiente de teste/homologacao.
+As respostas do SprkLogs constituem apoio tecnico automatizado. Elas nao substituem avaliacao humana, testes controlados, revisao de arquitetura, parecer juridico ou decisao operacional do usuario.
 
-O operador do software nao garante:
+### 5. Disponibilidade e dependencias externas
 
-- ausencia total de erros nas recomendacoes
-- adequacao a um fim especifico sem validacao tecnica adicional
-- disponibilidade ininterrupta de provedores externos de IA
+Parte da funcionalidade depende de bibliotecas locais, do backend embarcado e de APIs de terceiros. O operador do software nao garante disponibilidade continua de:
 
-### 5. Retencao de dados de log
+- OpenAI
+- Anthropic
+- Google Gemini
+- conectividade de rede necessaria para a etapa de analise externa
 
-No desenho atual:
+### 6. Retencao e historico
 
-- nao ha banco dedicado de historico de logs no backend
-- resultados de job ficam em memoria de processo durante o ciclo de execucao
-- arquivos temporarios de download sao removidos ao final da entrega
+No fluxo desktop atual:
 
-Se houver implantacao com persistencia adicional, os Termos devem ser atualizados.
+- nao ha banco persistente de historico de jobs por padrao;
+- resultados de job podem permanecer em memoria enquanto o backend local estiver em execucao;
+- o historico visivel ao usuario e salvo localmente em `localStorage`;
+- exportacoes em Markdown dependem de acao explicita do usuario.
 
-### 6. Integracoes de terceiros
+### 7. Propriedade intelectual e licenciamento
 
-Recursos de IA dependem de APIs de terceiros (OpenAI, Anthropic, Google Gemini), sujeitas a disponibilidade e politicas proprias desses provedores.
+O codigo-fonte do projeto e distribuido sob a licenca GPL-3.0. Componentes de terceiros permanecem sujeitos as respectivas licencas. O uso de marcas, nomes comerciais, credenciais de provedores e conteudo analisado continua sujeito aos direitos de seus respectivos titulares.
 
-### 7. Propriedade intelectual
+### 8. Limitacao de responsabilidade
 
-[PREENCHER CLAUSULA DE PROPRIEDADE INTELECTUAL]
+Na maxima extensao permitida pela legislacao aplicavel, o software e fornecido no estado em que se encontra. O operador nao garante que:
 
-### 8. Foro e legislacao
+- as recomendacoes geradas sejam isentas de erro
+- o software atenda a finalidade especifica do usuario sem validacao adicional
+- provedores externos respondam dentro de prazo, custo ou qualidade previsiveis
 
-Estes Termos sao regidos pela legislacao brasileira.
-Foro: [PREENCHER COMARCA].
+### 9. Atualizacoes futuras
 
-### 9. Contato
+Se o produto vier a incorporar login obrigatorio, sincronizacao em nuvem, persistencia adicional, telemetria ou novos fluxos de integracao, estes Termos e a Politica de Privacidade deverao ser revisados.
 
-Canal oficial para duvidas, solicitacoes e privacidade: [PREENCHER].
+### 10. Lei aplicavel e resolucao de conflitos
+
+Estes Termos devem ser interpretados de acordo com a legislacao aplicavel ao mantenedor ou distribuidor que publicar a versao utilizada pelo usuario, sem prejuizo de normas obrigatorias de protecao de dados, consumidor ou ordem publica aplicaveis no local de uso.
+
+Como se trata de projeto open-source sem pessoa juridica dedicada neste documento, nao ha definicao de foro exclusivo. Sempre que possivel, duvidas e conflitos devem ser tratados inicialmente pelos canais publicos do projeto.
+
+### 11. Contato
+
+Canal oficial do projeto para suporte, privacidade e comunicacoes relacionadas a esta documentacao: repositorio publico do SprkLogs e canais publicamente indicados pelo mantenedor.

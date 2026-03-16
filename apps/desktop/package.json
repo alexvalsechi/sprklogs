@@ -2,6 +2,7 @@
   "name": "@log-sparkui/desktop",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "description": "Electron shell for local Spark ZIP reduction + backend LLM analysis",
   "author": "SprkLogs Team",
   "main": "dist/main/index.js",
