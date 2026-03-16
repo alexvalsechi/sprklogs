@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/alexvalsechi/sprklogs/compare/v0.7.0...v0.8.0) (2026-03-16)
+
+
+### Features
+
+* refactor backend integration to use bundled executable and add … ([4b32825](https://github.com/alexvalsechi/sprklogs/commit/4b328253f55d80e31c7ffd49fa48ed774aca93d2))
+* refactor backend integration to use bundled executable and add local ZIP reduction endpoint ([93500cd](https://github.com/alexvalsechi/sprklogs/commit/93500cd5537dac11c4860d22f270db4d1b7d377e))
+
 ## [0.7.0](https://github.com/alexvalsechi/sprklogs/compare/v0.6.0...v0.7.0) (2026-03-16)
 
 
