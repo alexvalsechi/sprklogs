@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/alexvalsechi/sprklogs/compare/v0.10.0...v0.11.0) (2026-03-16)
+
+
+### Features
+
+* update CI/CD pipeline to refine path handling and enhance relea… ([82c1838](https://github.com/alexvalsechi/sprklogs/commit/82c1838954483b396a01d44b6f04ba92668f62bb))
+* update CI/CD pipeline to refine path handling and enhance release strategy for desktop components ([191607e](https://github.com/alexvalsechi/sprklogs/commit/191607e10c3d7b270601b82025b3331bd1248e21))
+
 ## [0.10.0](https://github.com/alexvalsechi/sprklogs/compare/v0.9.0...v0.10.0) (2026-03-16)
 
 
