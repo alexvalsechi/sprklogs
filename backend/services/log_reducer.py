@@ -175,13 +175,26 @@ class StageAggregationHandler(BaseHandler):
             entry = by_stage.setdefault(sid, {
                 "durations": [], "input": [], "output": [],
                 "shuffle_read": [], "shuffle_write": [], "gc": [],
+                "memory_spill": [], "disk_spill": [],
+                "shuffle_write_time": [], "fetch_wait": [], "remote_to_disk": [],
+                "peak_exec_mem": [], "shuffle_read_records": [], "shuffle_write_records": [],
             })
             entry["durations"].append(ev.get("Task Info", {}).get("Finish Time", 0) - ev.get("Task Info", {}).get("Launch Time", 0))
             entry["input"].append(tm.get("Input Metrics", {}).get("Bytes Read", 0))
             entry["output"].append(tm.get("Output Metrics", {}).get("Bytes Written", 0))
-            entry["shuffle_read"].append(tm.get("Shuffle Read Metrics", {}).get("Total Bytes Read", 0))
-            entry["shuffle_write"].append(tm.get("Shuffle Write Metrics", {}).get("Shuffle Bytes Written", 0))
+            sr = tm.get("Shuffle Read Metrics", {})
+            sw = tm.get("Shuffle Write Metrics", {})
+            entry["shuffle_read"].append(sr.get("Total Bytes Read", 0))
+            entry["shuffle_write"].append(sw.get("Shuffle Bytes Written", 0))
             entry["gc"].append(tm.get("JVM GC Time", 0))
+            entry["memory_spill"].append(tm.get("Memory Bytes Spilled", 0))
+            entry["disk_spill"].append(tm.get("Disk Bytes Spilled", 0))
+            entry["shuffle_write_time"].append(sw.get("Shuffle Write Time", 0) // 1_000_000)  # ns → ms
+            entry["fetch_wait"].append(sr.get("Fetch Wait Time", 0))
+            entry["remote_to_disk"].append(sr.get("Remote Bytes Read To Disk", 0))
+            entry["peak_exec_mem"].append(tm.get("Peak Execution Memory", 0))
+            entry["shuffle_read_records"].append(sr.get("Total Records Read", 0))
+            entry["shuffle_write_records"].append(sw.get("Shuffle Records Written", 0))
 
         stages: list[StageMetrics] = []
         for sid, data in by_stage.items():
@@ -217,6 +230,14 @@ class StageAggregationHandler(BaseHandler):
             task_duration_max_ms=max(durations) if durations else None,
             task_duration_p95_ms=p95 if durations else None,
             skew_ratio=round(skew, 2) if durations else None,
+            memory_bytes_spilled=sum(data["memory_spill"]),
+            disk_bytes_spilled=sum(data["disk_spill"]),
+            shuffle_write_time_ms=sum(data["shuffle_write_time"]),
+            fetch_wait_time_ms=sum(data["fetch_wait"]),
+            remote_bytes_read_to_disk=sum(data["remote_to_disk"]),
+            peak_execution_memory_bytes=max(data["peak_exec_mem"]) if data["peak_exec_mem"] else 0,
+            shuffle_read_records=sum(data["shuffle_read_records"]),
+            shuffle_write_records=sum(data["shuffle_write_records"]),
         )
 
 
@@ -290,15 +311,19 @@ class MarkdownRenderer(BaseRenderer):
             f"| Shuffle Write | {fmt_bytes(summary.total_shuffle_write_bytes)} |",
             "",
             "## Stage Breakdown",
-            "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W | Skew |",
-            "|---|---|---|---|---|---|---|---|",
+            "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W | SW Time | Fetch Wait | Spill Mem | Spill Disk | Peak Mem | Skew |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         for s in summary.stages:
             skew_flag = " ⚠️" if s.has_skew else ""
+            spill_disk_flag = " 💾" if s.has_spill else ""
             lines.append(
-                f"| {s.stage_id} | {s.name[:40]} | {s.num_tasks} "
+                f"| {s.stage_id} | {s.name[:35]} | {s.num_tasks} "
                 f"| {fmt_ms(s.duration_ms)} | {fmt_bytes(s.input_bytes)} "
                 f"| {fmt_bytes(s.shuffle_read_bytes)} | {fmt_bytes(s.shuffle_write_bytes)} "
+                f"| {fmt_ms(s.shuffle_write_time_ms)} | {fmt_ms(s.fetch_wait_time_ms)} "
+                f"| {fmt_bytes(s.memory_bytes_spilled)} | {fmt_bytes(s.disk_bytes_spilled)}{spill_disk_flag} "
+                f"| {fmt_bytes(s.peak_execution_memory_bytes)} "
                 f"| {s.skew_ratio}{skew_flag} |"
             )
 
@@ -307,6 +332,26 @@ class MarkdownRenderer(BaseRenderer):
             lines += ["", "## ⚠️ Skewed Stages Detected"]
             for s in skewed:
                 lines.append(f"- **Stage {s.stage_id}** ({s.name}): skew ratio = {s.skew_ratio}×")
+
+        spilled = [s for s in summary.stages if s.has_spill]
+        if spilled:
+            lines += ["", "## 💾 Stages with Disk Spill"]
+            for s in spilled:
+                disk = fmt_bytes(s.disk_bytes_spilled)
+                mem = fmt_bytes(s.memory_bytes_spilled)
+                lines.append(f"- **Stage {s.stage_id}** ({s.name}): disk spill = {disk}, memory spill = {mem}")
+
+        heavy_shuffle = [s for s in summary.stages if s.has_heavy_shuffle]
+        if heavy_shuffle:
+            lines += ["", "## 🔀 Stages with Heavy Shuffle"]
+            for s in heavy_shuffle:
+                lines.append(
+                    f"- **Stage {s.stage_id}** ({s.name}): "
+                    f"shuffle read = {fmt_bytes(s.shuffle_read_bytes)}, "
+                    f"shuffle write = {fmt_bytes(s.shuffle_write_bytes)}, "
+                    f"SW time = {fmt_ms(s.shuffle_write_time_ms)}, "
+                    f"fetch wait = {fmt_ms(s.fetch_wait_time_ms)}"
+                )
 
         return "\n".join(lines)
 

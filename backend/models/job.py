@@ -30,10 +30,27 @@ class StageMetrics(BaseModel):
     task_duration_max_ms: Optional[int] = None
     task_duration_p95_ms: Optional[int] = None
     skew_ratio: Optional[float] = None
+    memory_bytes_spilled: int = 0
+    disk_bytes_spilled: int = 0
+    shuffle_write_time_ms: int = 0
+    fetch_wait_time_ms: int = 0
+    remote_bytes_read_to_disk: int = 0
+    peak_execution_memory_bytes: int = 0
+    shuffle_read_records: int = 0
+    shuffle_write_records: int = 0
 
     @property
     def has_skew(self) -> bool:
         return (self.skew_ratio or 0.0) > 3.0
+
+    @property
+    def has_spill(self) -> bool:
+        return self.disk_bytes_spilled > 0
+
+    @property
+    def has_heavy_shuffle(self) -> bool:
+        """Flag stages where total shuffle (read + write) exceeds 500 MB."""
+        return (self.shuffle_read_bytes + self.shuffle_write_bytes) > 524_288_000
 
 
 class AppSummary(BaseModel):

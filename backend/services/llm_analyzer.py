@@ -48,6 +48,11 @@ Render as a markdown table using this exact structure:
 | Total Tasks            | XX,XXX                                       |
 | Avg Data/Task          | ~XX KB  ← [CRITICAL if < 1MB]               |
 | Stages with Skew       | X stages (IDs: XX, XX, XX)                  |
+| Disk Spill Total       | X.X GB (stages: XX, XX) — CRITICAL if > 0   |
+| Memory Spill Total     | X.X GB (stages: XX, XX)                     |
+| Shuffle Write Total    | X.X GB                                       |
+| Max SW Time / Stage    | XX s (Stage XX)                              |
+| Max Fetch Wait / Stage | XX ms (Stage XX)                             |
 | Failed/Retried Stages  | X                                            |
 
 > **Verdict:** [One direct sentence. Ex: "7GB job taking 171min due to task
@@ -55,6 +60,11 @@ Render as a markdown table using this exact structure:
 
 ─────────────────────────────────────────
 ### 🚨 Identified Bottlenecks
+
+Diagnose ALL of the following performance pillars when evidence is present in the reduced log:
+- **Skew** → `skew_ratio > 3×`: uneven task durations, max/avg ratio, uneven shuffle-read distribution across tasks
+- **Spill** → `Disk Bytes Spilled > 0`: data evicted to disk, causing I/O overhead and GC pressure on executor JVM
+- **Shuffle** → shuffle read + write significantly exceeds total stage input, or large shuffle concentrated on few tasks
 
 For each bottleneck, use exactly this block:
 
@@ -161,6 +171,14 @@ Repeat for each identified fix.
 ABOUT DIAGNOSIS:
 - NEVER say "there may be skew" — say "there is skew in Stage X, tasks Y and Z
   processed N times more data, evidenced by shuffle read of X GB vs avg of Y MB"
+- NEVER say "there may be spill" — say "Stage X spilled X.X GB to disk
+  (Disk Bytes Spilled: X), causing I/O overhead evidenced by stage duration X"
+- NEVER omit spill from the report — if disk_bytes_spilled > 0 in any stage,
+  it MUST appear as a bottleneck regardless of magnitude
+- NEVER diagnose shuffle as a standalone bottleneck without tying shuffle read/write
+  bytes to stage duration, task skew, or shuffle-to-input amplification ratio
+- NEVER cite shuffle write volume without also reporting shuffle write time —
+  high volume with low time is different from high volume with high time
 - NEVER reference configuration parameters without grounding them in real log values
 - NEVER suggest cache(), broadcast() or repartition() without pointing to the specific
   stage that would benefit and the metric that supports it
@@ -217,6 +235,11 @@ Renderize como tabela markdown usando exatamente esta estrutura:
 | Total de Tasks         | XX.XXX                                       |
 | Média de Dados/Task    | ~XX KB  ← [CRÍTICO se < 1MB]                |
 | Stages com Skew        | X stages (IDs: XX, XX, XX)                  |
+| Spill em Disco Total   | X.X GB (stages: XX, XX) — CRÍTICO se > 0    |
+| Spill em Memória Total | X.X GB (stages: XX, XX)                     |
+| Shuffle Write Total    | X.X GB                                       |
+| Maior SW Time/Stage    | XX s (Stage XX)                              |
+| Maior Fetch Wait/Stage | XX ms (Stage XX)                             |
 | Stages com Falha/Retry | X                                            |
 
 > **Veredito:** [Uma frase direta. Ex: "Job de 7GB levando 171min por overhead
@@ -224,6 +247,11 @@ Renderize como tabela markdown usando exatamente esta estrutura:
 
 ─────────────────────────────────────────
 ### 🚨 Gargalos Identificados
+
+Diagnostique TODOS os pilares de performance abaixo quando houver evidência no log reduzido:
+- **Skew** → `skew_ratio > 3×`: durações de task desiguais, razão max/avg, distribuição assimétrica de shuffle read
+- **Spill** → `Disk Bytes Spilled > 0`: dados despejados em disco, causando overhead de I/O e pressão de GC na JVM do executor
+- **Shuffle** → shuffle read + write excede significativamente o input total do stage, ou grande shuffle concentrado em poucas tasks
 
 Para cada gargalo, use exatamente este bloco:
 
@@ -330,6 +358,14 @@ Repita para cada correção identificada.
 SOBRE DIAGNÓSTICO:
 - NUNCA diga "pode haver skew" — diga "há skew no Stage X, tasks Y e Z processaram
   N vezes mais dados, evidenciado por shuffle read de X GB vs média de Y MB"
+- NUNCA diga "pode haver spill" — diga "Stage X despejou X.X GB em disco
+  (Disk Bytes Spilled: X), causando overhead de I/O evidenciado pela duração do stage X"
+- NUNCA omita spill do relatório — se disk_bytes_spilled > 0 em qualquer stage,
+  isso DEVE aparecer como gargalo independentemente da magnitude
+- NUNCA diagnostique shuffle como gargalo isolado sem relacionar os bytes de
+  shuffle read/write à duração do stage, skew de tasks ou razão de amplificação shuffle/input
+- NUNCA cite shuffle write sem informar também o shuffle write time —
+  volume alto com tempo baixo é diferente de volume alto com tempo alto
 - NUNCA cite parâmetros de configuração sem basear nos valores reais do log
 - NUNCA sugira cache(), broadcast() ou repartition() sem apontar o stage específico
   que seria beneficiado e a métrica que sustenta isso
