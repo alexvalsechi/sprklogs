@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.0](https://github.com/alexvalsechi/sprklogs/compare/v0.12.0...v0.13.0) (2026-03-20)
+
+
+### Features
+
+* implement local ZIP reduction with progress tracking and update IPC for progress events ([72079e5](https://github.com/alexvalsechi/sprklogs/commit/72079e5dc7d57c97ba9e1a48f2d632675c8d3fd9))
+* implement local ZIP reduction with progress tracking and update… ([98b92eb](https://github.com/alexvalsechi/sprklogs/commit/98b92ebeb14d7a8ca1bc0b6dd05a4c8b8853ac33))
+* refactor tests to use SinglePassHandler and improve event handl… ([2d8835b](https://github.com/alexvalsechi/sprklogs/commit/2d8835b53610db88d45612c3d4c05d5f01a86f33))
+* refactor tests to use SinglePassHandler and improve event handling assertions ([34fa312](https://github.com/alexvalsechi/sprklogs/commit/34fa312913b4924b0dc12c30c254eef08fcdd35a))
+
 ## [0.12.0](https://github.com/alexvalsechi/sprklogs/compare/v0.11.0...v0.12.0) (2026-03-19)
 
 
