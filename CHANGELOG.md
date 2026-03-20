@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/alexvalsechi/sprklogs/compare/v0.11.0...v0.12.0) (2026-03-19)
+
+
+### Features
+
+* enhance job metrics and reporting with additional spill and shu… ([ef9a360](https://github.com/alexvalsechi/sprklogs/commit/ef9a360abe5320cf4a90584549fd960a52970161))
+* enhance job metrics and reporting with additional spill and shuffle metrics ([3e41e00](https://github.com/alexvalsechi/sprklogs/commit/3e41e00eb8663a27a91696538fa5fc4607a6ed97))
+
 ## [0.11.0](https://github.com/alexvalsechi/sprklogs/compare/v0.10.0...v0.11.0) (2026-03-16)
 
 
