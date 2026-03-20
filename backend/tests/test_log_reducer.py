@@ -11,12 +11,12 @@ import pytest
 
 from backend.services.log_reducer import (
     LogReducer,
-    EventLoaderHandler,
-    AppMetaHandler,
-    StageAggregationHandler,
+    SinglePassHandler,
     SummaryBuilderHandler,
+    StageAccumulator,
     MarkdownRenderer,
     JsonRenderer,
+    _iter_events,
 )
 from backend.models.job import AppSummary, StageMetrics
 
@@ -72,28 +72,39 @@ def sample_summary() -> AppSummary:
 
 # ─── Tests ───────────────────────────────────────────────────────────────────
 
-class TestEventLoader:
-    def test_loads_events(self, sample_zip):
-        handler = EventLoaderHandler()
-        ctx = handler.process({"zip_bytes": sample_zip})
-        assert "SparkListenerApplicationStart" in ctx["events"]
-        assert "SparkListenerTaskEnd" in ctx["events"]
-        assert len(ctx["events"]["SparkListenerTaskEnd"]) == 10
+class TestSinglePassHandler:
+    def test_produces_app_meta(self, sample_zip):
+        ctx = SinglePassHandler().process({"zip_bytes": sample_zip})
+        meta = ctx["app_meta"]
+        assert meta["app_id"] == "app-001"
+        assert meta["app_name"] == "TestJob"
+        assert meta["spark_version"] == "3.4.0"
+        assert meta["executor_count"] == 2
+
+    def test_produces_stages(self, sample_zip):
+        ctx = SinglePassHandler().process({"zip_bytes": sample_zip})
+        assert len(ctx["stages"]) == 1
+        stage = ctx["stages"][0]
+        assert stage.stage_id == 0
+        assert stage.num_tasks == 10
 
     def test_handles_malformed_lines(self):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:
-            zf.writestr("log", '{"Event": "SparkListenerApplicationStart"}\nnot json\n{"Event": "SparkListenerApplicationEnd", "Timestamp": 0}')
-        ctx = EventLoaderHandler().process({"zip_bytes": buf.getvalue()})
-        assert "SparkListenerApplicationStart" in ctx["events"]
+            zf.writestr(
+                "log",
+                '{"Event": "SparkListenerApplicationStart", "App ID": "x", "App Name": "y", "Spark Version": "3.0", "Timestamp": 0}'
+                "\nnot json\n"
+                '{"Event": "SparkListenerApplicationEnd", "Timestamp": 0}',
+            )
+        # Should not raise despite malformed line
+        ctx = SinglePassHandler().process({"zip_bytes": buf.getvalue()})
+        assert ctx["app_meta"]["app_name"] == "y"
 
 
 class TestStageAggregation:
     def test_aggregates_tasks_by_stage(self, sample_zip):
-        ctx: dict = {"zip_bytes": sample_zip}
-        ctx = EventLoaderHandler().process(ctx)
-        ctx = AppMetaHandler().process(ctx)
-        ctx = StageAggregationHandler().process(ctx)
+        ctx = SinglePassHandler().process({"zip_bytes": sample_zip})
 
         assert len(ctx["stages"]) == 1
         stage = ctx["stages"][0]
@@ -157,7 +168,6 @@ class TestZipBombProtection:
                 zf.writestr(f"file{i}.json", '{"Event": "SparkListenerApplicationStart"}')
         zip_bytes = buf.getvalue()
         
-        from backend.services.log_reducer import _iter_events
         with pytest.raises(ValueError, match="too many files"):
             list(_iter_events(zip_bytes))
 
@@ -170,7 +180,6 @@ class TestZipBombProtection:
             zf.writestr("bomb.txt", large_data)
         zip_bytes = buf.getvalue()
         
-        from backend.services.log_reducer import _iter_events
         with pytest.raises(ValueError, match="suspicious compression ratio"):
             list(_iter_events(zip_bytes))
 
