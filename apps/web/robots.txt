@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /sprklogs/llms.txt
+Allow: /sprklogs/llms-full.txt
+Allow: /sprklogs/llms-pt.txt
+Allow: /sprklogs/llms-full-pt.txt
 
 Sitemap: https://alexvalsechi.github.io/sprklogs/sitemap.xml
