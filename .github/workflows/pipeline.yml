@@ -46,6 +46,7 @@ jobs:
       backend_changed: ${{ steps.filter.outputs.backend }}
       desktop_runtime_changed: ${{ steps.filter.outputs.desktop_runtime }}
       desktop_docs_release_changed: ${{ steps.filter.outputs.desktop_docs_release }}
+      desktop_release_needed: ${{ steps.release_scope.outputs.desktop_release_needed }}
       release_please_branch: ${{ steps.branch.outputs.is_release_please_branch }}
     steps:
       - name: Checkout
@@ -82,6 +83,40 @@ jobs:
               - 'infra/scripts/build-python.ps1'
             desktop_docs_release:
               - 'apps/desktop/**/*.md'
+
+      - name: Compute desktop release scope
+        id: release_scope
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" != "push" ]]; then
+            echo "desktop_release_needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.sha }}"
+
+          if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BEFORE_SHA="$(git rev-parse "${AFTER_SHA}^" 2>/dev/null || true)"
+          fi
+
+          if [[ -z "$BEFORE_SHA" ]]; then
+            echo "desktop_release_needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          desktop_release_needed=false
+          while IFS= read -r changed_file; do
+            [[ -z "$changed_file" ]] && continue
+            case "$changed_file" in
+              apps/desktop/*|backend/*|packages/ipc-types/*|packages/ui/*|infra/scripts/build-python.sh|infra/scripts/build-python.ps1|package.json|package-lock.json)
+                desktop_release_needed=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")
+
+          echo "desktop_release_needed=$desktop_release_needed" >> "$GITHUB_OUTPUT"
 
   backend-tests:
     name: Backend tests
@@ -152,7 +187,7 @@ jobs:
   release-please:
     name: Release Please
     needs: detect-changes
-    if: ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) && (needs.detect-changes.outputs.desktop_runtime_changed == 'true' || needs.detect-changes.outputs.desktop_docs_release_changed == 'true')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_as != '')
+    if: ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) && needs.detect-changes.outputs.desktop_release_needed == 'true') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_as != '')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -220,7 +255,7 @@ jobs:
   build-desktop-master-latest:
     name: Build desktop master latest
     needs: detect-changes
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (needs.detect-changes.outputs.desktop_runtime_changed == 'true' || needs.detect-changes.outputs.desktop_docs_release_changed == 'true')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.detect-changes.outputs.desktop_release_needed == 'true'
     runs-on: windows-latest
     permissions:
       contents: write
