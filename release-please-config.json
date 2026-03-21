@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "skip-labeling": true,
   "packages": {
     ".": {
       "release-type": "simple",
