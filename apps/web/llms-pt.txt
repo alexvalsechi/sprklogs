@@ -1,0 +1,38 @@
+# SprkLogs
+
+> SprkLogs e uma aplicacao desktop para Windows, com abordagem local-first, que reduz grandes logs de eventos do Apache Spark e gera analises tecnicas baseadas em evidencias sem enviar o log bruto diretamente para uma LLM.
+
+## Resumo
+- Produto: analisador desktop para logs de eventos do Apache Spark
+- Publico: Engenheiros de Dados, Analistas de Dados, Arquitetos de Dados e times de plataforma
+- Beneficio principal: reduzir logs de centenas de MB ou acima de 1 GB para um contexto analitico compacto e diagnostico preciso
+- Modelo de privacidade: reducao local antes de qualquer analise opcional com IA
+- Site: https://alexvalsechi.github.io/sprklogs/
+- Codigo-fonte: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases
+
+## Funcionalidades
+- Reduz logs grandes do Spark UI para um relatorio tecnico compacto
+- Identifica gargalos, stages lentos, skew de tasks e padroes suspeitos de execucao
+- Produz recomendacoes baseadas em evidencias extraidas do job
+- Suporta arquitetura hibrida com processamento local antes de chamadas opcionais para LLM
+- Exporta saidas para fluxos de trabalho de engenharia
+
+## Casos de Uso
+- Diagnosticar jobs Spark lentos em producao
+- Revisar execucao com evidencias antes de ajustar particoes e shuffle
+- Preparar resumo tecnico para PR, Confluence ou plano de otimizacao
+- Analisar logs grandes demais para envio direto a uma LLM
+
+## Detalhes Tecnicos
+- Web: site estatico hospedado no GitHub Pages
+- Desktop: Electron + TypeScript
+- Backend: FastAPI + Python
+- Suporte a IA: o relatorio reduzido pode ser analisado com provedores de LLM suportados
+
+## Links
+- Site principal: https://alexvalsechi.github.io/sprklogs/
+- Contexto completo para LLM em portugues: https://alexvalsechi.github.io/sprklogs/llms-full-pt.txt
+- Contexto completo em ingles: https://alexvalsechi.github.io/sprklogs/llms-full.txt
+- Repositorio GitHub: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases

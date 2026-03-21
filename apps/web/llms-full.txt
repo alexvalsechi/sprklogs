@@ -1,0 +1,71 @@
+# SprkLogs
+
+This file is the English canonical LLM context. For Portuguese-first interaction, use: https://alexvalsechi.github.io/sprklogs/llms-full-pt.txt
+
+SprkLogs is a Windows desktop application focused on Apache Spark log analysis. It exists because real Spark event logs are often too large to be sent directly to an LLM. Production logs can reach hundreds of megabytes or exceed 1 GB, making direct AI analysis expensive, truncated, or impossible due to context limits.
+
+SprkLogs solves this by reducing the raw Spark event log into a compact technical report that preserves only the execution signals that matter for diagnosis. This allows downstream AI analysis to work on a dense analytical summary instead of the entire raw file.
+
+## What the product does
+- Ingests Spark event log ZIP files
+- Optionally accepts related PySpark job files
+- Reduces the log into compact analytical context
+- Highlights technical signals such as stage bottlenecks, slow tasks, suspicious patterns, and impact areas
+- Produces an evidence-based diagnosis instead of generic suggestions
+- Supports exportable output for engineering documentation and remediation planning
+
+## Why it exists
+Typical LLM workflows break down for Spark logs because:
+- the file is too large for prompt context
+- token cost becomes impractical
+- the model may truncate or hallucinate when the raw data volume is too high
+- analysis without reduction loses the relationship between evidence and recommendations
+
+SprkLogs is designed to preserve the engineering value of the log while making analysis feasible.
+
+## Target users
+- Data Engineers diagnosing slow production jobs
+- Data Analysts working in PySpark who need guidance on performance issues
+- Data Architects validating tuning and infrastructure decisions with evidence
+- Platform and observability teams reviewing Spark execution quality
+
+## Product positioning
+SprkLogs is not a generic wrapper around ChatGPT. It is a Spark-specialized reduction and analysis workflow.
+
+The product differentiates itself by:
+- working with large real-world Spark logs
+- reducing data before AI usage
+- keeping diagnosis tied to evidence from execution data
+- supporting privacy-conscious local-first processing
+- using terminology and flows built for engineering users
+
+## Typical workflow
+1. The user selects a Spark event log ZIP.
+2. The system processes the log locally and extracts relevant execution signals.
+3. A reduced technical report is generated.
+4. That reduced report can be sent for AI analysis instead of the raw log.
+5. The user receives a structured diagnosis with bottlenecks and recommendations.
+
+## Privacy and data handling
+The core product strategy is local-first processing. Raw logs are reduced before any optional AI interaction. This is important for teams handling sensitive production metadata and for any scenario where the original log should not be sent to an external model provider.
+
+## Technical stack
+- Website: static HTML, CSS, JavaScript
+- Desktop app: Electron with TypeScript
+- Backend services: FastAPI in Python
+- AI providers: product supports reduced-report analysis with configured providers
+
+## Website summary for AI systems
+The public website at https://alexvalsechi.github.io/sprklogs/ is a marketing and product explanation page for the SprkLogs desktop app. It explains:
+- why raw Spark logs are too large for direct LLM analysis
+- how log reduction works
+- why evidence-based diagnosis is more useful than generic AI suggestions
+- who the product is for
+- where to download the Windows desktop app
+
+## Canonical references
+- Website: https://alexvalsechi.github.io/sprklogs/
+- Source code: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases
+- Portuguese summary: https://alexvalsechi.github.io/sprklogs/llms-pt.txt
+- Portuguese full context: https://alexvalsechi.github.io/sprklogs/llms-full-pt.txt

@@ -1,14 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-W3XBXBKL');</script>
+<!-- End Google Tag Manager -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SprkLogs</title>
+<title>SprkLogs - Analisador de Logs Apache Spark para Windows | Gratuito e Local</title>
+<meta name="description" content="SprkLogs reduz e analisa logs do Apache Spark diretamente no Windows. Ferramenta gratuita, local e open source para diagnosticar gargalos, stages lentos e problemas de performance sem expor o log completo a uma LLM.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://alexvalsechi.github.io/sprklogs/">
+<link rel="alternate" hreflang="pt-BR" href="https://alexvalsechi.github.io/sprklogs/">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SprkLogs - Analisador de Logs Apache Spark para Windows">
+<meta property="og:description" content="Reduza logs Spark de centenas de MB ou mais de 1 GB e obtenha um diagnóstico técnico com gargalos, evidências e recomendações sem estourar contexto de LLM.">
+<meta property="og:url" content="https://alexvalsechi.github.io/sprklogs/">
+<meta property="og:site_name" content="SprkLogs">
+<meta property="og:image" content="https://alexvalsechi.github.io/sprklogs/spark-history-server.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SprkLogs - Analisador de Logs Apache Spark para Windows">
+<meta name="twitter:description" content="Ferramenta gratuita e local para reduzir logs Spark e gerar diagnósticos técnicos baseados em evidências.">
+<meta name="twitter:image" content="https://alexvalsechi.github.io/sprklogs/spark-history-server.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
 <link rel="icon" type="image/x-icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="site.webmanifest" />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;1,9..40,200;1,9..40,300&family=Inconsolata:wght@300;400&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SprkLogs",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Windows",
+  "description": "Ferramenta desktop para reduzir logs do Apache Spark e gerar diagnósticos técnicos com gargalos, evidências e recomendações sem enviar o log bruto inteiro para uma LLM.",
+  "url": "https://alexvalsechi.github.io/sprklogs/",
+  "downloadUrl": "https://github.com/alexvalsechi/sprklogs/releases",
+  "image": "https://alexvalsechi.github.io/sprklogs/spark-history-server.png",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "SprkLogs"
+  },
+  "keywords": [
+    "Apache Spark",
+    "Spark UI",
+    "análise de logs",
+    "performance Spark",
+    "Data Engineering",
+    "Windows"
+  ]
+}
+</script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -871,6 +924,10 @@ footer {
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W3XBXBKL"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 
 <nav>
   <a href="#" class="nav-brand">
@@ -881,7 +938,7 @@ footer {
     <a href="#how" class="nav-link" data-i18n="nav.how">How it works</a>
     <a href="#reduction" class="nav-link" data-i18n="nav.reduction">The reduction</a>
     <a href="#whynot" class="nav-link" data-i18n="nav.whynot">Why not ChatGPT</a>
-    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub repository (Open Source)">
+    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" class="nav-github" id="nav-github-link" aria-label="GitHub repository (Open Source)">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
     </a>
     <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">PT-BR</button>
@@ -928,6 +985,7 @@ footer {
 
   <div class="hero-right fade">
     <video
+      id="hero-demo-video"
       src="sprklogs-how-to-use.mp4"
       autoplay
       loop
@@ -1193,7 +1251,7 @@ footer {
   </a>
   <span class="foot-copy">© 2025 SprkLogs</span>
   <div class="foot-links">
-    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;">
+    <a href="https://github.com/alexvalsechi/sprklogs" target="_blank" rel="noopener noreferrer" id="footer-github-link" style="display:inline-flex;align-items:center;gap:6px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
       <span data-i18n="footer.openSource">Open Source</span>
     </a>
@@ -1420,6 +1478,18 @@ footer {
 
   let currentLang = 'en';
 
+  window.dataLayer = window.dataLayer || [];
+
+  function pushAnalyticsEvent(eventName, payload = {}) {
+    window.dataLayer.push({
+      event: eventName,
+      page_path: window.location.pathname,
+      page_title: document.title,
+      page_language: document.documentElement.lang,
+      ...payload,
+    });
+  }
+
   function detectLang() {
     const saved = localStorage.getItem('sprklogs-lang');
     if (saved === 'en' || saved === 'pt') return saved;
@@ -1442,7 +1512,9 @@ footer {
   }
 
   function toggleLang() {
-    applyLang(currentLang === 'en' ? 'pt' : 'en');
+    const nextLang = currentLang === 'en' ? 'pt' : 'en';
+    applyLang(nextLang);
+    pushAnalyticsEvent('language_toggle', { language: nextLang });
   }
 
   /* ===================== Scroll fade-in ===================== */
@@ -1470,6 +1542,150 @@ footer {
       if (entries[0].isIntersecting) { bar.classList.add('go'); bio.disconnect(); }
     }, { threshold: 0.5 });
     bio.observe(bar);
+  }
+
+  /* ===================== Analytics ===================== */
+  const analyticsState = {
+    maxScrollPercent: 0,
+    sectionsSeen: new Set(),
+    pageActiveStart: performance.now(),
+    totalActiveMs: 0,
+    engagementSent: false,
+  };
+
+  function getScrollPercent() {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    if (scrollable <= 0) {
+      return 100;
+    }
+    return Math.min(100, Math.round((window.scrollY / scrollable) * 100));
+  }
+
+  function updateScrollPercent() {
+    analyticsState.maxScrollPercent = Math.max(analyticsState.maxScrollPercent, getScrollPercent());
+  }
+
+  function finalizeActiveTime() {
+    if (analyticsState.pageActiveStart !== null) {
+      analyticsState.totalActiveMs += Math.max(0, performance.now() - analyticsState.pageActiveStart);
+      analyticsState.pageActiveStart = null;
+    }
+  }
+
+  function resumeActiveTime() {
+    if (analyticsState.pageActiveStart === null) {
+      analyticsState.pageActiveStart = performance.now();
+    }
+  }
+
+  function sendPageEngagement() {
+    if (analyticsState.engagementSent) {
+      return;
+    }
+    finalizeActiveTime();
+    updateScrollPercent();
+    analyticsState.engagementSent = true;
+    pushAnalyticsEvent('page_engagement', {
+      time_active_s: Math.round(analyticsState.totalActiveMs / 1000),
+      max_scroll_pct: analyticsState.maxScrollPercent,
+      sections_seen: Array.from(analyticsState.sectionsSeen),
+    });
+  }
+
+  window.addEventListener('scroll', updateScrollPercent, { passive: true });
+  updateScrollPercent();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      sendPageEngagement();
+      return;
+    }
+
+    analyticsState.engagementSent = false;
+    resumeActiveTime();
+  });
+
+  window.addEventListener('pagehide', sendPageEngagement);
+
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) {
+        return;
+      }
+
+      const sectionId = entry.target.id;
+      if (!sectionId || analyticsState.sectionsSeen.has(sectionId)) {
+        return;
+      }
+
+      analyticsState.sectionsSeen.add(sectionId);
+      pushAnalyticsEvent('section_visible', { section_id: sectionId });
+      sectionObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.35 });
+
+  ['hero', 'how', 'reduction', 'whynot', 'differentials', 'whom', 'cta'].forEach((sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      sectionObserver.observe(section);
+    }
+  });
+
+  const ctaHeroButton = document.querySelector('.hero-actions .btn-main');
+  const ctaDownloadButton = document.getElementById('cta-download-exe');
+  const ctaVisibilityObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) {
+        return;
+      }
+
+      pushAnalyticsEvent('cta_visible', {
+        cta_id: entry.target.id || 'hero-analyze-cta',
+      });
+      ctaVisibilityObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.8 });
+
+  if (ctaDownloadButton) {
+    ctaVisibilityObserver.observe(ctaDownloadButton);
+  }
+  if (ctaHeroButton) {
+    ctaVisibilityObserver.observe(ctaHeroButton);
+  }
+
+  [
+    { elementId: 'nav-download-exe', button: 'nav' },
+    { elementId: 'cta-download-exe', button: 'hero' },
+  ].forEach(({ elementId, button }) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      return;
+    }
+    element.addEventListener('click', () => {
+      pushAnalyticsEvent('download_click', { button });
+    });
+  });
+
+  ['nav-github-link', 'footer-github-link'].forEach((elementId) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      return;
+    }
+    element.addEventListener('click', () => {
+      pushAnalyticsEvent('github_link_click', { location: elementId.startsWith('nav') ? 'nav' : 'footer' });
+    });
+  });
+
+  const demoVideo = document.getElementById('hero-demo-video');
+  if (demoVideo) {
+    ['play', 'pause', 'ended'].forEach((eventName) => {
+      demoVideo.addEventListener(eventName, () => {
+        pushAnalyticsEvent('demo_interaction', { type: eventName });
+      });
+    });
+    demoVideo.addEventListener('click', () => {
+      pushAnalyticsEvent('demo_interaction', { type: 'click' });
+    });
   }
 
   /* ===================== GitHub releases ===================== */

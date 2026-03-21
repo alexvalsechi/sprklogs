@@ -1,0 +1,46 @@
+# SprkLogs
+
+> SprkLogs is a free, local-first Windows desktop app that reduces large Apache Spark event logs and generates evidence-based technical analysis without sending the raw log directly to an LLM.
+
+> SprkLogs e um aplicativo desktop para Windows, local-first, que reduz grandes logs de eventos do Apache Spark e gera analise tecnica baseada em evidencias sem enviar o log bruto diretamente para uma LLM.
+
+## Summary
+- Product: Windows desktop analyzer for Apache Spark event logs
+- Audience: Data Engineers, Data Analysts, Data Architects, platform teams
+- Core benefit: Reduce hundreds of MB or 1 GB+ logs into compact analytical context for precise diagnosis
+- Privacy model: local reduction before any optional AI analysis
+- Website: https://alexvalsechi.github.io/sprklogs/
+- Source code: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases
+
+## Features
+- Reduce large Spark UI logs into a compact technical report
+- Identify bottlenecks, slow stages, task skew, and suspicious execution patterns
+- Produce evidence-based recommendations tied to real job metrics
+- Support hybrid architecture with local processing before optional LLM calls
+- Export analysis for engineering workflows
+
+## Use Cases
+- Diagnose slow Spark jobs in production
+- Review job execution with evidence before tuning partitions and shuffles
+- Prepare a technical summary for pull requests, Confluence, or sprint optimization work
+- Analyze logs too large to be sent directly to an LLM
+
+## Technical Details
+- Web: static marketing site hosted on GitHub Pages
+- Desktop: Electron + TypeScript
+- Backend: FastAPI + Python
+- AI support: reduced report can be analyzed with supported LLM providers
+
+## Links
+- Main site: https://alexvalsechi.github.io/sprklogs/
+- Full LLM context: https://alexvalsechi.github.io/sprklogs/llms-full.txt
+- Portuguese LLM summary: https://alexvalsechi.github.io/sprklogs/llms-pt.txt
+- Portuguese full context: https://alexvalsechi.github.io/sprklogs/llms-full-pt.txt
+- GitHub repository: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases
+
+## Portuguese Notes
+- Idioma principal para SEO e marketing: pt-BR
+- O publico principal inclui engenheiros de dados, analistas de dados e arquitetos de dados no Brasil
+- Para contexto completo em portugues, prefira: https://alexvalsechi.github.io/sprklogs/llms-full-pt.txt

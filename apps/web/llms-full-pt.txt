@@ -1,0 +1,71 @@
+# SprkLogs
+
+Este arquivo contem o contexto principal em portugues para interacao com LLMs sobre o produto SprkLogs.
+
+SprkLogs e uma aplicacao desktop para Windows focada na analise de logs do Apache Spark. O produto existe porque logs reais de eventos do Spark frequentemente sao grandes demais para serem enviados diretamente a uma LLM. Em producao, esses logs podem chegar a centenas de megabytes ou ultrapassar 1 GB, tornando a analise direta cara, truncada ou inviavel por limite de contexto.
+
+O SprkLogs resolve isso reduzindo o event log bruto do Spark para um relatorio tecnico compacto que preserva apenas os sinais de execucao relevantes para diagnostico. Isso permite que a analise posterior com IA trabalhe sobre um resumo analitico denso em vez do arquivo bruto inteiro.
+
+## O que o produto faz
+- Ingesta arquivos ZIP de event log do Spark
+- Aceita opcionalmente arquivos PySpark relacionados ao job
+- Reduz o log para um contexto analitico compacto
+- Destaca sinais tecnicos como gargalos por stage, tasks lentas, padroes suspeitos e areas de impacto
+- Produz diagnostico baseado em evidencias em vez de sugestoes genericas
+- Permite exportacao para documentacao tecnica e planejamento de remediacao
+
+## Por que ele existe
+Fluxos tipicos com LLM falham para logs Spark porque:
+- o arquivo e grande demais para o contexto do prompt
+- o custo de tokens fica inviavel
+- o modelo pode truncar ou alucinar quando o volume bruto de dados e alto demais
+- uma analise sem reducao perde a relacao entre evidencia e recomendacao
+
+O SprkLogs foi desenhado para preservar o valor de engenharia do log e ao mesmo tempo tornar a analise viavel.
+
+## Usuarios-alvo
+- Engenheiros de Dados que diagnosticam jobs lentos em producao
+- Analistas de Dados que usam PySpark e precisam entender problemas de performance
+- Arquitetos de Dados que validam decisoes de tuning e infraestrutura com evidencias
+- Times de plataforma e observabilidade que revisam a qualidade de execucao no Spark
+
+## Posicionamento do produto
+SprkLogs nao e um wrapper generico de ChatGPT para logs. Ele e um fluxo especializado de reducao e analise para Spark.
+
+O produto se diferencia por:
+- funcionar com logs reais e grandes de Spark
+- reduzir os dados antes do uso de IA
+- manter o diagnostico ligado a evidencias da execucao
+- suportar uma estrategia de privacidade com processamento local-first
+- usar terminologia e fluxos pensados para usuarios de engenharia
+
+## Fluxo tipico
+1. O usuario seleciona um ZIP de event log do Spark.
+2. O sistema processa o log localmente e extrai sinais relevantes de execucao.
+3. Um relatorio tecnico reduzido e gerado.
+4. Esse relatorio reduzido pode ser enviado para analise com IA em vez do log bruto.
+5. O usuario recebe um diagnostico estruturado com gargalos e recomendacoes.
+
+## Privacidade e tratamento de dados
+A estrategia central do produto e local-first. Os logs brutos sao reduzidos antes de qualquer interacao opcional com IA. Isso e importante para times que lidam com metadados sensiveis de producao e para qualquer cenario em que o log original nao deve ser enviado a um provedor externo de modelo.
+
+## Stack tecnico
+- Website: HTML, CSS e JavaScript estaticos
+- App desktop: Electron com TypeScript
+- Servicos backend: FastAPI em Python
+- Provedores de IA: o produto suporta analise do relatorio reduzido com provedores configurados
+
+## Resumo do website para sistemas de IA
+O website publico em https://alexvalsechi.github.io/sprklogs/ e uma pagina de marketing e explicacao do produto SprkLogs. O site explica:
+- por que logs brutos do Spark sao grandes demais para analise direta por LLM
+- como a reducao de logs funciona
+- por que um diagnostico baseado em evidencias e mais util que sugestoes genericas de IA
+- para quem o produto foi feito
+- onde baixar o aplicativo desktop para Windows
+
+## Referencias canonicas
+- Website: https://alexvalsechi.github.io/sprklogs/
+- Resumo LLM em ingles: https://alexvalsechi.github.io/sprklogs/llms.txt
+- Contexto completo em ingles: https://alexvalsechi.github.io/sprklogs/llms-full.txt
+- Codigo-fonte: https://github.com/alexvalsechi/sprklogs
+- Releases: https://github.com/alexvalsechi/sprklogs/releases
