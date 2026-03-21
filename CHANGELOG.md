@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/alexvalsechi/sprklogs/compare/v0.13.0...v0.14.0) (2026-03-21)
+
+
+### Features
+
+* enhance website SEO and analytics with new metadata, sitemap, a… ([442ceef](https://github.com/alexvalsechi/sprklogs/commit/442ceefeddbd9b64f15861b7d7202a6c1778aae9))
+* enhance website SEO and analytics with new metadata, sitemap, and robots.txt ([d58deca](https://github.com/alexvalsechi/sprklogs/commit/d58decafd86b28ebc993a74b0e7d6a525f4b77d8))
+
 ## [0.13.0](https://github.com/alexvalsechi/sprklogs/compare/v0.12.0...v0.13.0) (2026-03-20)
 
 
