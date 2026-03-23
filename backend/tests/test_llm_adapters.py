@@ -113,3 +113,120 @@ class TestLLMAnalyzer:
         result = analyzer.analyze("# r", minimal_summary)
         assert result == "recovered"
         assert call_count["n"] == 3
+
+    def test_py_files_are_not_reduced(self, minimal_summary):
+        prompts = []
+
+        class CapturingAdapter(BaseLLMAdapter):
+            def _complete(self, prompt: str) -> str:
+                prompts.append(prompt)
+                return "{}"
+
+        analyzer = LLMAnalyzer(adapter=CapturingAdapter())
+        repeated = "same_line\n" * 20
+        analyzer.analyze(
+            reduced_report="# Report",
+            summary=minimal_summary,
+            py_files={"job.py": repeated.encode("utf-8")},
+        )
+
+        # The placeholder used by collapse must never appear for source files.
+        assert "[... repeated line omitted" not in prompts[0]
+        assert repeated.strip() in prompts[0]
+
+    def test_reconciles_code_link_line_numbers(self, minimal_summary):
+        class JsonAdapter(BaseLLMAdapter):
+            def _complete(self, _prompt: str) -> str:
+                import json as _json
+
+                payload = {
+                    "meta": {
+                        "mode": "B",
+                        "job_file": "job.py",
+                        "log_file": "x",
+                        "analyzed_at": "t",
+                    },
+                    "summary": {
+                        "score": 80,
+                        "verdict": "ok",
+                        "estimated_gain_min": 1,
+                        "kpis": {
+                            "duration_total_min": 1,
+                            "input_volume_gb": 0,
+                            "total_tasks": 1,
+                            "avg_data_per_task_kb": 1,
+                            "avg_data_per_task_critical": False,
+                            "stages_with_skew": 0,
+                            "disk_spill_total_gb": 0,
+                            "memory_spill_total_gb": 0,
+                            "shuffle_write_total_gb": 0,
+                            "stages_with_failure_or_retry": 0,
+                        },
+                    },
+                    "stages": [],
+                    "bottlenecks": [
+                        {
+                            "id": "B1",
+                            "severity": "high",
+                            "type": "other",
+                            "title": "x",
+                            "stages_affected": [],
+                            "operator": None,
+                            "duration_observed_s": 1,
+                            "duration_expected_s": 1,
+                            "evidence": "e",
+                            "root_cause": "r",
+                            "observed_effect": "o",
+                            "code_link": {
+                                "line_start": 999,
+                                "line_end": 999,
+                                "function_name": "target_fn",
+                                "snippet": "return x + 1",
+                                "explanation": "e",
+                            },
+                        }
+                    ],
+                    "action_plan": {
+                        "cluster_configs": [],
+                        "code_fixes": [
+                            {
+                                "bottleneck_id": "B1",
+                                "title": "fix",
+                                "line_start": 999,
+                                "line_end": 999,
+                                "function_name": "target_fn",
+                                "problem_explanation": "p",
+                                "before_code": "return x + 1",
+                                "after_code": "return x + 2",
+                                "expected_gain": "g",
+                            }
+                        ],
+                    },
+                    "limitations": "l",
+                }
+                return _json.dumps(payload)
+
+        source = "\n".join([
+            "def other():",
+            "    return 0",
+            "",
+            "def target_fn(x):",
+            "    return x + 1",
+            "",
+        ])
+
+        analyzer = LLMAnalyzer(adapter=JsonAdapter())
+        result = analyzer.analyze(
+            reduced_report="# r",
+            summary=minimal_summary,
+            py_files={"job.py": source.encode("utf-8")},
+        )
+
+        import json as _json
+        data = _json.loads(result)
+        link = data["bottlenecks"][0]["code_link"]
+        fix = data["action_plan"]["code_fixes"][0]
+        assert link["line_start"] == 5
+        assert link["line_end"] == 5
+        assert fix["line_start"] == 5
+        assert fix["line_end"] == 5

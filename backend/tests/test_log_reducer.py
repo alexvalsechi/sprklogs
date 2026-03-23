@@ -33,9 +33,33 @@ def _make_zip(events: list[dict]) -> bytes:
 
 SAMPLE_EVENTS = [
     {"Event": "SparkListenerApplicationStart", "App ID": "app-001", "App Name": "TestJob", "Spark Version": "3.4.0", "Timestamp": 1_000_000},
+    {
+        "Event": "SparkListenerResourceProfileAdded",
+        "Executor Resource Requests": {
+            "memory": {"Amount": 14336},
+            "memoryOverhead": {"Amount": 2048},
+            "offHeap": {"Amount": 0},
+            "cores": {"Amount": 5},
+        },
+    },
     {"Event": "SparkListenerApplicationEnd", "Timestamp": 1_060_000},
     {"Event": "SparkListenerExecutorAdded"},
     {"Event": "SparkListenerExecutorAdded"},
+    {
+        "Event": "org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionStart",
+        "executionId": 7,
+        "sparkPlanInfo": {
+            "nodeName": "HashAggregate",
+            "children": [
+                {
+                    "nodeName": "Exchange",
+                    "children": [
+                        {"nodeName": "FileScan parquet", "children": []}
+                    ],
+                }
+            ],
+        },
+    },
     {"Event": "SparkListenerStageCompleted", "Stage Info": {
         "Stage ID": 0, "Stage Name": "count at main.py:10",
         "Submission Time": 1_001_000, "Completion Time": 1_020_000,
@@ -80,6 +104,10 @@ class TestSinglePassHandler:
         assert meta["app_name"] == "TestJob"
         assert meta["spark_version"] == "3.4.0"
         assert meta["executor_count"] == 2
+        assert meta["executor_memory_mb"] == 14336
+        assert meta["executor_memory_overhead_mb"] == 2048
+        assert meta["executor_offheap_mb"] == 0
+        assert meta["executor_cores"] == 5
 
     def test_produces_stages(self, sample_zip):
         ctx = SinglePassHandler().process({"zip_bytes": sample_zip})
@@ -87,6 +115,14 @@ class TestSinglePassHandler:
         stage = ctx["stages"][0]
         assert stage.stage_id == 0
         assert stage.num_tasks == 10
+
+    def test_extracts_sql_plan_tree(self, sample_zip):
+        ctx = SinglePassHandler().process({"zip_bytes": sample_zip})
+        assert ctx["sql_execution_count"] == 1
+        tree = ctx["sql_plan_tree"]
+        assert tree is not None
+        assert tree.get("nodeName") == "HashAggregate"
+        assert tree.get("children", [])[0].get("nodeName") == "Exchange"
 
     def test_handles_malformed_lines(self):
         buf = io.BytesIO()
@@ -137,6 +173,8 @@ class TestLogReducer:
         summary, report = reducer.reduce(sample_zip)
         assert summary.app_id == "app-001"
         assert summary.num_tasks == 10
+        assert summary.sql_execution_count == 1
+        assert summary.sql_plan_tree is not None
         assert "TestJob" in report
 
     def test_json_renderer(self, sample_zip):
@@ -158,6 +196,7 @@ class TestMarkdownRenderer:
         md = r.render(sample_summary)
         assert "# Spark Log Report" in md
         assert "Stage Breakdown" in md
+        assert "SQL Physical Plan (Structured)" in md
 
 
 class TestZipBombProtection:
@@ -228,6 +267,8 @@ class TestReduceScriptJsonOutput:
         required = {
             "app_name", "spark_version", "total_duration_ms",
             "num_stages", "num_tasks", "executor_count",
+            "executor_memory_mb", "executor_memory_overhead_mb",
+            "executor_offheap_mb", "executor_cores",
             "total_input_bytes", "total_shuffle_read_bytes",
         }
         missing = required - data.keys()

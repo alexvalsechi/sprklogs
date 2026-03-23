@@ -9,7 +9,10 @@ import uuid
 import logging
 from typing import Optional
 
+import json
+
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Request
+from fastapi.responses import JSONResponse, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -132,7 +135,7 @@ def get_status(job_id: str):
     return job
 
 
-@router.post("/reduce-local-path", response_model=dict)
+@router.post("/reduce-local-path")
 def reduce_local_path(
     file_path: str = Form(..., description="Absolute path to the Spark event log ZIP on disk"),
     reduce_job_id: Optional[str] = Form(default=None, description="Client-supplied tracking ID"),
@@ -173,14 +176,38 @@ def reduce_local_path(
     except OSError as exc:
         _reduce_progress.pop(rjid, None)
         raise HTTPException(status_code=500, detail=f"Could not read file: {exc}") from exc
+    except Exception as exc:
+        _reduce_progress.pop(rjid, None)
+        logger.exception("Unexpected error during local path reduction for %s", file_path)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Reduction failed: {type(exc).__name__}: {exc}",
+        ) from exc
     finally:
         _reduce_progress.pop(rjid, None)
 
-    return {
+    # Serialise the summary; keep sql_executions outside Pydantic serialisation
+    # to avoid issues with large / deeply-nested plan trees.
+    sql_executions = summary.sql_executions
+    try:
+        summary_dict = summary.model_dump(exclude={"sql_executions"})
+    except Exception as exc:
+        logger.exception("model_dump failed for job %s", rjid)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Serialisation failed: {type(exc).__name__}: {exc}",
+        ) from exc
+    summary_dict["sql_executions"] = sql_executions
+
+    # Use Response with raw json.dumps output to bypass pydantic-core's depth
+    # limit: deeply-nested sparkPlanInfo trees (2000+ nodes) trigger
+    # "Circular reference detected (depth exceeded)" in Pydantic's serializer.
+    payload = json.dumps({
         "reduce_job_id": rjid,
-        "summary": summary.model_dump(),
+        "summary": summary_dict,
         "reduced_report": reduced_report,
-    }
+    })
+    return Response(content=payload, media_type="application/json")
 
 
 @router.get("/reduce-progress/{reduce_job_id}")

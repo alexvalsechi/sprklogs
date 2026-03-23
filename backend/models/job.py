@@ -63,10 +63,18 @@ class AppSummary(BaseModel):
     num_stages: int
     num_tasks: int
     executor_count: int
+    executor_memory_mb: int = 0
+    executor_memory_overhead_mb: int = 0
+    executor_offheap_mb: int = 0
+    executor_cores: int = 0
     total_input_bytes: int
     total_output_bytes: int
     total_shuffle_read_bytes: int
     total_shuffle_write_bytes: int
+    sql_execution_count: int = 0
+    sql_plan_mermaid: Optional[str] = None
+    sql_plan_tree: Optional[dict] = None
+    sql_executions: Optional[list] = None
     stages: list[StageMetrics] = []
 
 
