@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import random
 import zipfile
 import logging
@@ -32,6 +33,18 @@ ProgressCallback = Optional[Callable[[int, str], None]]
 
 # Maximum samples kept per stage for approximate p95 via reservoir sampling
 _RESERVOIR_SIZE = 10_000
+
+
+def _resource_amount(value: object) -> int:
+    """Best-effort conversion for Spark resource Amount fields."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 # ─── Iterator ────────────────────────────────────────────────────────────────
@@ -229,6 +242,59 @@ class BaseHandler(ABC):
         ...
 
 
+# ── SQL execution smart-selection ────────────────────────────────────────────
+
+def _count_plan_nodes(node: dict) -> int:
+    """Recursively count nodes in a sparkPlanInfo tree."""
+    if not isinstance(node, dict):
+        return 0
+    return 1 + sum(_count_plan_nodes(c) for c in (node.get("children") or []))
+
+
+def _select_sql_executions(all_execs: list, max_kept: int = 30) -> list:
+    """Smart-select the most informative SQL executions to send to the UI.
+
+    Priority order:
+    1. Always keep write/insert executions (final output — most valuable).
+    2. Always keep executions with many nodes (complex compute plans).
+    3. Deduplicate identical root types — keep at most 3 per root node name.
+    4. Sort result by executionId (chronological order).
+    """
+    annotated = []
+    for ex in all_execs:
+        plan = ex.get("sparkPlanInfo") or {}
+        root_name = plan.get("nodeName", "") if isinstance(plan, dict) else ""
+        nc = _count_plan_nodes(plan)
+        is_write = bool(
+            re.search(r"Insert|Write", root_name, re.I)
+            and "Create" not in root_name
+        )
+        annotated.append({**ex, "_nc": nc, "_root": root_name, "_write": is_write})
+
+    selected: list = []
+    seen_root: dict[str, int] = {}
+
+    # Pass 1 — always keep write/insert and large plans (>100 nodes)
+    for ex in sorted(annotated, key=lambda x: -x["_nc"]):
+        if ex["_write"] or ex["_nc"] > 100:
+            selected.append(ex)
+
+    # Pass 2 — fill remainder with deduplicated samples of smaller plans
+    for ex in sorted(annotated, key=lambda x: -x["_nc"]):
+        if len(selected) >= max_kept:
+            break
+        if ex in selected:
+            continue
+        root = ex["_root"]
+        if seen_root.get(root, 0) < 3:
+            seen_root[root] = seen_root.get(root, 0) + 1
+            selected.append(ex)
+
+    # Strip internal annotations, sort chronologically
+    selected.sort(key=lambda x: x.get("executionId", 0))
+    return [{k: v for k, v in ex.items() if not k.startswith("_")} for ex in selected[:max_kept]]
+
+
 class SinglePassHandler(BaseHandler):
     """Reads the ZIP once, dispatching events by type on the fly.
 
@@ -247,6 +313,10 @@ class SinglePassHandler(BaseHandler):
         app_end: dict = {}
         env_update: dict = {}
         executor_count: int = 0
+        resource_profile: dict = {}
+        sql_execution_count: int = 0
+        sql_plan_root: dict = {}
+        sql_executions_raw: list = []   # collect ALL then smart-select
 
         # ── stage accumulators
         by_stage: dict[int, StageAccumulator] = {}
@@ -264,6 +334,21 @@ class SinglePassHandler(BaseHandler):
                 env_update = ev
             elif etype == "SparkListenerExecutorAdded":
                 executor_count += 1
+            elif etype == "SparkListenerResourceProfileAdded":
+                # Keep the first/default profile (id=0 in typical Spark logs).
+                if not resource_profile:
+                    resource_profile = ev
+            elif etype.endswith("SparkListenerSQLExecutionStart"):
+                sql_execution_count += 1
+                plan = ev.get("sparkPlanInfo")
+                if isinstance(plan, dict):
+                    sql_executions_raw.append({
+                        "executionId": ev.get("executionId", sql_execution_count - 1),
+                        "description": ev.get("description", ""),
+                        "sparkPlanInfo": plan,
+                    })
+                    if not sql_plan_root:
+                        sql_plan_root = plan
             elif etype == "SparkListenerStageCompleted":
                 si = ev.get("Stage Info", {})
                 sid = si.get("Stage ID", -1)
@@ -316,6 +401,29 @@ class SinglePassHandler(BaseHandler):
             "end_time_ms": app_end.get("Timestamp", 0),
             "executor_count": executor_count,
         }
+
+        exec_res = resource_profile.get("Executor Resource Requests", {}) or {}
+        ctx["app_meta"].update(
+            {
+                "executor_memory_mb": _resource_amount(
+                    (exec_res.get("memory", {}) or {}).get("Amount", 0)
+                ),
+                "executor_memory_overhead_mb": _resource_amount(
+                    (exec_res.get("memoryOverhead", {}) or {}).get("Amount", 0)
+                ),
+                "executor_offheap_mb": _resource_amount(
+                    (exec_res.get("offHeap", {}) or {}).get("Amount", 0)
+                ),
+                "executor_cores": _resource_amount(
+                    (exec_res.get("cores", {}) or {}).get("Amount", 0)
+                ),
+            }
+        )
+        ctx["sql_execution_count"] = sql_execution_count
+        # Keep the raw plan tree (Spark's sparkPlanInfo shape) for UI rendering.
+        ctx["sql_plan_tree"] = sql_plan_root if sql_plan_root else None
+        # Smart-select executions: always include writes/inserts + largest plans.
+        ctx["sql_executions"] = _select_sql_executions(sql_executions_raw) or None
 
         # ── build StageMetrics list from accumulators
         stages: list[StageMetrics] = []
@@ -381,10 +489,18 @@ class SummaryBuilderHandler(BaseHandler):
             num_stages=len(stages),
             num_tasks=sum(s.num_tasks for s in stages),
             executor_count=meta.get("executor_count", 0),
+            executor_memory_mb=meta.get("executor_memory_mb", 0),
+            executor_memory_overhead_mb=meta.get("executor_memory_overhead_mb", 0),
+            executor_offheap_mb=meta.get("executor_offheap_mb", 0),
+            executor_cores=meta.get("executor_cores", 0),
             total_input_bytes=sum(s.input_bytes for s in stages),
             total_output_bytes=sum(s.output_bytes for s in stages),
             total_shuffle_read_bytes=sum(s.shuffle_read_bytes for s in stages),
             total_shuffle_write_bytes=sum(s.shuffle_write_bytes for s in stages),
+            sql_execution_count=ctx.get("sql_execution_count", 0),
+            sql_plan_mermaid=None,
+            sql_plan_tree=ctx.get("sql_plan_tree"),
+            sql_executions=ctx.get("sql_executions"),
             stages=stages,
         )
         return ctx
@@ -426,6 +542,10 @@ class MarkdownRenderer(BaseRenderer):
             f"| Stages | {summary.num_stages} |",
             f"| Tasks | {summary.num_tasks} |",
             f"| Executors | {summary.executor_count} |",
+            f"| Executor Memory | {summary.executor_memory_mb:,} MB on-heap "
+            f"+ {summary.executor_memory_overhead_mb:,} MB overhead |",
+            f"| Executor Cores | {summary.executor_cores} vcores/executor |",
+            f"| SQL Executions | {summary.sql_execution_count} |",
             f"| Input | {fmt_bytes(summary.total_input_bytes)} |",
             f"| Output | {fmt_bytes(summary.total_output_bytes)} |",
             f"| Shuffle Read | {fmt_bytes(summary.total_shuffle_read_bytes)} |",
@@ -447,6 +567,13 @@ class MarkdownRenderer(BaseRenderer):
                 f"| {fmt_bytes(s.peak_execution_memory_bytes)} "
                 f"| {s.skew_ratio}{skew_flag} |"
             )
+
+        if summary.sql_plan_tree:
+            lines += [
+                "",
+                "## SQL Physical Plan (Structured)",
+                "(interactive rendering available in desktop UI)",
+            ]
 
         skewed = [s for s in summary.stages if s.has_skew]
         if skewed:

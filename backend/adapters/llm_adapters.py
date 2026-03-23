@@ -51,8 +51,9 @@ class OpenAIAdapter(BaseLLMAdapter):
         response = self._client.chat.completions.create(
             model=self.MODEL,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2048,
-            temperature=0.3,
+            max_tokens=8192,
+            temperature=0,
+            seed=42,
         )
         return response.choices[0].message.content or ""
 
@@ -70,7 +71,8 @@ class AnthropicAdapter(BaseLLMAdapter):
     def _complete(self, prompt: str) -> str:
         message = self._client.messages.create(
             model=self.MODEL,
-            max_tokens=2048,
+            max_tokens=8192,
+            temperature=0,
             messages=[{"role": "user", "content": prompt}],
         )
         return message.content[0].text
@@ -88,7 +90,11 @@ class GeminiAdapter(BaseLLMAdapter):
         self._model = genai.GenerativeModel(self.MODEL)
 
     def _complete(self, prompt: str) -> str:
-        response = self._model.generate_content(prompt)
+        from google.generativeai.types import GenerationConfig  # type: ignore
+        response = self._model.generate_content(
+            prompt,
+            generation_config=GenerationConfig(temperature=0),
+        )
         return response.text
 
 

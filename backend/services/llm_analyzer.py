@@ -5,13 +5,202 @@ Builds the prompt, calls the adapter, and parses the response.
 """
 from __future__ import annotations
 
+import json
 import logging
+import re
 from typing import Optional
 
 from backend.models.job import AppSummary
 from backend.adapters.llm_adapters import LLMClientFactory, BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
+
+
+def _collapse_repetitive_lines(text: str, keep: int = 2) -> str:
+  """Collapse only consecutive duplicate lines to reduce prompt noise.
+
+  This is a loss-minimization strategy: unique lines are never removed.
+  """
+  lines = text.splitlines()
+  if not lines:
+    return text
+
+  out: list[str] = []
+  i = 0
+  n = len(lines)
+  while i < n:
+    line = lines[i]
+    j = i + 1
+    while j < n and lines[j] == line:
+      j += 1
+
+    run_len = j - i
+    if run_len <= keep:
+      out.extend(lines[i:j])
+    else:
+      out.extend([line] * keep)
+      out.append(f"[... repeated line omitted {run_len - keep} times ...]")
+
+    i = j
+
+  return "\n".join(out)
+
+
+def _find_snippet_line_range(source: str, snippet: str) -> tuple[int, int] | None:
+  """Return 1-based [start, end] line range where snippet appears in source."""
+  if not snippet:
+    return None
+
+  src = source.replace("\r\n", "\n")
+  snp = snippet.replace("\r\n", "\n").strip("\n")
+  if not snp:
+    return None
+
+  idx = src.find(snp)
+  if idx >= 0:
+    start = src.count("\n", 0, idx) + 1
+    end = start + snp.count("\n")
+    return start, end
+
+  # Fallback 1: whitespace-normalized contiguous match.
+  src_lines = src.split("\n")
+  snp_lines = [ln.strip() for ln in snp.split("\n") if ln.strip()]
+  if not snp_lines:
+    return None
+
+  first = snp_lines[0]
+  for i in range(len(src_lines)):
+    if src_lines[i].strip() != first:
+      continue
+    j = i
+    k = 0
+    while j < len(src_lines) and k < len(snp_lines):
+      if src_lines[j].strip() == snp_lines[k]:
+        j += 1
+        k += 1
+      else:
+        break
+    if k == len(snp_lines):
+      return i + 1, j
+
+  # Fallback 2: tolerant first-line anchor — used when the LLM slightly drifts
+  # from the actual source (extra whitespace, minor edits).  Requires the first
+  # significant line to match AND at least one subsequent snippet line to appear
+  # within the next (len(snp)+3) source lines, to avoid false positives on
+  # short generic tokens like "pass" or "return".
+  for i in range(len(src_lines)):
+    if src_lines[i].strip() != first:
+      continue
+    if len(snp_lines) > 1:
+      window_end = min(i + len(snp_lines) + 3, len(src_lines))
+      if not any(src_lines[j].strip() == snp_lines[1] for j in range(i + 1, window_end)):
+        continue
+    return i + 1, i + len(snp_lines)
+  # Fallback 3: cross-direction substring containment.
+  # The LLM often collapses multi-line Python into a single line, e.g.:
+  #   "for x in df.columns: df = df.withColumn(x, F.trim(df[x]))"
+  # while the real source splits it across two or more lines.
+  # We look for any source line whose stripped text appears entirely inside one
+  # of the snippet tokens (LLM-collapsed case), or whose content begins with a
+  # long-enough prefix of a snippet token (normal inline expansion).
+  # The _SUBSTR_MIN guard prevents false positives on short generic fragments.
+  _SUBSTR_MIN = 15
+  for i, src_line in enumerate(src_lines):
+    sl = src_line.strip()
+    if len(sl) < _SUBSTR_MIN:
+      continue
+    for snp_token in snp_lines:
+      if len(snp_token) < _SUBSTR_MIN:
+        continue
+      # Source line is wholly inside the collapsed LLM snippet
+      if sl in snp_token:
+        return i + 1, i + max(len(snp_lines), 1)
+      # First 50 chars of the LLM snippet token appear in the source line
+      if snp_token[:50] in sl:
+        return i + 1, i + max(len(snp_lines), 1)
+  return None
+
+
+def _find_function_start_line(source: str, function_name: str) -> int | None:
+  if not function_name:
+    return None
+  pattern = rf"^\s*(?:async\s+def|def)\s+{re.escape(function_name)}\s*\("
+  m = re.search(pattern, source, flags=re.MULTILINE)
+  if not m:
+    return None
+  return source.count("\n", 0, m.start()) + 1
+
+
+def _reconcile_code_links(llm_text: str, py_files: dict[str, bytes]) -> str:
+  """Adjust line_start/line_end to match actual uploaded source code."""
+  if not llm_text or not py_files:
+    return llm_text
+
+  try:
+    parsed = json.loads(llm_text)
+  except Exception:
+    return llm_text
+
+  if not isinstance(parsed, dict):
+    return llm_text
+
+  decoded_sources: dict[str, str] = {
+    name: content.decode("utf-8", errors="replace")
+    for name, content in py_files.items()
+  }
+
+  preferred_file = (
+    (parsed.get("meta") or {}).get("job_file")
+    if isinstance(parsed.get("meta"), dict)
+    else None
+  )
+
+  def resolve_range(snippet: str | None, function_name: str | None) -> tuple[int | None, int | None]:
+    ordered_items = list(decoded_sources.items())
+    if preferred_file and preferred_file in decoded_sources:
+      ordered_items = [(preferred_file, decoded_sources[preferred_file])] + [
+        (n, s) for n, s in ordered_items if n != preferred_file
+      ]
+
+    if snippet:
+      for _, src in ordered_items:
+        found = _find_snippet_line_range(src, snippet)
+        if found:
+          return found
+
+    if function_name:
+      for _, src in ordered_items:
+        start = _find_function_start_line(src, function_name)
+        if start:
+          return start, start
+
+    return None, None
+
+  for b in (parsed.get("bottlenecks") or []):
+    if not isinstance(b, dict):
+      continue
+    link = b.get("code_link")
+    if not isinstance(link, dict):
+      continue
+    start, end = resolve_range(link.get("snippet"), link.get("function_name"))
+    if start is not None:
+      link["line_start"] = start
+      link["line_end"] = end
+
+  action_plan = parsed.get("action_plan")
+  if isinstance(action_plan, dict):
+    for fix in (action_plan.get("code_fixes") or []):
+      if not isinstance(fix, dict):
+        continue
+      start, end = resolve_range(fix.get("before_code"), fix.get("function_name"))
+      if start is not None:
+        fix["line_start"] = start
+        fix["line_end"] = end
+
+  try:
+    return json.dumps(parsed, ensure_ascii=False)
+  except Exception:
+    return llm_text
 
 _SYSTEM_INSTRUCTIONS = {
     "en": """
@@ -34,135 +223,105 @@ Identify what was received and activate the corresponding mode:
 ## MANDATORY RESPONSE FORMAT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Follow EXACTLY this structure. Do not omit sections. Do not create new ones.
+Return ONLY a valid JSON object, with no text before or after it,
+no markdown fences (``` ```), and no comments outside JSON.
 
-─────────────────────────────────────────
-### 🔍 Executive Summary
+The JSON must follow EXACTLY this schema:
 
-Render as a markdown table using this exact structure:
+{
+  "meta": {
+    "mode": "A" | "B",
+    "job_file": "<.py filename, or null if MODE A>",
+    "log_file": "<zip/log filename>",
+    "analyzed_at": "<approximate ISO 8601 timestamp>"
+  },
 
-| Metric                 | Value                                        |
-|------------------------|----------------------------------------------|
-| Total Duration         | XX min                                       |
-| Input Volume           | X.X GB                                       |
-| Total Tasks            | XX,XXX                                       |
-| Avg Data/Task          | ~XX KB  ← [CRITICAL if < 1MB]               |
-| Stages with Skew       | X stages (IDs: XX, XX, XX)                  |
-| Disk Spill Total       | X.X GB (stages: XX, XX) — CRITICAL if > 0   |
-| Memory Spill Total     | X.X GB (stages: XX, XX)                     |
-| Shuffle Write Total    | X.X GB                                       |
-| Max SW Time / Stage    | XX s (Stage XX)                              |
-| Max Fetch Wait / Stage | XX ms (Stage XX)                             |
-| Failed/Retried Stages  | X                                            |
+  "summary": {
+    "score": <0-100 integer. Penalize: -15 per critical, -8 per high, -4 per medium>,
+    "verdict": "<One direct sentence>",
+    "estimated_gain_min": <number - estimated duration after optimizations, in minutes>,
+    "kpis": {
+      "duration_total_min": <number>,
+      "input_volume_gb": <number>,
+      "total_tasks": <number>,
+      "avg_data_per_task_kb": <number>,
+      "avg_data_per_task_critical": <true if < 1024>,
+      "stages_with_skew": <number>,
+      "disk_spill_total_gb": <number>,
+      "memory_spill_total_gb": <number>,
+      "shuffle_write_total_gb": <number>,
+      "stages_with_failure_or_retry": <number>
+    }
+  },
 
-> **Verdict:** [One direct sentence. Ex: "7GB job taking 171min due to task
-> overhead and sequential Driver ingestion — fixable without infrastructure changes."]
+  "stages": [
+    {
+      "id": <integer>,
+      "duration_s": <number>,
+      "task_count": <number>,
+      "skew_ratio": <number - max_task_duration / median_task_duration>,
+      "shuffle_write_gb": <number or null>,
+      "shuffle_write_time_s": <number or null>,
+      "disk_spill_gb": <number or null>,
+      "memory_spill_gb": <number or null>,
+      "fetch_wait_ms": <number or null>,
+      "status": "ok" | "warning" | "critical",
+      "bottleneck_ids": [<list of bottleneck IDs affecting this stage, ex: ["B1","B3"]>]
+    }
+  ],
 
-─────────────────────────────────────────
-### 🚨 Identified Bottlenecks
+  "bottlenecks": [
+    {
+      "id": "B1",
+      "severity": "critical" | "high" | "medium",
+      "type": "skew" | "spill" | "shuffle" | "planning_overhead" | "driver_collect" | "udf" | "other",
+      "title": "<Short bottleneck name>",
+      "stages_affected": [<list of stage IDs, ex: [6, 7]>],
+      "operator": "<ex: sortMergeJoin, exchange, scan, withColumn - or null>",
+      "duration_observed_s": <number>,
+      "duration_expected_s": <number - estimate for this volume without bottleneck>,
+      "evidence": "<Exact log metric>",
+      "root_cause": "<Direct technical explanation>",
+      "observed_effect": "<Impact on overall job>",
 
-Diagnose ALL of the following performance pillars when evidence is present in the reduced log:
-- **Skew** → `skew_ratio > 3×`: uneven task durations, max/avg ratio, uneven shuffle-read distribution across tasks
-- **Spill** → `Disk Bytes Spilled > 0`: data evicted to disk, causing I/O overhead and GC pressure on executor JVM
-- **Shuffle** → shuffle read + write significantly exceeds total stage input, or large shuffle concentrated on few tasks
+      "code_link": {
+        "line_start": <number or null - null in MODE A>,
+        "line_end": <number or null>,
+        "function_name": "<function name or null>",
+        "snippet": "<exact code snippet as string, or null>",
+        "explanation": "<why this line caused this stage - direct code/log link, or null>"
+      }
+    }
+  ],
 
-For each bottleneck, use exactly this block:
+  "action_plan": {
+    "cluster_configs": [
+      {
+        "bottleneck_id": "B1",
+        "name": "<Configuration name>",
+        "rationale": "<Directly tied to the bottleneck>",
+        "estimated_impact": "<Example: Reduces tasks from 29k to ~64, removing ~90% scheduling overhead>",
+        "code": "<valid Python config string, ex: spark.conf.set(\"spark.sql.adaptive.enabled\", \"true\")>"
+      }
+    ],
 
----
+    "code_fixes": [
+      {
+        "bottleneck_id": "B1",
+        "title": "<Ex: Replace withColumn loop with vectorized select>",
+        "line_start": <number or null>,
+        "line_end": <number or null>,
+        "function_name": "<function name or null>",
+        "problem_explanation": "<why current code is problematic>",
+        "before_code": "<problematic code as string>",
+        "after_code": "<fixed code as string>",
+        "expected_gain": "<Ex: Stage 12 should drop from 4min to ~20s>",
+      }
+    ]
+  },
 
-**🔴 CRITICAL — [Bottleneck Name]**
-
-| Field | Detail |
-|---|---|
-| Affected Stage(s) | Stage XX, Stage YY |
-| Operator | `sortMergeJoin` / `exchange` / `scan` / etc |
-| Observed Duration | Xmin (expected: ~Xs for this volume) |
-| Log Evidence | [Exact metric. Ex: "shuffle write of 45GB across 3 tasks, others avg: 200MB"] |
-| Root Cause | [Direct and technical explanation] |
-| Observed Effect | [What this caused to the job as a whole] |
-
-[MODE B ONLY — append to the block above:]
-| Code Origin | `line XX` — `function_name()` |
-| Why this line caused this stage | [Direct explanation linking code behavior to log evidence] |
-
-These two MODE B rows MUST stay inside the same markdown table above.
-Never render them as plain text lines.
-Never place both rows on the same line using "||".
-
----
-
-Repeat the block for each bottleneck, replacing 🔴 CRITICAL with 🟠 HIGH or 🟡 MEDIUM accordingly.
-
-─────────────────────────────────────────
-### 🛠️ Action Plan
-
-#### Cluster Configuration
-
-For each suggested configuration:
-
-**[Configuration Name] → Fixes: [Bottleneck Name above]**
-
-> Why: [Directly tied to the bottleneck. Ex: "AQE will dynamically redistribute
-> the 29k tasks, eliminating the scheduling overhead visible in Stages 12 and 38."]
-
-> Estimated Impact: [Ex: "Reduces tasks from 29k to ~64, eliminating ~90% of overhead"]
-```python
-spark.conf.set("spark.sql.shuffle.partitions", "64")
-spark.conf.set("spark.sql.adaptive.enabled", "true")
-```
-
----
-
-[MODE B ONLY — add this subsection:]
-
-#### Code Fixes
-
-For each fix, use EXACTLY this 4-part structure:
-
----
-
-**Fix X → Resolves: [Bottleneck Name]**
-📍 `line XX–YY` — `function_name()`
-
-**What is wrong:**
-```python
-for col in df_spark.columns:
-    df_spark = df_spark.withColumn(col, F.when(...))
-```
-
-> Why it is problematic: [Explanation in plain text, outside the code block.
-> Ex: "Each withColumn adds a new projection to the Catalyst logical plan.
-> With 50 columns, the optimizer built 50 chained nodes — visible in Stage 12
-> as 4min of planning time before any task ran."]
-
-**How to fix it:**
-```python
-cols_transformed = [
-    F.when(F.col(c).isin(['nan', 'None', 'NULL']), None)
-     .otherwise(F.col(c)).alias(c)
-    for c in df_spark.columns
-]
-df_spark = df_spark.select(*cols_transformed)
-```
-
-> Expected gain: linear Catalyst plan. Stage 12 should drop from 4min → ~20s.
-
----
-
-Repeat for each identified fix.
-
-─────────────────────────────────────────
-### ⚠️ Analysis Limitations
-
-[MODE A]:
-> Analysis based exclusively on execution behavior and cluster configuration.
-> Inefficient code patterns — unnecessary UDFs, collect() on the Driver,
-> joins without broadcast hints, withColumn loops — cannot be diagnosed
-> without the .py file. Estimated gains above may be higher with full code analysis.
-
-[MODE B]:
-> Full analysis: diagnostics cross-reference execution log with source code.
-> Gain estimates are approximate — validate in a staging environment before production.
+  "limitations": "<limitations text according to MODE A or B>"
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## NON-NEGOTIABLE RULES
@@ -184,22 +343,14 @@ ABOUT DIAGNOSIS:
   stage that would benefit and the metric that supports it
 - NEVER flag a code issue (Mode B) without correlating it to the log
 
-ABOUT FORMATTING — CRITICAL:
-- Use markdown tables for "Executive Summary" and each "Identified Bottlenecks" block
-- All markdown tables must include header + separator rows (|---|---|)
-- In MODE B bottlenecks, "Code Origin" and "Why this line caused this stage" must be rows of that same table
-- Never output table rows as plain text and never join multiple rows with "||" on one line
-- NEVER put "BEFORE" and "AFTER" inside the same code block
-- NEVER use "---" as a separator inside code blocks
-- NEVER place prose, transitions, or explanatory sentences inside a code block
-- Every ```python block must contain ONLY valid, executable PySpark/Python code
-- Inline comments inside code must be technical and concise (max 1 line)
-- If two code snippets need separation, close the first block, write the
-  transition in plain text outside with ">" prefix, then open a new block
-- All "why it is problematic" and "expected gain" explanations go
-  OUTSIDE the block, in plain text prefixed with ">"
-- The link between the code block and the bottleneck goes in the bold TITLE,
-  never as a comment inside the code
+ABOUT JSON:
+- Return JSON ONLY. Zero text outside it.
+- All numeric fields must be numbers, never unit-suffixed strings
+- Code strings (snippet, before_code, after_code, code) must contain valid code,
+  with no narrative comments, no "BEFORE/AFTER" labels, and no "---"
+- stages[].bottleneck_ids must exactly match ids in bottlenecks[]
+- code_link must be fully populated in MODE B and all-null in MODE A
+- code_fixes must be an empty array [] in MODE A
 """.strip(),
     "pt": """
 Você analisa logs da Spark UI e código PySpark.
@@ -221,135 +372,105 @@ Identifique o que foi recebido e ative o modo correspondente:
 ## FORMATO OBRIGATÓRIO DE RESPOSTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Siga EXATAMENTE esta estrutura. Não omita seções. Não crie seções novas.
+Retorne EXCLUSIVAMENTE um objeto JSON válido, sem texto antes ou depois,
+sem markdown fences (``` ```), sem comentários fora do JSON.
 
-─────────────────────────────────────────
-### 🔍 Resumo Executivo
+O JSON deve seguir EXATAMENTE este schema:
 
-Renderize como tabela markdown usando exatamente esta estrutura:
+{
+  "meta": {
+    "mode": "A" | "B",
+    "job_file": "<nome do arquivo .py, ou null se MODO A>",
+    "log_file": "<nome do arquivo zip/log>",
+    "analyzed_at": "<ISO 8601 timestamp aproximado>"
+  },
 
-| Métrica                | Valor                                        |
-|------------------------|----------------------------------------------|
-| Duração Total          | XX min                                       |
-| Volume de Entrada      | X.X GB                                       |
-| Total de Tasks         | XX.XXX                                       |
-| Média de Dados/Task    | ~XX KB  ← [CRÍTICO se < 1MB]                |
-| Stages com Skew        | X stages (IDs: XX, XX, XX)                  |
-| Spill em Disco Total   | X.X GB (stages: XX, XX) — CRÍTICO se > 0    |
-| Spill em Memória Total | X.X GB (stages: XX, XX)                     |
-| Shuffle Write Total    | X.X GB                                       |
-| Maior SW Time/Stage    | XX s (Stage XX)                              |
-| Maior Fetch Wait/Stage | XX ms (Stage XX)                             |
-| Stages com Falha/Retry | X                                            |
+  "summary": {
+    "score": <0-100 inteiro. Penalize: -15 por cada critico, -8 por alto, -4 por medio>,
+    "verdict": "<Uma frase direta>",
+    "estimated_gain_min": <numero - duracao estimada pos-otimizacoes, em minutos>,
+    "kpis": {
+      "duration_total_min": <numero>,
+      "input_volume_gb": <numero>,
+      "total_tasks": <numero>,
+      "avg_data_per_task_kb": <numero>,
+      "avg_data_per_task_critical": <true se < 1024>,
+      "stages_with_skew": <numero>,
+      "disk_spill_total_gb": <numero>,
+      "memory_spill_total_gb": <numero>,
+      "shuffle_write_total_gb": <numero>,
+      "stages_with_failure_or_retry": <numero>
+    }
+  },
 
-> **Veredito:** [Uma frase direta. Ex: "Job de 7GB levando 171min por overhead
-> de tasks e ingestão sequencial no Driver — corrigível sem troca de infraestrutura."]
+  "stages": [
+    {
+      "id": <numero inteiro>,
+      "duration_s": <numero>,
+      "task_count": <numero>,
+      "skew_ratio": <numero - max_task_duration / median_task_duration>,
+      "shuffle_write_gb": <numero ou null>,
+      "shuffle_write_time_s": <numero ou null>,
+      "disk_spill_gb": <numero ou null>,
+      "memory_spill_gb": <numero ou null>,
+      "fetch_wait_ms": <numero ou null>,
+      "status": "ok" | "warning" | "critical",
+      "bottleneck_ids": [<lista de IDs de gargalos que afetam este stage, ex: ["B1","B3"]>]
+    }
+  ],
 
-─────────────────────────────────────────
-### 🚨 Gargalos Identificados
+  "bottlenecks": [
+    {
+      "id": "B1",
+      "severity": "critical" | "high" | "medium",
+      "type": "skew" | "spill" | "shuffle" | "planning_overhead" | "driver_collect" | "udf" | "other",
+      "title": "<Nome curto do gargalo>",
+      "stages_affected": [<lista de IDs de stage, ex: [6, 7]>],
+      "operator": "<ex: sortMergeJoin, exchange, scan, withColumn - ou null>",
+      "duration_observed_s": <numero>,
+      "duration_expected_s": <numero - estimativa para este volume sem o gargalo>,
+      "evidence": "<Metrica exata do log>",
+      "root_cause": "<Explicacao tecnica direta>",
+      "observed_effect": "<O que isso causou no job como um todo>",
 
-Diagnostique TODOS os pilares de performance abaixo quando houver evidência no log reduzido:
-- **Skew** → `skew_ratio > 3×`: durações de task desiguais, razão max/avg, distribuição assimétrica de shuffle read
-- **Spill** → `Disk Bytes Spilled > 0`: dados despejados em disco, causando overhead de I/O e pressão de GC na JVM do executor
-- **Shuffle** → shuffle read + write excede significativamente o input total do stage, ou grande shuffle concentrado em poucas tasks
+      "code_link": {
+        "line_start": <numero ou null - null se MODO A>,
+        "line_end": <numero ou null>,
+        "function_name": "<nome da funcao ou null>",
+        "snippet": "<trecho de codigo exato como string, ou null>",
+        "explanation": "<por que esta linha causou este stage - link direto entre codigo e log, ou null>"
+      }
+    }
+  ],
 
-Para cada gargalo, use exatamente este bloco:
+  "action_plan": {
+    "cluster_configs": [
+      {
+        "bottleneck_id": "B1",
+        "name": "<Nome da configuracao>",
+        "rationale": "<Liga diretamente ao gargalo>",
+        "estimated_impact": "<Ex: Reduz tasks de 29k para ~64, eliminando ~90% do overhead>",
+        "code": "<configuracao como string Python valida, ex: spark.conf.set(\"spark.sql.adaptive.enabled\", \"true\")>"
+      }
+    ],
 
----
+    "code_fixes": [
+      {
+        "bottleneck_id": "B1",
+        "title": "<Ex: Substituir loop de withColumn por select vetorizado>",
+        "line_start": <numero ou null>,
+        "line_end": <numero ou null>,
+        "function_name": "<nome da funcao ou null>",
+        "problem_explanation": "<Por que o codigo atual e problematico>",
+        "before_code": "<codigo problematico como string>",
+        "after_code": "<codigo corrigido como string>",
+        "expected_gain": "<Ex: Stage 12 deve cair de 4min para ~20s>",
+      }
+    ]
+  },
 
-**🔴 CRÍTICO — [Nome do Gargalo]**
-
-| Campo | Detalhe |
-|---|---|
-| Stage(s) afetado(s) | Stage XX, Stage YY |
-| Operador | `sortMergeJoin` / `exchange` / `scan` / etc |
-| Duração observada | Xmin (esperado: ~Xs para este volume) |
-| Evidência no log | [Métrica exata. Ex: "shuffle write de 45GB em 3 tasks, média das demais: 200MB"] |
-| Causa raiz | [Explicação direta e técnica] |
-| Efeito observado | [O que isso causou no job como um todo] |
-
-[SOMENTE MODO B — adicionar ao bloco acima:]
-| Origem no código | `linha XX` — `nome_da_função()` |
-| Por que esta linha causou este stage | [Explicação do link direto entre o código e a evidência no log] |
-
-Estas duas linhas do MODO B DEVEM permanecer dentro da mesma tabela markdown acima.
-Nunca renderize essas linhas como texto solto.
-Nunca coloque ambas na mesma linha usando "||".
-
----
-
-Repita o bloco para cada gargalo, trocando 🔴 CRÍTICO por 🟠 ALTO ou 🟡 MÉDIO conforme o impacto.
-
-─────────────────────────────────────────
-### 🛠️ Plano de Ação
-
-#### Configurações de Cluster
-
-Para cada configuração sugerida:
-
-**[Nome da Configuração] → Resolve: [Nome do Gargalo acima]**
-
-> Por que: [Liga diretamente ao gargalo. Ex: "AQE redistribuirá as 29k tasks
-> dinamicamente, eliminando o overhead de scheduling visível nos Stages 12 e 38."]
-
-> Impacto estimado: [Ex: "Reduz tasks de 29k para ~64, eliminando ~90% do overhead"]
-```python
-spark.conf.set("spark.sql.shuffle.partitions", "64")
-spark.conf.set("spark.sql.adaptive.enabled", "true")
-```
-
----
-
-[SOMENTE MODO B — adicionar esta subseção:]
-
-#### Correções no Código
-
-Para cada correção, use EXATAMENTE esta estrutura de 4 partes:
-
----
-
-**Correção X → Resolve: [Nome do Gargalo]**
-📍 `linha XX–YY` — `nome_da_função()`
-
-**O que está errado:**
-```python
-for col in df_spark.columns:
-    df_spark = df_spark.withColumn(col, F.when(...))
-```
-
-> Por que é problemático: [Explicação em texto corrido, fora do bloco de código.
-> Ex: "Cada withColumn adiciona uma projeção ao plano lógico do Catalyst.
-> Com 50 colunas, o otimizador gerou 50 nós encadeados — visível no Stage 12
-> como 4min de planning antes de qualquer task rodar."]
-
-**Como corrigir:**
-```python
-cols_transformed = [
-    F.when(F.col(c).isin(['nan', 'None', 'NULL']), None)
-     .otherwise(F.col(c)).alias(c)
-    for c in df_spark.columns
-]
-df_spark = df_spark.select(*cols_transformed)
-```
-
-> Ganho esperado: plano linear no Catalyst. Stage 12 deve cair de 4min → ~20s.
-
----
-
-Repita para cada correção identificada.
-
-─────────────────────────────────────────
-### ⚠️ Limitações desta Análise
-
-[MODO A]:
-> Análise baseada exclusivamente no comportamento de execução e configuração de cluster.
-> Padrões ineficientes no código-fonte — UDFs desnecessários, collect() no Driver,
-> joins sem broadcast hint, loops de withColumn — não podem ser diagnosticados
-> sem o arquivo .py. Os ganhos estimados acima podem ser maiores com análise completa.
-
-[MODO B]:
-> Análise completa: diagnósticos cruzam log de execução com código-fonte.
-> Estimativas de ganho são aproximadas — validar em ambiente de staging antes de produção.
+  "limitations": "<Texto de limitacoes conforme MODO A ou B>"
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## REGRAS INVIOLÁVEIS
@@ -371,22 +492,14 @@ SOBRE DIAGNÓSTICO:
   que seria beneficiado e a métrica que sustenta isso
 - NUNCA aponte um problema de código (Modo B) sem correlacionar com o log
 
-SOBRE FORMATAÇÃO — CRÍTICO:
-- Use tabelas markdown no "Resumo Executivo" e em cada bloco de "Gargalos Identificados"
-- Toda tabela markdown deve conter cabeçalho + separador (|---|---|)
-- Nos gargalos do MODO B, "Origem no código" e "Por que esta linha causou este stage" devem ser linhas da mesma tabela
-- Nunca renderize linhas de tabela como texto solto e nunca una múltiplas linhas com "||" na mesma linha
-- NUNCA coloque "ANTES" e "DEPOIS" dentro do mesmo bloco de código
-- NUNCA use "---" como separador dentro de blocos de código
-- NUNCA coloque prosa, transições ou frases explicativas dentro de um bloco de código
-- Cada bloco ```python deve conter APENAS código Python/PySpark válido e executável
-- Comentários dentro do código devem ser técnicos e sucintos (máx. 1 linha)
-- Se dois trechos de código precisarem de separação, feche o primeiro bloco, escreva
-  a transição em texto simples fora com prefixo ">", depois abra um novo bloco
-- Toda explicação de "por que é problemático" e "ganho esperado" fica
-  FORA do bloco, em texto simples com prefixo ">"
-- O link entre o bloco de código e o gargalo vai no TÍTULO em negrito,
-  nunca como comentário dentro do código
+SOBRE O JSON:
+- Retorne APENAS o JSON. Zero texto fora dele.
+- Todos os campos numericos devem ser numeros, nunca strings com unidade
+- Strings de codigo (snippet, before_code, after_code, code) devem conter
+  codigo valido, sem comentarios narrativos, sem "ANTES/DEPOIS", sem "---"
+- bottleneck_ids nos stages devem corresponder exatamente aos ids em bottlenecks[]
+- code_link deve ser preenchido em MODO B e ter todos os campos null em MODO A
+- code_fixes deve ser array vazio [] em MODO A
 """.strip()
 }
 
@@ -418,37 +531,56 @@ class LLMAnalyzer:
         api_key: Optional[str] = None,
         language: str = "en",
     ) -> str:
-        adapter = self._get_adapter(provider, api_key)
+      adapter = self._get_adapter(provider, api_key)
 
-        instr = _SYSTEM_INSTRUCTIONS.get(language, _SYSTEM_INSTRUCTIONS["en"])
-        
-        # Auto-detect operation mode based on presence of Python files
-        py_files_provided = bool(py_files and len(py_files) > 0)
-        mode_indicator = (
-            "**[OPERATION MODE ACTIVATED: MODE B — Log + Python Code]**"
-            if py_files_provided
-            else "**[OPERATION MODE ACTIVATED: MODE A — Log Only]**"
-        )
-        
-        prompt_parts = [
-            instr,
-            "",
-            mode_indicator,
-            "",
-            "## Reduced Log Report",
-            reduced_report[:6000],  # guard context window
-        ]
+      instr = _SYSTEM_INSTRUCTIONS.get(language, _SYSTEM_INSTRUCTIONS["en"])
 
-        if py_files_provided:
-            prompt_parts.append("\n## PySpark Source Files")
-            for fname, content in py_files.items():
-                try:
-                    text = content.decode("utf-8", errors="replace")[:2000]
-                    prompt_parts.append(f"\n### {fname}\n```python\n{text}\n```")
-                except Exception:
-                    pass
+      # Auto-detect operation mode based on presence of Python files.
+      py_files_provided = bool(py_files and len(py_files) > 0)
+      mode_indicator = (
+        "**[OPERATION MODE ACTIVATED: MODE B - Log + Python Code]**"
+        if py_files_provided
+        else "**[OPERATION MODE ACTIVATED: MODE A - Log Only]**"
+      )
 
-        prompt = "\n".join(prompt_parts)
-        logger.info("Calling LLM (%s) for analysis… [Mode: %s]", adapter.__class__.__name__, "B" if py_files_provided else "A")
-        result = adapter.complete(prompt)
-        return result
+      report_for_prompt = _collapse_repetitive_lines(reduced_report)
+
+      prompt_parts = [
+        instr,
+        "",
+        mode_indicator,
+        "",
+        "## Reduced Log Report",
+        report_for_prompt,
+      ]
+
+      if py_files_provided:
+        prompt_parts.append("\n## PySpark Source Files")
+        for fname, content in (py_files or {}).items():
+          try:
+            # Keep source files intact to preserve line mapping accuracy.
+            text = content.decode("utf-8", errors="replace")
+            line_count = text.count("\n") + 1
+            logger.info(
+              "Embedding py_file in prompt: %s — %d bytes, %d lines (complete, not summarized)",
+              fname,
+              len(content),
+              line_count,
+            )
+            prompt_parts.append(f"\n### {fname}\n```python\n{text}\n```")
+          except Exception:
+            continue
+
+      prompt = "\n".join(prompt_parts)
+      logger.info(
+        "Calling LLM (%s) for analysis... [Mode: %s, report_chars=%s, prompt_chars=%s]",
+        adapter.__class__.__name__,
+        "B" if py_files_provided else "A",
+        len(report_for_prompt),
+        len(prompt),
+      )
+
+      result = adapter.complete(prompt)
+      if py_files_provided:
+        result = _reconcile_code_links(result, py_files or {})
+      return result

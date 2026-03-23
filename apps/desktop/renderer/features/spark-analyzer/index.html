@@ -793,6 +793,386 @@
       overflow-wrap: anywhere;
       word-break: break-word;
     }
+    .analysis-panel .doc-mermaid {
+      background: #0d141d;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px;
+      margin: 10px 0;
+      overflow: hidden;
+      position: relative;
+      min-height: 220px;
+      height: clamp(320px, 58vh, 760px);
+      cursor: grab;
+    }
+    .analysis-panel .doc-mermaid.dragging { cursor: grabbing; }
+
+    .sql-plan-wrap {
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      background: rgba(8, 12, 16, 0.88);
+      overflow: hidden;
+    }
+    .sql-plan-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .sql-plan-meta {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    .sql-plan-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .sql-plan-btn {
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .sql-plan-btn:hover {
+      border-color: var(--accent);
+      background: rgba(227, 89, 20, 0.12);
+    }
+    .sql-plan-scroll {
+      max-height: min(66vh, 760px);
+      overflow: auto;
+      padding: 10px 12px 14px;
+    }
+    .sql-plan-tree,
+    .sql-plan-tree ul {
+      list-style: none;
+      margin: 0;
+      padding-left: 18px;
+    }
+    .sql-plan-tree {
+      padding-left: 0;
+    }
+    .sql-plan-node {
+      margin: 6px 0;
+      position: relative;
+    }
+    .sql-plan-node::before {
+      content: '';
+      position: absolute;
+      left: -11px;
+      top: 12px;
+      width: 8px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+    .sql-plan-tree > .sql-plan-node::before {
+      display: none;
+    }
+    .sql-plan-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.015);
+    }
+    .sql-plan-head:hover {
+      border-color: rgba(227, 89, 20, 0.35);
+      background: rgba(227, 89, 20, 0.08);
+    }
+    .sql-plan-toggle {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      background: var(--surface);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .sql-plan-toggle.is-empty {
+      opacity: 0.3;
+      cursor: default;
+    }
+    .sql-plan-label {
+      font-family: var(--mono);
+      font-size: 0.77rem;
+      color: #fff;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sql-plan-detail {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-left: 24px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sql-plan-children {
+      margin-top: 2px;
+    }
+    .sql-plan-node.is-collapsed > .sql-plan-children {
+      display: none;
+    }
+
+    .llm-json-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .llm-card {
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .llm-card-title {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .health-wrap {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .health-score {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 1.2rem;
+      border: 2px solid var(--border2);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), rgba(255,255,255,0.01));
+    }
+    .health-score.good { border-color: rgba(75,196,126,0.6); color: var(--green); }
+    .health-score.warn { border-color: rgba(232,195,58,0.6); color: var(--yellow); }
+    .health-score.bad  { border-color: rgba(239,107,107,0.6); color: var(--red); }
+    .gain-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--accent);
+      color: var(--accent2);
+      background: rgba(227, 89, 20, 0.12);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      margin-top: 6px;
+    }
+    .llm-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+    .llm-kpi {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .llm-kpi .k {
+      font-family: var(--mono);
+      color: var(--text-mute);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .llm-kpi .v {
+      font-family: var(--mono);
+      color: var(--text);
+      font-size: 0.79rem;
+      margin-top: 4px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      border: 1px solid var(--border2);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-pill.ok { color: var(--green); border-color: rgba(75,196,126,0.45); }
+    .status-pill.warning { color: var(--yellow); border-color: rgba(232,195,58,0.45); }
+    .status-pill.critical { color: var(--red); border-color: rgba(239,107,107,0.45); }
+    .id-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent2);
+      border: 1px solid rgba(227,89,20,0.35);
+      background: rgba(227,89,20,0.1);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      text-decoration: none;
+      border-radius: 3px;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+    .bottleneck-list {
+      display: grid;
+      gap: 10px;
+    }
+    .bottleneck-card {
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+      border-radius: var(--radius);
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+    }
+    .bottleneck-card.critical { border-left-color: var(--red); }
+    .bottleneck-card.high { border-left-color: var(--yellow); }
+    .bottleneck-card.medium { border-left-color: var(--blue); }
+    .bottleneck-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .sev-badge {
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+    }
+    .sev-badge.critical { color: var(--red); border-color: rgba(239,107,107,0.45); }
+    .sev-badge.high { color: var(--yellow); border-color: rgba(232,195,58,0.45); }
+    .sev-badge.medium { color: var(--blue); border-color: rgba(110,167,255,0.45); }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .kv-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+      font-size: 0.78rem;
+      min-width: 0;
+    }
+    .kv-item .k {
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .code-box {
+      background: #0b0b0b;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .code-compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+    .fix-list {
+      display: grid;
+      gap: 10px;
+    }
+    .fix-card {
+      border: 1px solid var(--border);
+      border-left: 3px solid rgba(227, 89, 20, 0.55);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.02);
+      padding: 12px;
+    }
+    .fix-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .fix-title {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .fix-location {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .fix-body {
+      display: grid;
+      gap: 8px;
+    }
+    .fix-checklist {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .fix-impact {
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      background: rgba(75,196,126,0.06);
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
+    @media (max-width: 980px) {
+      .code-compare {
+        grid-template-columns: 1fr;
+      }
+    }
 
     /* Download bar ──────────────────────────────────────────── */
     .download-bar {
@@ -1186,35 +1566,45 @@
   <!-- Results -->
   <div id="results">
 
-    <div class="section-label" style="margin-top:48px">02 — Application Summary</div>
-    <div class="summary-cards" id="kpi-cards"></div>
-
-    <div class="section-label">03 — Stage Breakdown</div>
-    <div class="table-wrap">
-      <table id="stage-table">
-        <thead>
-          <tr>
-            <th class="sortable" data-sort="stage_id">#</th><th class="sortable" data-sort="name">Stage Name</th><th class="sortable" data-sort="num_tasks">Tasks</th>
-            <th class="sortable" data-sort="duration_ms">Duration</th><th class="sortable" data-sort="input_bytes">Input</th>
-            <th class="sortable" data-sort="shuffle_read_bytes">Shuffle Read</th><th class="sortable" data-sort="shuffle_write_bytes">Shuffle Write</th>
-            <th class="sortable" data-sort="skew_ratio">Skew Ratio</th><th class="sortable" data-sort="task_duration_p95_ms">p95 Task</th>
-          </tr>
-        </thead>
-        <tbody id="stage-tbody"></tbody>
-      </table>
+    <div id="legacy-summary-section">
+      <div class="section-label" id="results-summary-label" style="margin-top:48px">02 — Application Summary</div>
+      <div class="summary-cards" id="kpi-cards"></div>
     </div>
-    <div class="stages-actions">
-      <button id="expand-stages-btn" class="expand-btn" style="display:none;" onclick="toggleExpandStages()"></button>
+
+    <div id="legacy-stages-section">
+      <div class="section-label" id="results-stages-label">03 — Stage Breakdown</div>
+      <div class="table-wrap">
+        <table id="stage-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="stage_id">#</th><th class="sortable" data-sort="name">Stage Name</th><th class="sortable" data-sort="num_tasks">Tasks</th>
+              <th class="sortable" data-sort="duration_ms">Duration</th><th class="sortable" data-sort="input_bytes">Input</th>
+              <th class="sortable" data-sort="shuffle_read_bytes">Shuffle Read</th><th class="sortable" data-sort="shuffle_write_bytes">Shuffle Write</th>
+              <th class="sortable" data-sort="skew_ratio">Skew Ratio</th><th class="sortable" data-sort="task_duration_p95_ms">p95 Task</th>
+            </tr>
+          </thead>
+          <tbody id="stage-tbody"></tbody>
+        </table>
+      </div>
+      <div class="stages-actions">
+        <button id="expand-stages-btn" class="expand-btn" style="display:none;" onclick="toggleExpandStages()"></button>
+      </div>
     </div>
 
     <div id="llm-section" style="display:none">
-      <div class="section-label">04 — AI Analysis</div>
+      <div class="section-label" id="results-llm-label">04 — AI Analysis</div>
       <div class="analysis-panel">
         <div class="inner" id="llm-inner"></div>
       </div>
     </div>
 
-    <div class="section-label">05 — Export</div>
+    <!-- SQL Physical Plan Canvas Viewer -->
+    <div id="sql-plan-section" style="display:none; margin-top:0">
+      <div class="section-label" id="results-plan-label">04 — SQL Physical Plan</div>
+      <div id="spark-plan-canvas-root" style="height:750px; border-radius:6px; overflow:hidden;"></div>
+    </div>
+
+    <div class="section-label" id="results-export-label">05 — Export</div>
     <div class="download-bar" id="dl-bar"></div>
 
   </div><!-- /results -->
@@ -2050,6 +2440,25 @@ function startPolling() {
 
 /* ── Render Results ─────────────────────────────────── */
 function renderResults(data) {
+  const hasLlm = Boolean(data.llm_analysis && data.llm_analysis.trim());
+  const legacySummary = document.getElementById('legacy-summary-section');
+  const legacyStages = document.getElementById('legacy-stages-section');
+  const llmLabel = document.getElementById('results-llm-label');
+  const exportLabel = document.getElementById('results-export-label');
+
+  // AI-first layout: when LLM output exists, keep the experience focused in AI Analysis.
+  if (hasLlm) {
+    if (legacySummary) legacySummary.style.display = 'none';
+    if (legacyStages) legacyStages.style.display = 'none';
+    if (llmLabel) llmLabel.textContent = '02 — AI Analysis';
+    if (exportLabel) exportLabel.textContent = '04 — Export';
+  } else {
+    if (legacySummary) legacySummary.style.display = '';
+    if (legacyStages) legacyStages.style.display = '';
+    if (llmLabel) llmLabel.textContent = '04 — AI Analysis';
+    if (exportLabel) exportLabel.textContent = '05 — Export';
+  }
+
   // KPI cards
   const s = data.summary;
   if (s) {
@@ -2085,16 +2494,27 @@ function renderResults(data) {
   }
 
   // LLM analysis
-  if (data.llm_analysis && data.llm_analysis.trim()) {
+  if (hasLlm) {
     document.getElementById('llm-section').style.display = '';
-    document.getElementById('llm-inner').innerHTML = mdToHtml(data.llm_analysis);
+    const llmInner = document.getElementById('llm-inner');
+    llmInner.innerHTML = convertMermaidBlocks(renderLlmAnalysis(data.llm_analysis));
+
+    // SQL Physical Plan removed from the LLM card — it is now shown in the dedicated canvas section below.
+
+    renderMermaidIn(llmInner).catch(() => {
+      // Ignore Mermaid rendering failures and keep textual fallback visible.
+    });
+  } else {
+    document.getElementById('llm-section').style.display = 'none';
+    document.getElementById('llm-inner').innerHTML = '';
   }
 
   // Build markdown content entirely on the client — no server round-trip
   const mdParts = [];
-  if (currentReducedReport) mdParts.push(currentReducedReport);
-  if (data.llm_analysis && data.llm_analysis.trim()) {
-    mdParts.push('\n\n---\n\n## AI Analysis\n\n' + data.llm_analysis);
+  if (hasLlm) {
+    mdParts.push('## AI Analysis\n\n' + data.llm_analysis);
+  } else if (currentReducedReport) {
+    mdParts.push(currentReducedReport);
   }
   const mdContent = mdParts.join('');
   const safeName = (s && s.app_name ? s.app_name.replace(/[^a-z0-9_-]/gi, '_') : 'report');
@@ -2111,6 +2531,20 @@ function renderResults(data) {
   document.getElementById('btn-dl-md').addEventListener('click', () =>
     downloadMarkdownLocal(mdContent, suggestedFilename)
   );
+
+  // SQL Physical Plan canvas viewer (uses locally-stored summary — never re-fetched)
+  const planSection = document.getElementById('sql-plan-section');
+  const planRoot    = document.getElementById('spark-plan-canvas-root');
+  const planExecs   = currentLocalSummary && currentLocalSummary.sql_executions;
+  if (planExecs && planExecs.length > 0 && planRoot && window.SparkPlanViewer) {
+    planSection.style.display = '';
+    const planLbl = document.getElementById('results-plan-label');
+    // Re-number label based on layout mode
+    if (planLbl) planLbl.textContent = hasLlm ? '03 — SQL Physical Plan' : '04 — SQL Physical Plan';
+    window.SparkPlanViewer.mount(planExecs, planRoot);
+  } else if (planSection) {
+    planSection.style.display = 'none';
+  }
 
   // Reveal
   const el = document.getElementById('results');
@@ -2135,6 +2569,360 @@ function renderResults(data) {
   const spinner = document.getElementById('btn-spinner');
   btn.disabled = false;
   spinner.classList.add('hidden');
+}
+
+function parseLlmJson(rawText) {
+  const raw = String(rawText || '').trim();
+  if (!raw) return null;
+
+  const candidates = [];
+  candidates.push(raw);
+
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced && fenced[1]) {
+    candidates.push(fenced[1].trim());
+  }
+
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(raw.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const c of candidates) {
+    try {
+      return JSON.parse(c);
+    } catch {
+      // keep trying the next candidate
+    }
+  }
+  return null;
+}
+
+function severityOrder(sev) {
+  if (sev === 'critical') return 0;
+  if (sev === 'high') return 1;
+  return 2;
+}
+
+function scoreClass(score) {
+  if (score >= 80) return 'good';
+  if (score >= 50) return 'warn';
+  return 'bad';
+}
+
+function renderLlmAnalysis(rawText) {
+  const parsed = parseLlmJson(rawText);
+  if (!parsed || typeof parsed !== 'object') {
+    return mdToHtml(rawText);
+  }
+
+  const summary = parsed.summary || {};
+  const kpis = summary.kpis || {};
+  const stages = Array.isArray(parsed.stages) ? parsed.stages : [];
+  const bottlenecks = (Array.isArray(parsed.bottlenecks) ? parsed.bottlenecks : [])
+    .slice()
+    .sort((a, b) => severityOrder(a && a.severity) - severityOrder(b && b.severity));
+  const actionPlan = parsed.action_plan || {};
+  const clusterConfigs = Array.isArray(actionPlan.cluster_configs) ? actionPlan.cluster_configs : [];
+  const codeFixes = Array.isArray(actionPlan.code_fixes) ? actionPlan.code_fixes : [];
+
+  const coreKpis = [
+    ['Duration Total (min)', kpis.duration_total_min],
+    ['Input Volume (GB)', kpis.input_volume_gb],
+    ['Total Tasks', kpis.total_tasks],
+    ['Avg Data/Task (KB)', kpis.avg_data_per_task_kb],
+    ['Stages with Skew', kpis.stages_with_skew],
+    ['Disk Spill Total (GB)', kpis.disk_spill_total_gb],
+    ['Memory Spill Total (GB)', kpis.memory_spill_total_gb],
+    ['Shuffle Write Total (GB)', kpis.shuffle_write_total_gb],
+    ['Failed/Retried Stages', kpis.stages_with_failure_or_retry],
+  ];
+
+  const score = Number.isFinite(summary.score) ? summary.score : 0;
+  const scoreCls = scoreClass(score);
+  const gainMin = Number.isFinite(summary.estimated_gain_min) ? summary.estimated_gain_min : null;
+
+  const stagesRows = stages.map((st) => {
+    const ids = Array.isArray(st.bottleneck_ids) ? st.bottleneck_ids : [];
+    const links = ids.length
+      ? ids.map((id) => `<a class="id-link" href="#bottleneck-${esc(id)}">${esc(id)}</a>`).join('')
+      : '—';
+
+    return `
+      <tr>
+        <td>${st.id ?? '—'}</td>
+        <td>${st.duration_s ?? '—'}</td>
+        <td>${st.task_count ?? '—'}</td>
+        <td>${st.skew_ratio ?? '—'}</td>
+        <td>${st.shuffle_write_gb ?? '—'}</td>
+        <td>${st.shuffle_write_time_s ?? '—'}</td>
+        <td>${st.disk_spill_gb ?? '—'}</td>
+        <td>${st.memory_spill_gb ?? '—'}</td>
+        <td>${st.fetch_wait_ms ?? '—'}</td>
+        <td><span class="status-pill ${esc(st.status || 'ok')}">${esc(st.status || 'ok')}</span></td>
+        <td>${links}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const bottleneckCards = bottlenecks.map((b) => {
+    const link = b && b.code_link ? b.code_link : {};
+    const affected = Array.isArray(b.stages_affected) ? b.stages_affected.join(', ') : '—';
+
+    return `
+      <article class="bottleneck-card ${esc(b.severity || 'medium')}" id="bottleneck-${esc(b.id || '')}">
+        <div class="bottleneck-head">
+          <div><strong>${esc(b.id || 'B?')} · ${esc(b.title || 'Untitled bottleneck')}</strong></div>
+          <span class="sev-badge ${esc(b.severity || 'medium')}">${esc(b.severity || 'medium')}</span>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">Type</div><div>${esc(b.type || 'other')}</div></div>
+          <div class="kv-item"><div class="k">Stages Affected</div><div>${esc(affected)}</div></div>
+          <div class="kv-item"><div class="k">Operator</div><div>${esc(b.operator || 'null')}</div></div>
+          <div class="kv-item"><div class="k">Duration (obs/exp)</div><div>${b.duration_observed_s ?? '—'} / ${b.duration_expected_s ?? '—'} s</div></div>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">Evidence</div><div>${esc(b.evidence || '—')}</div></div>
+          <div class="kv-item"><div class="k">Root Cause</div><div>${esc(b.root_cause || '—')}</div></div>
+          <div class="kv-item"><div class="k">Observed Effect</div><div>${esc(b.observed_effect || '—')}</div></div>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">Code Link</div><div>line ${link.line_start ?? 'null'} - ${link.line_end ?? 'null'} · ${esc(link.function_name || 'null')}</div></div>
+          <div class="kv-item"><div class="k">Code/Log Correlation</div><div>${esc(link.explanation || 'null')}</div></div>
+        </div>
+        ${link.snippet ? `<div class="code-box">${esc(link.snippet)}</div>` : ''}
+      </article>
+    `;
+  }).join('');
+
+  const clusterConfigHtml = clusterConfigs.length
+    ? clusterConfigs.map((cfg) => `
+      <div class="kv-item">
+        <div class="k">${esc(cfg.bottleneck_id || 'B?')} · ${esc(cfg.name || 'Config')}</div>
+        <div style="margin-bottom:6px;">${esc(cfg.rationale || '')}</div>
+        <div style="margin-bottom:8px;color:var(--text-dim)">${esc(cfg.estimated_impact || '')}</div>
+        <div class="code-box">${esc(cfg.code || '')}</div>
+      </div>
+    `).join('')
+    : '<div style="color:var(--text-dim)">No cluster configs suggested.</div>';
+
+  const codeFixesHtml = codeFixes.length
+    ? codeFixes.map((fix) => `
+      <article class="fix-card">
+        <div class="fix-head">
+          <div class="fix-title">${esc(fix.bottleneck_id || 'B?')} · ${esc(fix.title || 'Code fix')}</div>
+          <div class="fix-location">line ${fix.line_start ?? 'null'} - ${fix.line_end ?? 'null'} · ${esc(fix.function_name || 'null')}</div>
+        </div>
+        <div class="fix-body">
+          <div>${esc(fix.problem_explanation || '')}</div>
+          <ol class="fix-checklist">
+            <li>Localize o trecho indicado e confirme o comportamento atual.</li>
+            <li>Substitua o bloco atual pelo bloco "After" mantendo contratos de entrada/saida.</li>
+            <li>Valide em staging e compare o ganho no gargalo ${esc(fix.bottleneck_id || 'informado')}.</li>
+          </ol>
+          <div class="code-compare">
+            <div>
+              <div class="k" style="margin-bottom:4px;">Before (Atual)</div>
+              <div class="code-box">${esc(fix.before_code || '')}</div>
+            </div>
+            <div>
+              <div class="k" style="margin-bottom:4px;">After (Implementar)</div>
+              <div class="code-box">${esc(fix.after_code || '')}</div>
+            </div>
+          </div>
+          <div class="fix-impact"><strong>Expected Gain:</strong> ${esc(fix.expected_gain || 'n/a')}</div>
+        </div>
+      </article>
+    `).join('')
+    : '<div style="color:var(--text-dim)">No code fixes suggested.</div>';
+
+  return `
+    <div class="llm-json-grid">
+      <section class="llm-card">
+        <div class="llm-card-title">Health Summary</div>
+        <div class="health-wrap">
+          <div class="health-score ${scoreCls}">${score}</div>
+          <div style="flex:1; min-width:220px;">
+            <div><strong>${esc(summary.verdict || 'No verdict')}</strong></div>
+            ${gainMin != null ? `<div class="gain-badge">Estimated post-fix: ${gainMin} min</div>` : ''}
+            <div style="margin-top:8px; color:var(--text-dim); font-size:0.76rem;">
+              mode: ${esc((parsed.meta && parsed.meta.mode) || '—')} · file: ${esc((parsed.meta && parsed.meta.job_file) || 'null')} · log: ${esc((parsed.meta && parsed.meta.log_file) || '—')}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Kpis</div>
+        <div class="llm-kpis">
+          ${coreKpis.map(([k, v]) => `<div class="llm-kpi"><div class="k">${esc(k)}</div><div class="v">${v ?? '—'}</div></div>`).join('')}
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Stages</div>
+        <div class="table-wrap" style="margin-bottom:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Duration(s)</th><th>Tasks</th><th>Skew</th><th>Shuffle GB</th><th>SW Time(s)</th>
+                <th>Disk Spill(GB)</th><th>Mem Spill(GB)</th><th>Fetch Wait(ms)</th><th>Status</th><th>Bottlenecks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${stagesRows || '<tr><td colspan="11">No stage diagnostics.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Bottlenecks</div>
+        <div class="bottleneck-list">
+          ${bottleneckCards || '<div style="color:var(--text-dim)">No bottlenecks detected.</div>'}
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Action Plan · Cluster Configs</div>
+        <div class="kv-grid">${clusterConfigHtml}</div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Action Plan · Code Fixes</div>
+        <div class="fix-list">${codeFixesHtml}</div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">Limitations</div>
+        <div>${esc(parsed.limitations || '—')}</div>
+      </section>
+    </div>
+  `;
+}
+
+function getSqlPlanChildren(node) {
+  if (!node || typeof node !== 'object') return [];
+  if (Array.isArray(node.children)) return node.children.filter(Boolean);
+  if (Array.isArray(node.childNodes)) return node.childNodes.filter(Boolean);
+  return [];
+}
+
+function getSqlPlanLabel(node) {
+  const nodeName = node.nodeName || node.name || node.operator || node.node || null;
+  if (nodeName) return String(nodeName);
+  const simple = node.simpleString || node.desc || node.description || '';
+  if (simple) return String(simple).split('(')[0].trim() || String(simple);
+  return 'Operator';
+}
+
+function getSqlPlanDetail(node) {
+  const simple = node.simpleString || node.desc || node.description || '';
+  if (simple) {
+    const compact = String(simple).replace(/\s+/g, ' ').trim();
+    return compact.length > 220 ? compact.slice(0, 220) + '...' : compact;
+  }
+  const args = node.simpleStringWithNodeId || node.formattedString || '';
+  if (args) {
+    const compact = String(args).replace(/\s+/g, ' ').trim();
+    return compact.length > 220 ? compact.slice(0, 220) + '...' : compact;
+  }
+  return '';
+}
+
+function sqlPlanStats(root) {
+  let nodeCount = 0;
+  let maxDepth = 0;
+
+  function walk(node, depth) {
+    if (!node || typeof node !== 'object') return;
+    nodeCount += 1;
+    if (depth > maxDepth) maxDepth = depth;
+    const children = getSqlPlanChildren(node);
+    for (const c of children) walk(c, depth + 1);
+  }
+
+  walk(root, 1);
+  return { nodeCount, maxDepth };
+}
+
+function renderSqlPlanNode(node, path) {
+  const children = getSqlPlanChildren(node);
+  const hasChildren = children.length > 0;
+  const labelRaw = getSqlPlanLabel(node);
+  const detailRaw = getSqlPlanDetail(node);
+  const label = esc(labelRaw);
+  const detail = esc(detailRaw);
+  const childrenHtml = hasChildren
+    ? `<ul class="sql-plan-children">${children.map((child, idx) => renderSqlPlanNode(child, `${path}.${idx}`)).join('')}</ul>`
+    : '';
+
+  return `
+    <li class="sql-plan-node" data-path="${esc(path)}">
+      <div class="sql-plan-head">
+        <button class="sql-plan-toggle ${hasChildren ? '' : 'is-empty'}" data-action="toggle" data-path="${esc(path)}" ${hasChildren ? '' : 'tabindex="-1" aria-hidden="true"'}>${hasChildren ? '−' : '•'}</button>
+        <div class="sql-plan-label" title="${label}">${label}</div>
+      </div>
+      ${detail ? `<div class="sql-plan-detail" title="${detail}">${detail}</div>` : ''}
+      ${childrenHtml}
+    </li>
+  `;
+}
+
+function renderSqlPlanTree(tree) {
+  const stats = sqlPlanStats(tree);
+  return `
+    <div class="sql-plan-wrap">
+      <div class="sql-plan-toolbar">
+        <div class="sql-plan-meta">${stats.nodeCount} nodes · depth ${stats.maxDepth}</div>
+        <div class="sql-plan-actions">
+          <button type="button" class="sql-plan-btn" data-action="expand-all">Expand all</button>
+          <button type="button" class="sql-plan-btn" data-action="collapse-all">Collapse all</button>
+        </div>
+      </div>
+      <div class="sql-plan-scroll">
+        <ul class="sql-plan-tree">${renderSqlPlanNode(tree, '0')}</ul>
+      </div>
+    </div>
+  `;
+}
+
+function setSqlNodeCollapsed(nodeEl, collapsed) {
+  if (!nodeEl) return;
+  nodeEl.classList.toggle('is-collapsed', collapsed);
+  const btn = nodeEl.querySelector(':scope > .sql-plan-head .sql-plan-toggle');
+  if (!btn || btn.classList.contains('is-empty')) return;
+  btn.textContent = collapsed ? '+' : '−';
+}
+
+function initSqlPlanInteractions(scope) {
+  if (!scope) return;
+
+  scope.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+
+    if (action === 'toggle') {
+      if (btn.classList.contains('is-empty')) return;
+      const node = btn.closest('.sql-plan-node');
+      if (!node) return;
+      const collapsed = !node.classList.contains('is-collapsed');
+      setSqlNodeCollapsed(node, collapsed);
+      return;
+    }
+
+    if (action === 'collapse-all' || action === 'expand-all') {
+      const collapse = action === 'collapse-all';
+      const nodes = scope.querySelectorAll('.sql-plan-node');
+      nodes.forEach((nodeEl, idx) => {
+        const hasChildren = nodeEl.querySelector(':scope > .sql-plan-children');
+        if (!hasChildren) return;
+        setSqlNodeCollapsed(nodeEl, idx === 0 ? false : collapse);
+      });
+    }
+  });
 }
 
 function renderStageTable(stages) {
@@ -2393,7 +3181,8 @@ function initMermaidZoom(node) {
   controls.innerHTML =
     '<button class="mermaid-ctrl-btn" data-action="zoom-in" title="Zoom in">+</button>' +
     '<button class="mermaid-ctrl-btn" data-action="zoom-out" title="Zoom out">−</button>' +
-    '<button class="mermaid-ctrl-btn wide" data-action="reset" title="Resetar zoom">Reset</button>';
+    '<button class="mermaid-ctrl-btn wide" data-action="fit" title="Fit to view">Fit</button>' +
+    '<button class="mermaid-ctrl-btn wide" data-action="reset" title="100% zoom">100%</button>';
   node.appendChild(controls);
 
   let scale = 1, tx = 0, ty = 0;
@@ -2401,6 +3190,36 @@ function initMermaidZoom(node) {
 
   function apply() {
     wrap.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+  }
+
+  function getDiagramSize() {
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+      return { w: vb.width, h: vb.height };
+    }
+    try {
+      const box = svg.getBBox();
+      if (box.width > 0 && box.height > 0) {
+        return { w: box.width, h: box.height };
+      }
+    } catch {
+      // Fallback to client rect below.
+    }
+    const rect = svg.getBoundingClientRect();
+    return { w: Math.max(rect.width, 1), h: Math.max(rect.height, 1) };
+  }
+
+  function fitToView() {
+    const rect = node.getBoundingClientRect();
+    const size = getDiagramSize();
+    const pad = 24;
+    const availW = Math.max(rect.width - (pad * 2), 120);
+    const availH = Math.max(rect.height - (pad * 2), 120);
+    const next = Math.min(availW / size.w, availH / size.h);
+    scale = Math.min(Math.max(next, 0.2), 3);
+    tx = (rect.width - (size.w * scale)) / 2;
+    ty = (rect.height - (size.h * scale)) / 2;
+    apply();
   }
 
   node.addEventListener('wheel', (e) => {
@@ -2439,8 +3258,12 @@ function initMermaidZoom(node) {
     if (!btn) return;
     if (btn.dataset.action === 'zoom-in')  { scale = Math.min(5, scale + 0.2); apply(); }
     if (btn.dataset.action === 'zoom-out') { scale = Math.max(0.2, scale - 0.2); apply(); }
+    if (btn.dataset.action === 'fit')      { fitToView(); }
     if (btn.dataset.action === 'reset')    { scale = 1; tx = 0; ty = 0; apply(); }
   });
+
+  // Start with a readable fit instead of 1:1, which can overflow in large plans.
+  requestAnimationFrame(fitToView);
 }
 
 async function renderMermaidIn(container) {
@@ -2572,6 +3395,11 @@ function resetUI() {
   document.querySelectorAll('#stage-table th.sortable').forEach(th => {
     th.classList.remove('sorted-asc', 'sorted-desc');
   });
+  // Unmount React plan viewer and hide its section
+  const planRoot = document.getElementById('spark-plan-canvas-root');
+  if (planRoot && window.SparkPlanViewer) window.SparkPlanViewer.unmount(planRoot);
+  const planSection = document.getElementById('sql-plan-section');
+  if (planSection) planSection.style.display = 'none';
 }
 function showProgressBar() {
   document.getElementById('progress-track').style.display = '';
@@ -2618,5 +3446,7 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
+<!-- SparkPlanViewer — Canvas-based SQL physical plan renderer (compiled from SparkPlanViewer.jsx) -->
+<script src="spark-plan-viewer.js"></script>
 </body>
 </html>
