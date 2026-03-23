@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.15.0](https://github.com/alexvalsechi/sprklogs/compare/v0.14.0...v0.15.0) (2026-03-23)
+
+
+### Features
+
+* enhance CI/CD pipeline to support versioned desktop release and artifact upload ([d01ea8d](https://github.com/alexvalsechi/sprklogs/commit/d01ea8d95414a5d3a051f7e81bbf98251e0f6675))
+* enhance CI/CD pipeline to support versioned desktop release and… ([0e92b09](https://github.com/alexvalsechi/sprklogs/commit/0e92b0981d7b66cca2d7e38d75ec4d4093091348))
+* update reduceZipLocally to include sqlExecutionsJson and adjust IPC handlers for improved data handling ([38b3a93](https://github.com/alexvalsechi/sprklogs/commit/38b3a935636330123f10ec8ab3fc36f4ea3cadf8))
+* update reduceZipLocally to include sqlExecutionsJson and adjust… ([5a19089](https://github.com/alexvalsechi/sprklogs/commit/5a19089312a6474e9967c7a18e912a8c58ec374f))
+
 ## [0.14.0](https://github.com/alexvalsechi/sprklogs/compare/v0.13.0...v0.14.0) (2026-03-23)
 
 
