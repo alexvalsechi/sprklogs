@@ -1684,6 +1684,7 @@ let elapsedTimer = null;
 let zipFile      = null;
 let pyFiles      = [];
 let currentLocalSummary = null;
+let currentLocalSqlExecutionsJson = null;
 let currentReducedReport = null; // kept locally — never re-fetched from server
 let currentLang = 'en';
 let statusCycleTimer = null;
@@ -2365,6 +2366,7 @@ async function submitJob() {
       throw new Error('Local reduction failed: empty reduced report.');
     }
     currentLocalSummary = (reduced && reduced.summary) || null;
+    currentLocalSqlExecutionsJson = (reduced && reduced.sqlExecutionsJson) || null;
     currentReducedReport = reducedReport; // store locally for download — never round-trips to server
 
     setRealProgress(87, stageMessage('report_ready'), 'running');
@@ -2535,7 +2537,7 @@ function renderResults(data) {
   // SQL Physical Plan canvas viewer (uses locally-stored summary — never re-fetched)
   const planSection = document.getElementById('sql-plan-section');
   const planRoot    = document.getElementById('spark-plan-canvas-root');
-  const planExecs   = currentLocalSummary && currentLocalSummary.sql_executions;
+  const planExecs   = currentLocalSqlExecutionsJson ? JSON.parse(currentLocalSqlExecutionsJson) : null;
   if (planExecs && planExecs.length > 0 && planRoot && window.SparkPlanViewer) {
     planSection.style.display = '';
     const planLbl = document.getElementById('results-plan-label');
@@ -3386,6 +3388,8 @@ function resetUI() {
   document.getElementById('llm-section').style.display = 'none';
   document.getElementById('dl-bar').innerHTML = '';
   document.getElementById('status-elapsed').textContent = '';
+  currentLocalSummary = null;
+  currentLocalSqlExecutionsJson = null;
   // Reset sort state
   currentSortColumn = null;
   currentSortDirection = 'asc';

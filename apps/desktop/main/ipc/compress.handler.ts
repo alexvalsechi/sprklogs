@@ -92,9 +92,27 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
 
     try {
       const reduced = await reduceZipViaPath(pyBaseUrl, zipPath, compact, reduceJobId)
+
+      // Spark SQL plan trees can be thousands of nodes deep.
+      // summary.sql_plan_tree (unused in renderer) and the sparkPlanInfo trees
+      // inside sql_executions can exceed Electron contextBridge's 1000-level
+      // recursion limit on large ZIPs.  Fix: drop sql_plan_tree entirely and
+      // pass sql_executions as a serialised JSON string; the renderer parses it
+      // back after the IPC call completes.
+      const summary = (reduced.summary ?? null) as Record<string, unknown> | null
+      let sqlExecutionsJson: string | null = null
+      if (summary) {
+        delete summary.sql_plan_tree // not consumed by the renderer
+        if (summary.sql_executions != null) {
+          sqlExecutionsJson = JSON.stringify(summary.sql_executions)
+          delete summary.sql_executions
+        }
+      }
+
       return {
         reducedReport: reduced.reduced_report,
-        summary: reduced.summary ?? null,
+        summary,
+        sqlExecutionsJson,
       }
     } finally {
       clearInterval(poll)

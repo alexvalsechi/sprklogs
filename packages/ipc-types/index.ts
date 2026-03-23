@@ -13,7 +13,7 @@ export interface IpcApi {
   getSession: () => Promise<{ user: { id: string; email: string } } | null>
   getBackendUrl: () => Promise<string>
 
-  reduceZipLocally: (payload: { zipPath: string; compact?: boolean }) => Promise<{ reducedReport: string; summary: unknown | null }>
+  reduceZipLocally: (payload: { zipPath: string; compact?: boolean }) => Promise<{ reducedReport: string; summary: unknown | null; sqlExecutionsJson: string | null }>
   submitReducedForAnalysis: (payload: {
     apiBaseUrl?: string
     reducedReport: string
