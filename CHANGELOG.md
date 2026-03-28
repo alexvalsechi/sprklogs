@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/alexvalsechi/sprklogs/compare/v0.16.0...v0.17.0) (2026-03-28)
+
+
+### Features
+
+* update release action to ncipollo/release-action for improved a… ([9fefe04](https://github.com/alexvalsechi/sprklogs/commit/9fefe04b6051d14f00e747d7c1f6cbf6ab8584f4))
+* update release action to ncipollo/release-action for improved artifact handling ([f2a5b0d](https://github.com/alexvalsechi/sprklogs/commit/f2a5b0dfb9c785273e7862c36335f555221b8300))
+
 ## [0.16.0](https://github.com/alexvalsechi/sprklogs/compare/v0.15.0...v0.16.0) (2026-03-28)
 
 
