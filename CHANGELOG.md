@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0](https://github.com/alexvalsechi/sprklogs/compare/v0.17.0...v0.18.0) (2026-03-28)
+
+
+### Features
+
+* update release condition in pipeline to simplify desktop releas… ([4bc1900](https://github.com/alexvalsechi/sprklogs/commit/4bc1900e52a4d74a296f7887eea94d4fd013adae))
+* update release condition in pipeline to simplify desktop release logic ([f429e04](https://github.com/alexvalsechi/sprklogs/commit/f429e04474ef4616cbb4ef8fd103419d2bc6c444))
+
 ## [0.17.0](https://github.com/alexvalsechi/sprklogs/compare/v0.16.0...v0.17.0) (2026-03-28)
 
 
