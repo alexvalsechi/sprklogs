@@ -186,6 +186,10 @@ def _reconcile_code_links(llm_text: str, py_files: dict[str, bytes]) -> str:
     if start is not None:
       link["line_start"] = start
       link["line_end"] = end
+    else:
+      # No match found — null out potentially hallucinated line numbers
+      link["line_start"] = None
+      link["line_end"] = None
 
   action_plan = parsed.get("action_plan")
   if isinstance(action_plan, dict):
@@ -196,6 +200,10 @@ def _reconcile_code_links(llm_text: str, py_files: dict[str, bytes]) -> str:
       if start is not None:
         fix["line_start"] = start
         fix["line_end"] = end
+      else:
+        # No match found — null out potentially hallucinated line numbers
+        fix["line_start"] = None
+        fix["line_end"] = None
 
   try:
     return json.dumps(parsed, ensure_ascii=False)
@@ -342,6 +350,15 @@ ABOUT DIAGNOSIS:
 - NEVER suggest cache(), broadcast() or repartition() without pointing to the specific
   stage that would benefit and the metric that supports it
 - NEVER flag a code issue (Mode B) without correlating it to the log
+
+ABOUT CODE REFERENCES (MODE B):
+- before_code and snippet MUST be an EXACT, CHARACTER-BY-CHARACTER copy from the
+  source file provided. Do NOT reformat, collapse multiple lines into one, add or
+  remove whitespace, or paraphrase the code in any way. Copy it verbatim.
+- If you cannot locate the exact code in the source file, set the field to null
+  rather than fabricating or approximating it.
+- line_start and line_end must correspond to the actual line numbers in the
+  source file. If you are not certain, set them to null.
 
 ABOUT JSON:
 - Return JSON ONLY. Zero text outside it.
@@ -491,6 +508,16 @@ SOBRE DIAGNÓSTICO:
 - NUNCA sugira cache(), broadcast() ou repartition() sem apontar o stage específico
   que seria beneficiado e a métrica que sustenta isso
 - NUNCA aponte um problema de código (Modo B) sem correlacionar com o log
+
+SOBRE REFERÊNCIAS DE CÓDIGO (MODO B):
+- before_code e snippet DEVEM ser uma cópia EXATA, CARACTERE POR CARACTERE, do
+  arquivo fonte fornecido. NÃO reformate, NÃO colapse múltiplas linhas em uma,
+  NÃO adicione ou remova espaços, NÃO parafraseie o código de nenhuma forma.
+  Copie-o literalmente.
+- Se não conseguir localizar o código exato no arquivo fonte, defina o campo como
+  null ao invés de fabricar ou aproximar.
+- line_start e line_end devem corresponder aos números de linha reais no arquivo
+  fonte. Se não tiver certeza, defina como null.
 
 SOBRE O JSON:
 - Retorne APENAS o JSON. Zero texto fora dele.

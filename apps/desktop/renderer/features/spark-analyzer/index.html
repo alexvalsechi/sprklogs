@@ -2719,17 +2719,17 @@ function renderLlmAnalysis(rawText) {
         <div class="fix-body">
           <div>${esc(fix.problem_explanation || '')}</div>
           <ol class="fix-checklist">
-            <li>Localize o trecho indicado e confirme o comportamento atual.</li>
-            <li>Substitua o bloco atual pelo bloco "After" mantendo contratos de entrada/saida.</li>
-            <li>Valide em staging e compare o ganho no gargalo ${esc(fix.bottleneck_id || 'informado')}.</li>
+            <li>${currentLang === 'pt' ? 'Localize o trecho indicado e confirme o comportamento atual.' : 'Locate the indicated code section and confirm the current behavior.'}</li>
+            <li>${currentLang === 'pt' ? 'Substitua o bloco atual pelo bloco "After" mantendo contratos de entrada/saída.' : 'Replace the current block with the "After" block, keeping input/output contracts.'}</li>
+            <li>${currentLang === 'pt' ? `Valide em staging e compare o ganho no gargalo ${esc(fix.bottleneck_id || 'informado')}.` : `Validate in staging and compare the gain on bottleneck ${esc(fix.bottleneck_id || 'reported')}.`}</li>
           </ol>
           <div class="code-compare">
             <div>
-              <div class="k" style="margin-bottom:4px;">Before (Atual)</div>
+              <div class="k" style="margin-bottom:4px;">${currentLang === 'pt' ? 'Before (Atual)' : 'Before (Current)'}</div>
               <div class="code-box">${esc(fix.before_code || '')}</div>
             </div>
             <div>
-              <div class="k" style="margin-bottom:4px;">After (Implementar)</div>
+              <div class="k" style="margin-bottom:4px;">${currentLang === 'pt' ? 'After (Implementar)' : 'After (Implement)'}</div>
               <div class="code-box">${esc(fix.after_code || '')}</div>
             </div>
           </div>
