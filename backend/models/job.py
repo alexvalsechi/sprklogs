@@ -38,6 +38,13 @@ class StageMetrics(BaseModel):
     peak_execution_memory_bytes: int = 0
     shuffle_read_records: int = 0
     shuffle_write_records: int = 0
+    # Executor-level metrics
+    cpu_efficiency: Optional[float] = None
+    gc_overhead_pct: Optional[float] = None
+    deserialize_time_ms: int = 0
+    minor_gc_count: int = 0
+    major_gc_count: int = 0
+    avg_result_size_kb: Optional[float] = None
 
     @property
     def has_skew(self) -> bool:
@@ -75,6 +82,8 @@ class AppSummary(BaseModel):
     sql_plan_mermaid: Optional[str] = None
     sql_plan_tree: Optional[dict] = None
     sql_executions: Optional[list] = None
+    executor_summary: list = []
+    job_efficiency_meta: dict = {}
     stages: list[StageMetrics] = []
 
 
