@@ -187,7 +187,7 @@ jobs:
   release-please:
     name: Release Please
     needs: detect-changes
-    if: ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) && needs.detect-changes.outputs.desktop_release_needed == 'true') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_as != '')
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_as != '')
     runs-on: ubuntu-latest
     permissions:
       contents: write
