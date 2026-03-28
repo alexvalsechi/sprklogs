@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.0](https://github.com/alexvalsechi/sprklogs/compare/v0.18.0...v0.19.0) (2026-03-28)
+
+
+### Features
+
+* add executor-level metrics and job efficiency calculations to e… ([68dad03](https://github.com/alexvalsechi/sprklogs/commit/68dad03dc90f4c1276fac38ac84bf17863433225))
+* add executor-level metrics and job efficiency calculations to enhance performance monitoring ([b72a9cd](https://github.com/alexvalsechi/sprklogs/commit/b72a9cdc0dfc9bce58e2f7d06ef046c4e0a4bf38))
+
 ## [0.18.0](https://github.com/alexvalsechi/sprklogs/compare/v0.17.0...v0.18.0) (2026-03-28)
 
 
