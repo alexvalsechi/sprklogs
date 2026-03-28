@@ -333,7 +333,7 @@
 
     .provider-picker {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
     }
 
@@ -601,6 +601,55 @@
     .kpi-value.green   { color: var(--green); }
     .kpi-value.yellow  { color: var(--yellow); }
     .kpi-value.red     { color: var(--red); }
+
+    /* Efficiency panel ─────────────────────────────────── */
+    .efficiency-panel {
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(6px);
+    }
+    .efficiency-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    @media (max-width: 560px) { .efficiency-kpis { grid-template-columns: 1fr; } }
+    .eff-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .eff-label {
+      font-family: var(--mono); font-size: 0.62rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 5px;
+    }
+    .eff-value {
+      font-family: var(--mono); font-size: 1rem;
+      font-weight: 600; color: #fff;
+    }
+    .eff-value.bad  { color: var(--red); }
+    .eff-value.warn { color: var(--yellow); }
+    .eff-value.good { color: var(--green); }
+    .eff-hint {
+      font-size: 0.7rem; color: var(--text-mute);
+      margin-top: 3px; line-height: 1.4;
+    }
+
+    /* Executor table ───────────────────────────────────── */
+    .executor-table-wrap {
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin-bottom: 24px;
+      backdrop-filter: blur(6px);
+    }
 
     /* Stage table ───────────────────────────────────────────── */
     .table-wrap {
@@ -1494,6 +1543,26 @@
                 <span class="provider-hint" id="provider-gemini-hint">API key: https://aistudio.google.com/apikey</span>
               </span>
             </label>
+            <label class="provider-option">
+              <input type="radio" name="llm-provider" value="anthropic">
+              <span class="provider-card">
+                <a id="provider-claude-link" class="provider-key-action" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" data-tip="Pegar a Key" aria-label="Pegar a Key Claude">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M10 14L21 3"/>
+                    <path d="M15 3h6v6"/>
+                    <path d="M21 14v7H3V3h7"/>
+                  </svg>
+                </a>
+                <span class="provider-head">
+                  <svg class="provider-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M5 19L12 5l7 14H5z"/>
+                    <path d="M8.5 14h7"/>
+                  </svg>
+                  Claude
+                </span>
+                <span class="provider-hint" id="provider-claude-hint">API key: https://console.anthropic.com/settings/keys</span>
+              </span>
+            </label>
           </div>
           <div>
             <label id="api-key-label" style="display:block; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">API Key</label>
@@ -1571,6 +1640,28 @@
       <div class="summary-cards" id="kpi-cards"></div>
     </div>
 
+    <!-- Job-Level Efficiency -->
+    <div id="efficiency-section" style="display:none">
+      <div class="section-label" id="results-efficiency-label">02b — Job-Level Efficiency</div>
+      <div class="efficiency-kpis" id="efficiency-kpis"></div>
+    </div>
+
+    <!-- Executor-Level Metrics -->
+    <div id="executor-section" style="display:none">
+      <div class="section-label" id="results-executor-label">02c — Executor-Level Metrics</div>
+      <div class="executor-table-wrap">
+        <table id="executor-table">
+          <thead>
+            <tr>
+              <th>Executor</th><th>Host</th><th>Cores</th><th>Tasks</th>
+              <th>GC ms</th><th>GC%</th><th>CPU Efficiency</th>
+            </tr>
+          </thead>
+          <tbody id="executor-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="legacy-stages-section">
       <div class="section-label" id="results-stages-label">03 — Stage Breakdown</div>
       <div class="table-wrap">
@@ -1581,6 +1672,9 @@
               <th class="sortable" data-sort="duration_ms">Duration</th><th class="sortable" data-sort="input_bytes">Input</th>
               <th class="sortable" data-sort="shuffle_read_bytes">Shuffle Read</th><th class="sortable" data-sort="shuffle_write_bytes">Shuffle Write</th>
               <th class="sortable" data-sort="skew_ratio">Skew Ratio</th><th class="sortable" data-sort="task_duration_p95_ms">p95 Task</th>
+              <th class="sortable" data-sort="cpu_efficiency">CPU Eff</th>
+              <th class="sortable" data-sort="gc_overhead_pct">GC%</th>
+              <th class="sortable" data-sort="deserialize_time_ms">Deser ms</th>
             </tr>
           </thead>
           <tbody id="stage-tbody"></tbody>
@@ -1754,6 +1848,7 @@ const translations = {
     apiKeyPlaceholder: 'Paste your API key',
     openAiKeyHint: 'API key: https://platform.openai.com/api-keys',
     geminiKeyHint: 'API key: https://aistudio.google.com/apikey',
+    claudeKeyHint: 'API key: https://console.anthropic.com/settings/keys',
     keyCta: 'Get Key',
     uploadLabel: '01 — Upload',
     eventLogZip: 'Event Log ZIP',
@@ -1796,6 +1891,7 @@ const translations = {
     apiKeyPlaceholder: 'Cole sua chave de API',
     openAiKeyHint: 'Chave API: https://platform.openai.com/api-keys',
     geminiKeyHint: 'Chave API: https://aistudio.google.com/apikey',
+    claudeKeyHint: 'Chave API: https://console.anthropic.com/settings/keys',
     keyCta: 'Pegar a Key',
     uploadLabel: '01 — Enviar',
     eventLogZip: 'ZIP de Log',
@@ -1876,6 +1972,15 @@ function updateLanguage() {
   if (geminiLink) {
     geminiLink.setAttribute('data-tip', t.keyCta);
     geminiLink.setAttribute('aria-label', `${t.keyCta} Gemini`);
+  }
+
+  const claudeHint = document.getElementById('provider-claude-hint');
+  if (claudeHint) claudeHint.textContent = t.claudeKeyHint;
+
+  const claudeLink = document.getElementById('provider-claude-link');
+  if (claudeLink) {
+    claudeLink.setAttribute('data-tip', t.keyCta);
+    claudeLink.setAttribute('aria-label', `${t.keyCta} Claude`);
   }
 
   const historyLabel = document.getElementById('history-label');
@@ -2493,6 +2598,53 @@ function renderResults(data) {
         th.addEventListener('click', () => sortTable(th.dataset.sort));
       });
     }
+
+    // Job-Level Efficiency
+    const jem = s.job_efficiency_meta || {};
+    const effSection = document.getElementById('efficiency-section');
+    if (effSection && (jem.cpu_efficiency != null || jem.gc_overhead_pct != null)) {
+      effSection.style.display = '';
+      const cpuEff = jem.cpu_efficiency ?? 0;
+      const gcPct  = jem.gc_overhead_pct ?? 0;
+      const desrPct = jem.deserialize_overhead_pct ?? 0;
+      const cpuCls = cpuEff >= 0.5 ? 'good' : cpuEff >= 0.2 ? 'warn' : 'bad';
+      const gcCls  = gcPct < 2 ? 'good' : gcPct < 5 ? 'warn' : 'bad';
+      document.getElementById('efficiency-kpis').innerHTML = [
+        { label: 'CPU Efficiency', value: cpuEff.toFixed(3), cls: cpuCls, hint: 'CPU time / wall-clock. <0.2 = I/O-bound' },
+        { label: 'GC Overhead', value: gcPct.toFixed(2) + '%', cls: gcCls, hint: 'JVM GC time as % of run time. >5% is concerning' },
+        { label: 'Deserialize Overhead', value: desrPct.toFixed(2) + '%', cls: '', hint: '% of run time spent deserializing task inputs' },
+      ].map(k => `
+        <div class="eff-card">
+          <div class="eff-label">${k.label}</div>
+          <div class="eff-value ${k.cls}">${k.value}</div>
+          <div class="eff-hint">${k.hint}</div>
+        </div>
+      `).join('');
+    } else if (effSection) {
+      effSection.style.display = 'none';
+    }
+
+    // Executor-Level Metrics
+    const execSummary = s.executor_summary || [];
+    const execSection = document.getElementById('executor-section');
+    if (execSection && execSummary.length > 0) {
+      execSection.style.display = '';
+      document.getElementById('executor-tbody').innerHTML = execSummary.map(ex => {
+        const gcCls   = ex.gc_pct > 5 ? 'style="color:var(--red)"' : '';
+        const cpuCls  = ex.cpu_efficiency < 0.05 ? 'style="color:var(--yellow)"' : '';
+        return `<tr>
+          <td>${esc(ex.executor_id)}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(ex.host)}">${esc(ex.host)}</td>
+          <td>${ex.cores}</td>
+          <td>${ex.tasks.toLocaleString()}</td>
+          <td>${ex.gc_ms.toLocaleString()}</td>
+          <td ${gcCls}>${ex.gc_pct.toFixed(2)}%</td>
+          <td ${cpuCls}>${ex.cpu_efficiency.toFixed(3)}</td>
+        </tr>`;
+      }).join('');
+    } else if (execSection) {
+      execSection.style.display = 'none';
+    }
   }
 
   // LLM analysis
@@ -2952,6 +3104,9 @@ function renderStageTable(stages) {
       <td>${fmtBytes(st.shuffle_write_bytes)}</td>
       <td>${skewTag}</td>
       <td>${st.task_duration_p95_ms != null ? fmtMs(st.task_duration_p95_ms) : '—'}</td>
+      <td style="${st.cpu_efficiency != null && st.cpu_efficiency < 0.1 ? 'color:var(--yellow)' : ''}">${st.cpu_efficiency != null ? st.cpu_efficiency.toFixed(3) : '—'}</td>
+      <td style="${st.gc_overhead_pct != null && st.gc_overhead_pct > 5 ? 'color:var(--red)' : ''}">${st.gc_overhead_pct != null ? st.gc_overhead_pct.toFixed(2) + '%' : '—'}</td>
+      <td>${st.deserialize_time_ms != null ? st.deserialize_time_ms.toLocaleString() : '—'}</td>
     </tr>`;
   }).join('');
   
@@ -3388,6 +3543,10 @@ function resetUI() {
   document.getElementById('llm-section').style.display = 'none';
   document.getElementById('dl-bar').innerHTML = '';
   document.getElementById('status-elapsed').textContent = '';
+  const effSection = document.getElementById('efficiency-section');
+  if (effSection) effSection.style.display = 'none';
+  const execSection = document.getElementById('executor-section');
+  if (execSection) execSection.style.display = 'none';
   currentLocalSummary = null;
   currentLocalSqlExecutionsJson = null;
   // Reset sort state

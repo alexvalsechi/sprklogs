@@ -150,6 +150,14 @@ class StageAccumulator:
     shuffle_read_records: int = 0
     shuffle_write_records: int = 0
 
+    # ── Executor-level fields ──────────────────────────────────────────────
+    cpu_time_ms: int = 0           # Executor CPU Time summed, nanoseconds→ms
+    deserialize_time_ms: int = 0   # Executor Deserialize Time summed, ms
+    result_size_bytes: int = 0     # Result Size summed, bytes
+    minor_gc_count: int = 0        # MinorGCCount from Task Executor Metrics
+    major_gc_count: int = 0        # MajorGCCount from Task Executor Metrics
+    total_gc_time_tem_ms: int = 0  # TotalGCTime from Task Executor Metrics, ms
+
     def add(
         self,
         duration: int,
@@ -166,6 +174,13 @@ class StageAccumulator:
         peak_mem: int,
         sr_records: int,
         sw_records: int,
+        # executor-level params
+        cpu_time_ns: int = 0,
+        deserialize_ms: int = 0,
+        result_size: int = 0,
+        minor_gc: int = 0,
+        major_gc: int = 0,
+        total_gc_tem_ms: int = 0,
     ) -> None:
         # Scalar aggregates
         self.count += 1
@@ -193,6 +208,14 @@ class StageAccumulator:
         self.shuffle_read_records += sr_records
         self.shuffle_write_records += sw_records
 
+        # Executor-level aggregates
+        self.cpu_time_ms += cpu_time_ns // 1_000_000
+        self.deserialize_time_ms += deserialize_ms
+        self.result_size_bytes += result_size
+        self.minor_gc_count += minor_gc
+        self.major_gc_count += major_gc
+        self.total_gc_time_tem_ms += total_gc_tem_ms
+
         # Reservoir sampling for p95
         self._total_seen += 1
         if len(self._reservoir) < _RESERVOIR_SIZE:
@@ -217,6 +240,27 @@ class StageAccumulator:
     def skew_ratio(self) -> float:
         avg = self.dur_avg
         return self.dur_max / avg if avg > 0 else 0.0
+
+    # ── Derived executor-level properties ──────────────────────────────────
+
+    @property
+    def cpu_efficiency(self) -> float:
+        """CPU time / wall-clock run time.  <0.3 often indicates I/O or shuffle wait."""
+        return self.cpu_time_ms / self.dur_sum if self.dur_sum > 0 else 0.0
+
+    @property
+    def gc_overhead_pct(self) -> float:
+        """GC time as % of total run time (JVM GC Time)."""
+        return (self.gc_time / self.dur_sum * 100) if self.dur_sum > 0 else 0.0
+
+    @property
+    def deserialize_overhead_pct(self) -> float:
+        """Deserialize time as % of total run time."""
+        return (self.deserialize_time_ms / self.dur_sum * 100) if self.dur_sum > 0 else 0.0
+
+    @property
+    def avg_result_size_kb(self) -> float:
+        return (self.result_size_bytes / self.count / 1024) if self.count > 0 else 0.0
 
 
 # ─── Chain of Responsibility ──────────────────────────────────────────────────
@@ -318,6 +362,10 @@ class SinglePassHandler(BaseHandler):
         sql_plan_root: dict = {}
         sql_executions_raw: list = []   # collect ALL then smart-select
 
+        # ── executor registry and per-executor task stats
+        executor_registry: dict[str, dict] = {}   # ex_id → {host, cores}
+        executor_task_stats: dict[str, dict] = {}  # ex_id → aggregated counters
+
         # ── stage accumulators
         by_stage: dict[int, StageAccumulator] = {}
         stage_names: dict[int, str] = {}
@@ -334,6 +382,12 @@ class SinglePassHandler(BaseHandler):
                 env_update = ev
             elif etype == "SparkListenerExecutorAdded":
                 executor_count += 1
+                ex_id = str(ev.get("Executor ID", ""))
+                ei = ev.get("Executor Info", {}) or {}
+                executor_registry[ex_id] = {
+                    "host": ei.get("Host", "unknown"),
+                    "cores": ei.get("Total Cores", 0),
+                }
             elif etype == "SparkListenerResourceProfileAdded":
                 # Keep the first/default profile (id=0 in typical Spark logs).
                 if not resource_profile:
@@ -363,11 +417,22 @@ class SinglePassHandler(BaseHandler):
 
                 ti = ev.get("Task Info", {})
                 tm = ev.get("Task Metrics", {})
+                tem = ev.get("Task Executor Metrics", {}) or {}
                 sr = tm.get("Shuffle Read Metrics", {})
                 sw = tm.get("Shuffle Write Metrics", {})
 
+                # ── executor-level raw values
+                cpu_time_ns = tm.get("Executor CPU Time", 0)
+                deserialize_ms = tm.get("Executor Deserialize Time", 0)
+                result_size = tm.get("Result Size", 0)
+                minor_gc = tem.get("MinorGCCount", 0)
+                major_gc = tem.get("MajorGCCount", 0)
+                total_gc_tem_ms = tem.get("TotalGCTime", 0)
+
+                task_dur = ti.get("Finish Time", 0) - ti.get("Launch Time", 0)
+
                 acc.add(
-                    duration=ti.get("Finish Time", 0) - ti.get("Launch Time", 0),
+                    duration=task_dur,
                     input_b=tm.get("Input Metrics", {}).get("Bytes Read", 0),
                     output_b=tm.get("Output Metrics", {}).get("Bytes Written", 0),
                     shuffle_r=sr.get("Total Bytes Read", 0),
@@ -381,7 +446,25 @@ class SinglePassHandler(BaseHandler):
                     peak_mem=tm.get("Peak Execution Memory", 0),
                     sr_records=sr.get("Total Records Read", 0),
                     sw_records=sw.get("Shuffle Records Written", 0),
+                    cpu_time_ns=cpu_time_ns,
+                    deserialize_ms=deserialize_ms,
+                    result_size=result_size,
+                    minor_gc=minor_gc,
+                    major_gc=major_gc,
+                    total_gc_tem_ms=total_gc_tem_ms,
                 )
+
+                # Aggregate per-executor stats
+                ex_id = str(ti.get("Executor ID", ""))
+                if ex_id not in executor_task_stats:
+                    executor_task_stats[ex_id] = {
+                        "tasks": 0, "run_ms": 0, "gc_ms": 0, "cpu_ms": 0
+                    }
+                es = executor_task_stats[ex_id]
+                es["tasks"] += 1
+                es["run_ms"] += task_dur
+                es["gc_ms"] += tm.get("JVM GC Time", 0)
+                es["cpu_ms"] += cpu_time_ns // 1_000_000
 
         if progress_cb:
             progress_cb(62, "aggregating_stages")
@@ -425,6 +508,34 @@ class SinglePassHandler(BaseHandler):
         # Smart-select executions: always include writes/inserts + largest plans.
         ctx["sql_executions"] = _select_sql_executions(sql_executions_raw) or None
 
+        # ── build executor summary
+        executor_summary = []
+        for ex_id in sorted(executor_task_stats.keys()):
+            es = executor_task_stats[ex_id]
+            info = executor_registry.get(ex_id, {})
+            run_ms = es["run_ms"]
+            executor_summary.append({
+                "executor_id": ex_id,
+                "host": info.get("host", "unknown"),
+                "cores": info.get("cores", 0),
+                "tasks": es["tasks"],
+                "gc_ms": es["gc_ms"],
+                "gc_pct": round(es["gc_ms"] / run_ms * 100, 2) if run_ms else 0.0,
+                "cpu_efficiency": round(es["cpu_ms"] / run_ms, 3) if run_ms else 0.0,
+            })
+        ctx["executor_summary"] = executor_summary
+
+        # ── job-level efficiency aggregates
+        total_run_ms = sum(es["run_ms"] for es in executor_task_stats.values())
+        total_cpu_ms = sum(es["cpu_ms"] for es in executor_task_stats.values())
+        total_gc_ms = sum(es["gc_ms"] for es in executor_task_stats.values())
+        total_deser_ms = sum(acc.deserialize_time_ms for acc in by_stage.values())
+        ctx["job_efficiency_meta"] = {
+            "cpu_efficiency": round(total_cpu_ms / total_run_ms, 3) if total_run_ms else 0.0,
+            "gc_overhead_pct": round(total_gc_ms / total_run_ms * 100, 2) if total_run_ms else 0.0,
+            "deserialize_overhead_pct": round(total_deser_ms / total_run_ms * 100, 2) if total_run_ms else 0.0,
+        }
+
         # ── build StageMetrics list from accumulators
         stages: list[StageMetrics] = []
         for sid, acc in by_stage.items():
@@ -454,6 +565,12 @@ class SinglePassHandler(BaseHandler):
                     peak_execution_memory_bytes=acc.peak_exec_mem,
                     shuffle_read_records=acc.shuffle_read_records,
                     shuffle_write_records=acc.shuffle_write_records,
+                    cpu_efficiency=round(acc.cpu_efficiency, 3),
+                    gc_overhead_pct=round(acc.gc_overhead_pct, 2),
+                    deserialize_time_ms=acc.deserialize_time_ms,
+                    minor_gc_count=acc.minor_gc_count,
+                    major_gc_count=acc.major_gc_count,
+                    avg_result_size_kb=round(acc.avg_result_size_kb, 1),
                 )
             )
 
@@ -501,6 +618,8 @@ class SummaryBuilderHandler(BaseHandler):
             sql_plan_mermaid=None,
             sql_plan_tree=ctx.get("sql_plan_tree"),
             sql_executions=ctx.get("sql_executions"),
+            executor_summary=ctx.get("executor_summary", []),
+            job_efficiency_meta=ctx.get("job_efficiency_meta", {}),
             stages=stages,
         )
         return ctx
@@ -550,14 +669,64 @@ class MarkdownRenderer(BaseRenderer):
             f"| Output | {fmt_bytes(summary.total_output_bytes)} |",
             f"| Shuffle Read | {fmt_bytes(summary.total_shuffle_read_bytes)} |",
             f"| Shuffle Write | {fmt_bytes(summary.total_shuffle_write_bytes)} |",
+        ]
+
+        # ── Job-Level Efficiency summary (3 KPIs)
+        jem = getattr(summary, "job_efficiency_meta", {}) or {}
+        if jem:
+            lines += [
+                "",
+                "## Job-Level Efficiency",
+                "| Metric | Value | Interpretation |",
+                "|---|---|---|",
+                f"| CPU Efficiency | {jem.get('cpu_efficiency', 0):.3f} "
+                f"| ratio CPU time / wall-clock run time (1.0 = fully compute-bound) |",
+                f"| GC Overhead | {jem.get('gc_overhead_pct', 0):.2f}% "
+                f"| % of task wall-clock spent in GC (>5% is concerning) |",
+                f"| Deserialize Overhead | {jem.get('deserialize_overhead_pct', 0):.2f}% "
+                f"| % of task wall-clock spent deserializing inputs |",
+            ]
+
+        # ── Executor-Level Metrics — concise table
+        exec_summary = getattr(summary, "executor_summary", []) or []
+        if exec_summary:
+            lines += [
+                "",
+                "## Executor-Level Metrics",
+                "| Executor | Cores | Tasks | GC ms | GC% | CPU Efficiency |",
+                "|---|---|---|---|---|---|",
+            ]
+            for ex in exec_summary:
+                lines.append(
+                    f"| {ex['executor_id']} | {ex['cores']} | {ex['tasks']} "
+                    f"| {ex['gc_ms']:,} | {ex['gc_pct']:.2f}% | {ex['cpu_efficiency']:.3f} |"
+                )
+            outliers = [
+                ex for ex in exec_summary
+                if ex["gc_pct"] > 5.0 or ex["cpu_efficiency"] < 0.05
+            ]
+            if outliers:
+                lines += ["", "**Outlier executors** (GC > 5% or CPU efficiency < 0.05):"]
+                for ex in outliers:
+                    lines.append(
+                        f"- Executor {ex['executor_id']} ({ex['host']}): "
+                        f"gc={ex['gc_pct']:.2f}%, cpu_eff={ex['cpu_efficiency']:.3f}"
+                    )
+
+        lines += [
             "",
             "## Stage Breakdown",
-            "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W | SW Time | Fetch Wait | Spill Mem | Spill Disk | Peak Mem | Skew |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+            "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W "
+            "| SW Time | Fetch Wait | Spill Mem | Spill Disk | Peak Mem "
+            "| Skew | CPU Eff | GC% | Deser ms |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         for s in summary.stages:
             skew_flag = " ⚠️" if s.has_skew else ""
             spill_disk_flag = " 💾" if s.has_spill else ""
+            cpu_eff = getattr(s, "cpu_efficiency", None)
+            gc_pct = getattr(s, "gc_overhead_pct", None)
+            deser_ms = getattr(s, "deserialize_time_ms", None)
             lines.append(
                 f"| {s.stage_id} | {s.name[:35]} | {s.num_tasks} "
                 f"| {fmt_ms(s.duration_ms)} | {fmt_bytes(s.input_bytes)} "
@@ -565,7 +734,10 @@ class MarkdownRenderer(BaseRenderer):
                 f"| {fmt_ms(s.shuffle_write_time_ms)} | {fmt_ms(s.fetch_wait_time_ms)} "
                 f"| {fmt_bytes(s.memory_bytes_spilled)} | {fmt_bytes(s.disk_bytes_spilled)}{spill_disk_flag} "
                 f"| {fmt_bytes(s.peak_execution_memory_bytes)} "
-                f"| {s.skew_ratio}{skew_flag} |"
+                f"| {s.skew_ratio}{skew_flag} "
+                f"| {cpu_eff if cpu_eff is not None else 'n/a'} "
+                f"| {gc_pct if gc_pct is not None else 'n/a'} "
+                f"| {deser_ms if deser_ms is not None else 'n/a'} |"
             )
 
         if summary.sql_plan_tree:
@@ -599,6 +771,23 @@ class MarkdownRenderer(BaseRenderer):
                     f"shuffle write = {fmt_bytes(s.shuffle_write_bytes)}, "
                     f"SW time = {fmt_ms(s.shuffle_write_time_ms)}, "
                     f"fetch wait = {fmt_ms(s.fetch_wait_time_ms)}"
+                )
+
+        # ── Low CPU efficiency stages (potential I/O-bound bottlenecks)
+        low_cpu = [
+            s for s in summary.stages
+            if getattr(s, "cpu_efficiency", None) is not None
+            and s.cpu_efficiency < 0.1
+            and s.num_tasks >= 10
+        ]
+        if low_cpu:
+            lines += ["", "## 🐢 Stages with Low CPU Efficiency (< 0.10)"]
+            for s in low_cpu:
+                lines.append(
+                    f"- **Stage {s.stage_id}** ({s.name}): "
+                    f"cpu_eff={s.cpu_efficiency:.3f}, tasks={s.num_tasks}, "
+                    f"duration={fmt_ms(s.duration_ms)}, "
+                    f"fetch_wait={fmt_ms(s.fetch_wait_time_ms)}"
                 )
 
         return "\n".join(lines)

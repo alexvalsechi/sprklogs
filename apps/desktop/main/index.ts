@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, dialog } from 'electron'
+import { app, BrowserWindow, shell, dialog, Menu } from 'electron'
 import path from 'path'
 import { startPython, stopPython } from './python-manager'
 import { registerAllHandlers } from './ipc/register'
@@ -23,6 +23,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 980,
     minHeight: 680,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -54,6 +55,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null)
   try {
     pyBaseUrl = await startPython()
     console.log('[main] Local backend running at', pyBaseUrl)
