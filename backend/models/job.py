@@ -4,7 +4,7 @@ Domain models for job lifecycle.
 from __future__ import annotations
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class JobStatus(str, Enum):
@@ -82,9 +82,9 @@ class AppSummary(BaseModel):
     sql_plan_mermaid: Optional[str] = None
     sql_plan_tree: Optional[dict] = None
     sql_executions: Optional[list] = None
-    executor_summary: list = []
-    job_efficiency_meta: dict = {}
-    stages: list[StageMetrics] = []
+    executor_summary: list = Field(default_factory=list)
+    job_efficiency_meta: dict = Field(default_factory=dict)
+    stages: list[StageMetrics] = Field(default_factory=list)
 
 
 class JobResult(BaseModel):

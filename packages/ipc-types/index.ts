@@ -1,8 +1,8 @@
 export interface UpdateCheckResult {
-  hasUpdate:      boolean
-  latestVersion:  string
+  hasUpdate: boolean
+  latestVersion: string
   currentVersion: string
-  releaseUrl:     string
+  releaseUrl: string
 }
 
 export interface ReduceProgressData {
@@ -10,35 +10,71 @@ export interface ReduceProgressData {
   stage: string
 }
 
+export interface SessionUser {
+  id: string
+  email: string
+}
+
+export type Session = { user: SessionUser } | null
+
+export interface ReduceZipPayload {
+  zipPath: string
+  compact?: boolean
+}
+
+export interface ReduceZipResult {
+  reducedReport: string
+  summary: Record<string, unknown> | null
+  sqlExecutionsJson: string | null
+}
+
+export interface SubmitReducedAnalysisPayload {
+  reducedReport: string
+  pyFilePaths?: string[]
+  llmProvider?: string
+  apiKey?: string
+  userId?: string
+  language?: string
+}
+
+export interface SubmitReducedAnalysisResult {
+  job_id: string
+  status: 'pending' | 'running' | 'done' | 'error'
+}
+
+export interface SaveReportPayload {
+  content: string
+  suggestedName?: string
+}
+
+export interface SaveReportResult {
+  saved: boolean
+  filePath?: string
+}
+
+export interface CompressionResult {
+  outputPath: string
+  savedBytes: number
+}
+
+export interface CompressionStatus {
+  status: 'pending' | 'running' | 'done' | 'error'
+  progress: number
+}
+
 export interface IpcApi {
-  compressFile: (filePath: string) => Promise<{ outputPath: string; savedBytes: number }>
-  getCompressionStatus: (jobId: string) => Promise<{ status: 'pending' | 'running' | 'done' | 'error'; progress: number }>
+  compressFile: (filePath: string) => Promise<CompressionResult>
+  getCompressionStatus: (jobId: string) => Promise<CompressionStatus>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<UpdateCheckResult>
-
   login: (credentials: { email: string; password: string }) => Promise<{ token: string }>
   logout: () => Promise<void>
-  getSession: () => Promise<{ user: { id: string; email: string } } | null>
+  getSession: () => Promise<Session>
   getBackendUrl: () => Promise<string>
-
-  reduceZipLocally: (payload: { zipPath: string; compact?: boolean }) => Promise<{ reducedReport: string; summary: unknown | null; sqlExecutionsJson: string | null }>
-  submitReducedForAnalysis: (payload: {
-    apiBaseUrl?: string
-    reducedReport: string
-    pyFilePaths?: string[]
-    llmProvider?: string
-    apiKey?: string
-    userId?: string
-    provider?: string
-    language?: string
-  }) => Promise<unknown>
-  saveReportToDisk: (payload: { content: string; suggestedName?: string }) => Promise<{ saved: boolean; filePath?: string }>
-
-  /** Subscribe to reduction progress events from the main process.
-   *  Returns an unsubscribe function. */
+  reduceZipLocally: (payload: ReduceZipPayload) => Promise<ReduceZipResult>
+  submitReducedForAnalysis: (payload: SubmitReducedAnalysisPayload) => Promise<SubmitReducedAnalysisResult>
+  saveReportToDisk: (payload: SaveReportPayload) => Promise<SaveReportResult>
   onReduceProgress: (callback: (event: unknown, data: ReduceProgressData) => void) => () => void
-
-  // Analytics
   trackEvent: (event: string, props?: Record<string, unknown>) => Promise<void>
   setAnalyticsOptOut: (optOut: boolean) => Promise<void>
   getAnalyticsOptOut: () => Promise<boolean>

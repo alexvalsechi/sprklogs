@@ -10,7 +10,8 @@ import logging
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Lock
 
-from backend.models.job import JobResult, JobStatus
+from backend.models.job import JobStatus
+from backend.services.job_store import InMemoryJobStore
 from backend.services.job_service import get_job_service
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class LocalReducedJobRunner:
     def submit_reduced(
         self,
         job_id: str,
-        jobs: dict[str, JobResult],
+        job_store: InMemoryJobStore,
         reduced_report: str,
         py_files: dict[str, bytes],
         compact: bool,
@@ -36,7 +37,10 @@ class LocalReducedJobRunner:
         """Submit a reduced-report analysis job to run asynchronously."""
 
         def _run() -> None:
-            job = jobs[job_id]
+            job = job_store.get(job_id)
+            if not job:
+                logger.warning("Local reduced job %s disappeared before execution", job_id)
+                return
             job.status = JobStatus.RUNNING
             try:
                 service = get_job_service()

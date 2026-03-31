@@ -2596,7 +2596,6 @@ async function submitJob() {
     setRealProgress(87, stageMessage('report_ready'), 'running');
 
     const payload = {
-      apiBaseUrl: API_BASE_URL,
       reducedReport,
       pyFilePaths: pyFiles.map(f => f.path).filter(Boolean),
       llmProvider: getSelectedProvider() || '',

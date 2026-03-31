@@ -8,14 +8,14 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build:backend:win": "powershell -ExecutionPolicy Bypass -File ../../infra/scripts/build-python.ps1",
-    "build": "tsc",
-    "build:renderer": "esbuild renderer/features/spark-analyzer/SparkPlanViewer.jsx --bundle --outfile=renderer/features/spark-analyzer/spark-plan-viewer.js --platform=browser --target=chrome120 --minify",
-    "start": "npm run build && npm run build:renderer && electron .",
+    "build": "npx tsc",
+    "build:renderer": "npx esbuild renderer/features/spark-analyzer/SparkPlanViewer.jsx --bundle --outfile=renderer/features/spark-analyzer/spark-plan-viewer.js --platform=browser --target=chrome120 --minify",
+    "start": "npm run build && npm run build:renderer && npx electron .",
     "check": "node -e \"require('./package.json'); console.log('desktop package ok')\"",
-    "pack:win": "npm run build:backend:win && npm run build && npm run build:renderer && electron-builder --win --dir",
-    "pack:win:debug": "npm run build:backend:win && npm run build && npm run build:renderer && electron-builder --win --dir -c.win.signAndEditExecutable=false",
-    "dist:win": "npm run build:backend:win && npm run build && npm run build:renderer && electron-builder --win nsis --publish never",
-    "dist:win:local": "npm run build:backend:win && npm run build && npm run build:renderer && electron-builder --win nsis --publish never -c.win.signAndEditExecutable=false"
+    "pack:win": "npm run build:backend:win && npm run build && npm run build:renderer && npx electron-builder --win --dir",
+    "pack:win:debug": "npm run build:backend:win && npm run build && npm run build:renderer && npx electron-builder --win --dir -c.win.signAndEditExecutable=false",
+    "dist:win": "npm run build:backend:win && npm run build && npm run build:renderer && npx electron-builder --win nsis --publish never",
+    "dist:win:local": "npm run build:backend:win && npm run build && npm run build:renderer && npx electron-builder --win nsis --publish never -c.win.signAndEditExecutable=false"
   },
   "dependencies": {
     "@log-sparkui/ipc-types": "*",

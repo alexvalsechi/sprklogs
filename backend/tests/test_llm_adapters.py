@@ -1,19 +1,19 @@
 """
 Unit tests for LLM adapters.
-Uses a mock adapter — no real API calls.
+Uses a mock adapter - no real API calls.
 """
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock
 
-from backend.adapters.llm_adapters import NoOpAdapter, LLMClientFactory, BaseLLMAdapter
-from backend.services.llm_analyzer import LLMAnalyzer
+from backend.adapters.llm_adapters import BaseLLMAdapter, LLMClientFactory, NoOpAdapter
 from backend.models.job import AppSummary
+from backend.services.llm_analyzer import LLMAnalyzer
 
 
 class EchoAdapter(BaseLLMAdapter):
     """Test double that echoes the prompt length."""
+
     def _complete(self, prompt: str) -> str:
         return f"Echo: {len(prompt)} chars"
 
@@ -21,11 +21,19 @@ class EchoAdapter(BaseLLMAdapter):
 @pytest.fixture
 def minimal_summary() -> AppSummary:
     return AppSummary(
-        app_id="app-test", app_name="UnitTestJob", spark_version="3.5.0",
-        start_time_ms=0, end_time_ms=10000, total_duration_ms=10000,
-        num_stages=1, num_tasks=5, executor_count=2,
-        total_input_bytes=0, total_output_bytes=0,
-        total_shuffle_read_bytes=0, total_shuffle_write_bytes=0,
+        app_id="app-test",
+        app_name="UnitTestJob",
+        spark_version="3.5.0",
+        start_time_ms=0,
+        end_time_ms=10000,
+        total_duration_ms=10000,
+        num_stages=1,
+        num_tasks=5,
+        executor_count=2,
+        total_input_bytes=0,
+        total_output_bytes=0,
+        total_shuffle_read_bytes=0,
+        total_shuffle_write_bytes=0,
         stages=[],
     )
 
@@ -54,8 +62,7 @@ class TestLLMClientFactory:
 
 class TestLLMAnalyzer:
     def test_calls_adapter_with_report(self, minimal_summary):
-        adapter = EchoAdapter()
-        analyzer = LLMAnalyzer(adapter=adapter)
+        analyzer = LLMAnalyzer(adapter=EchoAdapter())
         result = analyzer.analyze(
             reduced_report="# Report\n\nSome data",
             summary=minimal_summary,
@@ -91,17 +98,15 @@ class TestLLMAnalyzer:
         analyzer = LLMAnalyzer(adapter=CapturingAdapter())
         analyzer.analyze("# Report", minimal_summary, language="pt")
 
-        # Validate Portuguese prompt selection without coupling to stale wording.
         assert "Você analisa logs da Spark UI" in prompts[0]
         assert "You analyze Spark UI logs" not in prompts[0]
 
     def test_retry_on_failure(self, minimal_summary):
-        """Adapter that fails twice then succeeds should still return result."""
         call_count = {"n": 0}
 
         class FlakyAdapter(BaseLLMAdapter):
             MAX_RETRIES = 3
-            RETRY_DELAY = 0  # no sleep in tests
+            RETRY_DELAY = 0
 
             def _complete(self, prompt: str) -> str:
                 call_count["n"] += 1
@@ -130,7 +135,6 @@ class TestLLMAnalyzer:
             py_files={"job.py": repeated.encode("utf-8")},
         )
 
-        # The placeholder used by collapse must never appear for source files.
         assert "[... repeated line omitted" not in prompts[0]
         assert repeated.strip() in prompts[0]
 
@@ -223,6 +227,7 @@ class TestLLMAnalyzer:
         )
 
         import json as _json
+
         data = _json.loads(result)
         link = data["bottlenecks"][0]["code_link"]
         fix = data["action_plan"]["code_fixes"][0]

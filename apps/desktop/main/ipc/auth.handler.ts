@@ -1,6 +1,6 @@
 const { ipcMain } = require('electron')
+import type { Session } from '@log-sparkui/ipc-types'
 
-type Session = { user: { id: string; email: string } } | null
 type IpcMainInvokeEvent = unknown
 
 let session: Session = null
