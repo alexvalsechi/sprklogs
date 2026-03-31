@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, dialog, Menu } from 'electron'
 import path from 'path'
 import { startPython, stopPython } from './python-manager'
 import { registerAllHandlers } from './ipc/register'
+import { initAnalytics, capture, shutdownAnalytics } from './analytics'
 
 let mainWindow: BrowserWindow | null = null
 let pyBaseUrl: string
@@ -56,11 +57,13 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null)
+  initAnalytics()
   try {
     pyBaseUrl = await startPython()
     console.log('[main] Local backend running at', pyBaseUrl)
     registerAllHandlers(pyBaseUrl)
     createWindow()
+    capture('app_opened')
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     dialog.showErrorBox('Backend startup error', `Could not start bundled backend.\n\n${detail}`)
@@ -75,7 +78,16 @@ app.whenReady().then(async () => {
   })
 })
 
-app.on('before-quit', stopPython)
+let _isQuitting = false
+app.on('before-quit', async (event) => {
+  if (_isQuitting) return
+  event.preventDefault()
+  _isQuitting = true
+  capture('app_closed')
+  stopPython()
+  await shutdownAnalytics()
+  app.quit()
+})
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })

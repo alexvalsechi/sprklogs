@@ -19,16 +19,17 @@
   },
   "dependencies": {
     "@log-sparkui/ipc-types": "*",
+    "posthog-node": "^4.18.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "electron": "31.7.7",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.4.5",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "esbuild": "^0.24.0"
+    "electron": "31.7.7",
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.4.5"
   }
 }

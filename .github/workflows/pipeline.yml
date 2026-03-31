@@ -1,4 +1,4 @@
-name: Monorepo CI-CD
+﻿name: Monorepo CI-CD
 
 on:
   pull_request:
@@ -376,6 +376,8 @@ jobs:
           node -e "const fs=require('fs');const p7='node_modules/7zip-bin/win/x64/7za.exe';const pab='node_modules/app-builder-bin/win/x64/app-builder.exe';console.log('7za path:',p7,'exists:',fs.existsSync(p7));console.log('app-builder path:',pab,'exists:',fs.existsSync(pab));"
 
       - name: Build NSIS installer
+        env:
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
         run: npm run dist:win --workspace @log-sparkui/desktop
 
       - name: Validate packaged backend is binary-only
@@ -578,6 +580,8 @@ jobs:
           node -e "const fs=require('fs');const p7='node_modules/7zip-bin/win/x64/7za.exe';const pab='node_modules/app-builder-bin/win/x64/app-builder.exe';console.log('7za path:',p7,'exists:',fs.existsSync(p7));console.log('app-builder path:',pab,'exists:',fs.existsSync(pab));"
 
       - name: Build NSIS installer
+        env:
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
         run: npm run dist:win --workspace @log-sparkui/desktop
 
       - name: Validate packaged backend is binary-only
@@ -753,6 +757,8 @@ jobs:
           node -e "const fs=require('fs');const p7='node_modules/7zip-bin/win/x64/7za.exe';const pab='node_modules/app-builder-bin/win/x64/app-builder.exe';console.log('7za path:',p7,'exists:',fs.existsSync(p7));console.log('app-builder path:',pab,'exists:',fs.existsSync(pab));"
 
       - name: Build NSIS installer
+        env:
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
         run: npm run dist:win --workspace @log-sparkui/desktop
 
       - name: Validate packaged backend is binary-only
@@ -960,6 +966,8 @@ jobs:
           node -e "const fs=require('fs');const p7='node_modules/7zip-bin/win/x64/7za.exe';const pab='node_modules/app-builder-bin/win/x64/app-builder.exe';console.log('7za path:',p7,'exists:',fs.existsSync(p7));console.log('app-builder path:',pab,'exists:',fs.existsSync(pab));"
 
       - name: Build NSIS installer
+        env:
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
         run: npm run dist:win --workspace @log-sparkui/desktop
 
       - name: Validate packaged backend is binary-only

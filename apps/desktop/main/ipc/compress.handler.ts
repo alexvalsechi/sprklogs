@@ -3,6 +3,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
+import { capture } from '../analytics'
 
 type IpcMainInvokeEvent = Electron.IpcMainInvokeEvent
 
@@ -89,6 +90,9 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
 
     // Start polling progress in background, forwarding events to the renderer
     const poll = startProgressPoll(pyBaseUrl, reduceJobId, event.sender)
+    const startMs = Date.now()
+    let fileSizeBytes = 0
+    try { fileSizeBytes = (await fs.stat(zipPath)).size } catch { /* best effort */ }
 
     try {
       const reduced = await reduceZipViaPath(pyBaseUrl, zipPath, compact, reduceJobId)
@@ -108,12 +112,23 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
           delete summary.sql_executions
         }
       }
-
+      capture('zip_reduced', {
+        success:         true,
+        duration_ms:     Date.now() - startMs,
+        file_size_bytes: fileSizeBytes,
+      })
       return {
         reducedReport: reduced.reduced_report,
         summary,
         sqlExecutionsJson,
       }
+    } catch (err) {
+      capture('zip_reduced', {
+        success:         false,
+        duration_ms:     Date.now() - startMs,
+        error:           err instanceof Error ? err.message : String(err),
+      })
+      throw err
     } finally {
       clearInterval(poll)
       // Emit 100 % so the renderer progress bar reaches the end
@@ -164,7 +179,9 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
       throw new Error(`upload-reduced failed (${res.status}): ${errText}`)
     }
 
-    return res.json()
+    const result = await res.json()
+    capture('analysis_submitted', { llm_provider: llmProvider ?? provider ?? 'unknown', language })
+    return result
   })
 
   ipcMain.handle('save-report-to-disk', async (_event: IpcMainInvokeEvent, payload: SavePayload) => {
@@ -186,6 +203,7 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
     }
 
     await fs.writeFile(filePath, content, 'utf-8')
+    capture('report_exported', { saved: true })
     return { saved: true, filePath }
   })
 

@@ -2191,6 +2191,7 @@ function switchTab(tabName) {
   helpBtn.classList.toggle('active', selected === 'help');
 
   localStorage.setItem('sparkui_active_tab', selected);
+  if (window.api?.trackEvent) window.api.trackEvent('screen_viewed', { screen: selected }).catch(() => {});
 }
 
 // language selector handler

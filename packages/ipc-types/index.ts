@@ -37,6 +37,11 @@ export interface IpcApi {
   /** Subscribe to reduction progress events from the main process.
    *  Returns an unsubscribe function. */
   onReduceProgress: (callback: (event: unknown, data: ReduceProgressData) => void) => () => void
+
+  // Analytics
+  trackEvent: (event: string, props?: Record<string, unknown>) => Promise<void>
+  setAnalyticsOptOut: (optOut: boolean) => Promise<void>
+  getAnalyticsOptOut: () => Promise<boolean>
 }
 
 export type IpcChannel = keyof IpcApi

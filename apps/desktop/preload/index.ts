@@ -17,6 +17,11 @@ const api: IpcApi = {
     ipcRenderer.on('reduce-progress', callback)
     return () => ipcRenderer.removeListener('reduce-progress', callback)
   },
+
+  // Analytics
+  trackEvent: (event, props) => ipcRenderer.invoke('track-event', event, props),
+  setAnalyticsOptOut: (optOut) => ipcRenderer.invoke('set-analytics-opt-out', optOut),
+  getAnalyticsOptOut: () => ipcRenderer.invoke('get-analytics-opt-out'),
 }
 
 contextBridge.exposeInMainWorld('api', api)
