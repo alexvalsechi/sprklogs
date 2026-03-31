@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0](https://github.com/alexvalsechi/sprklogs/compare/v0.20.0...v0.21.0) (2026-03-31)
+
+
+### Features
+
+* integrate PostHog analytics for event tracking and user opt-out functionality ([ba147e0](https://github.com/alexvalsechi/sprklogs/commit/ba147e02c5a9fa7729483fc0c60dcace4996f30d))
+* integrate PostHog analytics for event tracking and user opt-out… ([b5027d4](https://github.com/alexvalsechi/sprklogs/commit/b5027d4ae6d7f6f0c7edb5eced4397fbd051ebcf))
+
 ## [0.20.0](https://github.com/alexvalsechi/sprklogs/compare/v0.19.0...v0.20.0) (2026-03-28)
 
 
