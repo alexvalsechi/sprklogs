@@ -50,6 +50,7 @@ export function registerCompressHandlers(pyBaseUrl: string): void {
         reducedReport: reduced.reduced_report,
         summary,
         sqlExecutionsJson,
+        sparklensContext: (reduced as { sparklens_context?: Record<string, unknown> | null }).sparklens_context ?? null,
       }
     } catch (err) {
       capture('zip_reduced', {

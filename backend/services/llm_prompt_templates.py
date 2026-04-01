@@ -155,6 +155,7 @@ ABOUT CODE REFERENCES (MODE B):
 
 ABOUT JSON:
 - Return JSON ONLY. Zero text outside it.
+- All narrative string fields in the JSON MUST be written in English.
 - All numeric fields must be numbers, never unit-suffixed strings
 - Code strings (snippet, before_code, after_code, code) must contain valid code,
   with no narrative comments, no "BEFORE/AFTER" labels, and no "---"
@@ -314,6 +315,7 @@ SOBRE REFERÊNCIAS DE CÓDIGO (MODO B):
 
 SOBRE O JSON:
 - Retorne APENAS o JSON. Zero texto fora dele.
+- Todos os campos textuais narrativos do JSON DEVEM ser escritos em Portugues do Brasil.
 - Todos os campos numericos devem ser numeros, nunca strings com unidade
 - Strings de codigo (snippet, before_code, after_code, code) devem conter
   codigo valido, sem comentarios narrativos, sem "ANTES/DEPOIS", sem "---"

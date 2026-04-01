@@ -3,6 +3,7 @@
   "private": true,
   "license": "GPL-3.0-only",
   "scripts": {
+    "start": "npm --workspace @log-sparkui/desktop start",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "build:python": "bash infra/scripts/build-python.sh",

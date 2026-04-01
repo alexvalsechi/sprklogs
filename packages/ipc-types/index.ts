@@ -26,11 +26,13 @@ export interface ReduceZipResult {
   reducedReport: string
   summary: Record<string, unknown> | null
   sqlExecutionsJson: string | null
+  sparklensContext?: Record<string, unknown> | null
 }
 
 export interface SubmitReducedAnalysisPayload {
   reducedReport: string
   pyFilePaths?: string[]
+  sparklensContext?: Record<string, unknown> | null
   llmProvider?: string
   apiKey?: string
   userId?: string

@@ -3,11 +3,31 @@ Prompt assembly helpers for LLMAnalyzer.
 """
 from __future__ import annotations
 
+import json
 import logging
 
 from backend.services.llm_prompt_templates import SYSTEM_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
+
+SPARKLENS_GUIDANCE = {
+    "en": [
+        "## Deterministic Sparklens Rules",
+        "- If the Deterministic Sparklens Metrics block is present, treat it as authoritative evidence.",
+        "- Use Sparklens numbers as the primary basis for bottleneck severity, duration_expected_s, estimated_gain_min, and cluster recommendations.",
+        "- Prefer exact fields when available: driver_idle_pct, cluster_utilization_pct, one_core_hours.used_pct, skew.task_skew, time_distribution.gc_pct, time_distribution.shuffle_write_pct, time_distribution.shuffle_read_fetch_pct, io.spill_disk_bytes, io.spill_memory_bytes, and scalability_simulation estimated_min.",
+        "- Do not ignore Sparklens bottlenecks because of softer wording in the reduced report. Reconcile both inputs and prefer deterministic math over generic statements.",
+        "- When a Sparklens metric clearly indicates skew, low parallelism, GC pressure, shuffle overhead, spill, or weak scaling, surface it explicitly in the response JSON.",
+    ],
+    "pt": [
+        "## Regras Deterministicas do Sparklens",
+        "- Se o bloco Deterministic Sparklens Metrics estiver presente, trate-o como evidencia autoritativa.",
+        "- Use os numeros do Sparklens como base principal para severidade dos gargalos, duration_expected_s, estimated_gain_min e recomendacoes de cluster.",
+        "- Prefira campos exatos quando existirem: driver_idle_pct, cluster_utilization_pct, one_core_hours.used_pct, skew.task_skew, time_distribution.gc_pct, time_distribution.shuffle_write_pct, time_distribution.shuffle_read_fetch_pct, io.spill_disk_bytes, io.spill_memory_bytes e scalability_simulation estimated_min.",
+        "- Nao ignore gargalos do Sparklens por causa de descricoes mais suaves no reduced report. Concilie as duas fontes e prefira calculo deterministico a linguagem generica.",
+        "- Quando uma metrica do Sparklens indicar skew, baixo paralelismo, pressao de GC, overhead de shuffle, spill ou baixo ganho de escala, isso deve aparecer explicitamente no JSON final.",
+    ],
+}
 
 
 def collapse_repetitive_lines(text: str, keep: int = 2) -> str:
@@ -39,6 +59,7 @@ def collapse_repetitive_lines(text: str, keep: int = 2) -> str:
 def build_analysis_prompt(
     reduced_report: str,
     py_files: dict[str, bytes] | None = None,
+    sparklens_context: dict | None = None,
     language: str = "en",
 ) -> tuple[str, bool]:
     py_files_provided = bool(py_files)
@@ -58,6 +79,20 @@ def build_analysis_prompt(
         "## Reduced Log Report",
         report_for_prompt,
     ]
+
+    if sparklens_context:
+        sparklens_rules = SPARKLENS_GUIDANCE.get(language, SPARKLENS_GUIDANCE["en"])
+        prompt_parts.extend(
+            [
+                "",
+                *sparklens_rules,
+                "",
+                "## Deterministic Sparklens Metrics",
+                "```json",
+                json.dumps(sparklens_context, indent=2, sort_keys=True),
+                "```",
+            ]
+        )
 
     if py_files_provided:
         prompt_parts.append("\n## PySpark Source Files")

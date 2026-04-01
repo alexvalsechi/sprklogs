@@ -3,6 +3,7 @@ API routes for local reduction and reduced-report analysis.
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Optional
 
@@ -48,6 +49,7 @@ async def upload_reduced_log(
     request: Request,
     reduced_report: str = Form(..., description="Pre-reduced Spark report generated locally in Electron"),
     pyspark_files: list[UploadFile] = File(default=[], description="Optional .py job files"),
+    sparklens_context: Optional[str] = Form(default=None, description="Optional deterministic Spark metrics JSON"),
     compact: bool = Form(default=False),
     user_id: Optional[str] = Form(default=None),
     provider: Optional[str] = Form(default=None),
@@ -66,6 +68,7 @@ async def upload_reduced_log(
     return await _analysis_service.submit_reduced_log(
         reduced_report=reduced_report,
         pyspark_files=pyspark_files,
+        sparklens_context=_parse_optional_json(sparklens_context, "sparklens_context"),
         compact=compact,
         user_id=user_id,
         llm_provider=provider or llm_provider,
@@ -101,3 +104,15 @@ async def get_reduce_progress(reduce_job_id: str):
 @router.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+def _parse_optional_json(payload: Optional[str], field_name: str) -> Optional[dict]:
+    if payload is None or not payload.strip():
+        return None
+    try:
+        value = json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=422, detail=f"{field_name} must be valid JSON") from exc
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=422, detail=f"{field_name} must be a JSON object")
+    return value

@@ -29,6 +29,7 @@ class LocalReducedJobRunner:
         job_store: InMemoryJobStore,
         reduced_report: str,
         py_files: dict[str, bytes],
+        sparklens_context: dict | None,
         compact: bool,
         llm_provider: str | None,
         api_key: str | None,
@@ -47,6 +48,7 @@ class LocalReducedJobRunner:
                 result = service.process_reduced(
                     reduced_report=reduced_report,
                     py_files=py_files,
+                    sparklens_context=sparklens_context,
                     compact=compact,
                     llm_provider=llm_provider,
                     api_key=api_key,
