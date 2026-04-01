@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.0](https://github.com/alexvalsechi/sprklogs/compare/v0.22.0...v0.23.0) (2026-04-01)
+
+
+### Features
+
+* add inject-token script to embed POSTHOG_TOKEN into analytics m… ([ae752d9](https://github.com/alexvalsechi/sprklogs/commit/ae752d961411af8afc570ba84acf828bdff51711))
+* add inject-token script to embed POSTHOG_TOKEN into analytics module ([3a031f8](https://github.com/alexvalsechi/sprklogs/commit/3a031f840db76d464c31c51678f94b230fd1f136))
+
 ## [0.22.0](https://github.com/alexvalsechi/sprklogs/compare/v0.21.0...v0.22.0) (2026-04-01)
 
 
