@@ -38,7 +38,7 @@ def test_build_sparklens_report_from_bytes_computes_expected_metrics():
 
     zip_bytes = _build_zip_bytes(events)
     report = build_sparklens_report_from_bytes(zip_bytes)
-    zip_path = Path("backend/tests/_tmp_sparklens_demo.zip")
+    zip_path = Path(__file__).parent / "_tmp_sparklens_demo.zip"
     zip_path.write_bytes(zip_bytes)
     try:
         report_from_path = build_sparklens_report(str(zip_path))
