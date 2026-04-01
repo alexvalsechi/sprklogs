@@ -1090,6 +1090,157 @@
       border-radius: 3px;
       margin-top: 6px;
     }
+    .spark-note {
+      margin-top: 8px;
+      color: var(--text-dim);
+      font-size: 0.76rem;
+      line-height: 1.6;
+    }
+    .spark-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-family: var(--mono);
+      font-size: 0.67rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+    }
+    .spark-chip.good { color: var(--green); border-color: rgba(75,196,126,0.45); }
+    .spark-chip.warn { color: var(--yellow); border-color: rgba(232,195,58,0.45); }
+    .spark-chip.bad { color: var(--red); border-color: rgba(239,107,107,0.45); }
+    .spark-empty {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+    }
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .score-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+      display: grid;
+      gap: 8px;
+    }
+    .score-box-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .score-box-value {
+      font-family: var(--mono);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .score-box-value.good { color: var(--green); }
+    .score-box-value.warn { color: var(--yellow); }
+    .score-box-value.bad { color: var(--red); }
+    .score-box-desc {
+      color: var(--text-dim);
+      font-size: 0.76rem;
+      line-height: 1.6;
+    }
+    .metric-help {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: help;
+      min-width: 0;
+    }
+    .metric-help:focus-visible {
+      outline: 1px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 3px;
+    }
+    .metric-help-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .metric-help-icon {
+      width: 15px;
+      height: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      line-height: 1;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.03);
+    }
+    .metric-help-popup {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 10px);
+      width: min(320px, 72vw);
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      background: rgba(6, 6, 6, 0.98);
+      color: var(--text);
+      font-size: 0.72rem;
+      line-height: 1.6;
+      white-space: normal;
+      letter-spacing: normal;
+      text-transform: none;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.42);
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition);
+      z-index: 50;
+    }
+    .metric-help:hover .metric-help-popup,
+    .metric-help:focus-visible .metric-help-popup,
+    .metric-help:focus-within .metric-help-popup {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .metric-help-chip {
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .metric-help-chip .spark-chip {
+      margin-right: 0;
+      margin-bottom: 0;
+    }
+    .metric-help-value {
+      display: inline-flex;
+      align-items: center;
+    }
+    .metric-help-value .health-score,
+    .metric-help-value .score-box-value {
+      margin: 0;
+    }
+    .metric-help-popup-title {
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .metric-help-popup-line + .metric-help-popup-line {
+      margin-top: 4px;
+    }
     .llm-kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -1535,7 +1686,7 @@
       <p id="header-subtitle">Análise de Performance · Apache Spark</p>
     </div>
     <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
-      <label for="lang-select" style="font-size:0.85rem; color:var(--text-dim);">Language:</label>
+      <label id="lang-label" for="lang-select" style="font-size:0.85rem; color:var(--text-dim);">Language:</label>
       <select id="lang-select" style="background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius); padding:4px 8px; font-family:var(--mono); font-size:0.82rem; color:var(--text);">
         <option value="en">English</option>
         <option value="pt">Português (Brasil)</option>
@@ -1746,6 +1897,20 @@
       </div>
     </div>
 
+    <div id="score-summary-section" style="display:none">
+      <div class="section-label" id="results-score-label">04 - Overall Score</div>
+      <div class="analysis-panel">
+        <div class="inner" id="score-summary-inner"></div>
+      </div>
+    </div>
+
+    <div id="sparklens-section" style="display:none">
+      <div class="section-label" id="results-sparklens-label">04 - Calculo Aritmetico Spark</div>
+      <div class="analysis-panel">
+        <div class="inner" id="sparklens-inner"></div>
+      </div>
+    </div>
+
     <div id="llm-section" style="display:none">
       <div class="section-label" id="results-llm-label">04 — AI Analysis</div>
       <div class="analysis-panel">
@@ -1840,7 +2005,9 @@ let zipFile      = null;
 let pyFiles      = [];
 let currentLocalSummary = null;
 let currentLocalSqlExecutionsJson = null;
+let currentLocalSparklensContext = null;
 let currentReducedReport = null; // kept locally — never re-fetched from server
+let currentRenderedData = null;
 let currentLang = 'en';
 let statusCycleTimer = null;
 let progressCleanup = null; // unsubscribe fn for onReduceProgress
@@ -2044,6 +2211,124 @@ const translations = {
   }
 };
 
+function localeText(en, pt) {
+  return currentLang === 'pt' ? pt : en;
+}
+
+function formatLocale(template, vars = {}) {
+  return Object.entries(vars).reduce(
+    (text, [key, value]) => text.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
+    String(template)
+  );
+}
+
+function naLabel() {
+  return localeText('n/a', 'n/d');
+}
+
+function localizedChipLabel(cls) {
+  if (cls === 'good') return localeText('Good', 'Bom');
+  if (cls === 'warn') return localeText('Warning', 'Alerta');
+  if (cls === 'bad') return localeText('Bad', 'Ruim');
+  return cls;
+}
+
+function localizedSeverityLabel(severity) {
+  if (severity === 'critical') return localeText('Critical', 'Critico');
+  if (severity === 'high') return localeText('High', 'Alto');
+  if (severity === 'medium') return localeText('Medium', 'Medio');
+  if (severity === 'warning') return localeText('Warning', 'Alerta');
+  if (severity === 'ok') return localeText('OK', 'OK');
+  return severity;
+}
+
+function localizedStatusLabel(status) {
+  if (status === 'critical') return localeText('Critical', 'Critico');
+  if (status === 'warning' || status === 'warn') return localeText('Warning', 'Alerta');
+  if (status === 'ok') return 'OK';
+  return status || naLabel();
+}
+
+function localizedBottleneckType(type) {
+  const value = String(type || '').toLowerCase();
+  if (value === 'skew') return localeText('skew', 'skew');
+  if (value === 'spill') return localeText('spill', 'spill');
+  if (value === 'shuffle') return localeText('shuffle', 'shuffle');
+  if (value === 'planning_overhead') return localeText('planning overhead', 'overhead de planejamento');
+  if (value === 'driver_collect') return localeText('driver collect', 'collect no driver');
+  if (value === 'udf') return localeText('udf', 'udf');
+  if (value === 'low_parallelism') return localeText('low parallelism', 'baixo paralelismo');
+  if (value === 'gc_pressure') return localeText('GC pressure', 'pressao de GC');
+  if (value === 'shuffle_heavy' || value === 'shuffle_overhead') return localeText('shuffle overhead', 'overhead de shuffle');
+  if (value === 'cluster_underutilization') return localeText('cluster underutilization', 'subutilizacao do cluster');
+  if (value === 'other') return localeText('other', 'outro');
+  return value ? value.replace(/_/g, ' ') : localeText('other', 'outro');
+}
+
+function sectionLabel(number, en, pt) {
+  return `${number} - ${localeText(en, pt)}`;
+}
+
+function updateStaticAnalysisLanguage() {
+  const langLabel = document.getElementById('lang-label');
+  if (langLabel) langLabel.textContent = localeText('Language:', 'Idioma:');
+
+  const summaryLabel = document.getElementById('results-summary-label');
+  if (summaryLabel) summaryLabel.textContent = sectionLabel('02', 'Application Summary', 'Resumo da Aplicacao');
+
+  const efficiencyLabel = document.getElementById('results-efficiency-label');
+  if (efficiencyLabel) efficiencyLabel.textContent = sectionLabel('02b', 'Job-Level Efficiency', 'Eficiencia do Job');
+
+  const executorLabel = document.getElementById('results-executor-label');
+  if (executorLabel) executorLabel.textContent = sectionLabel('02c', 'Executor-Level Metrics', 'Metricas por Executor');
+
+  const stagesLabel = document.getElementById('results-stages-label');
+  if (stagesLabel) stagesLabel.textContent = sectionLabel('03', 'Stage Breakdown', 'Detalhamento das Etapas');
+
+  const scoreLabel = document.getElementById('results-score-label');
+  if (scoreLabel) scoreLabel.textContent = sectionLabel('04', 'Overall Score', 'Score Geral');
+
+  const sparklensLabel = document.getElementById('results-sparklens-label');
+  if (sparklensLabel) sparklensLabel.textContent = sectionLabel('04', getArithmeticEngineName(), getArithmeticEngineName());
+
+  const llmLabel = document.getElementById('results-llm-label');
+  if (llmLabel) llmLabel.textContent = sectionLabel('04', 'AI Analysis', 'Analise de IA');
+
+  const planLabel = document.getElementById('results-plan-label');
+  if (planLabel) planLabel.textContent = sectionLabel('04', 'SQL Physical Plan', 'Plano Fisico SQL');
+
+  const exportLabel = document.getElementById('results-export-label');
+  if (exportLabel) exportLabel.textContent = sectionLabel('05', 'Export', 'Exportar');
+
+  const executorHeaders = document.querySelectorAll('#executor-table thead th');
+  if (executorHeaders.length >= 7) {
+    executorHeaders[0].textContent = localeText('Executor', 'Executor');
+    executorHeaders[1].textContent = localeText('Host', 'Host');
+    executorHeaders[2].textContent = localeText('Cores', 'Cores');
+    executorHeaders[3].textContent = localeText('Tasks', 'Tarefas');
+    executorHeaders[4].textContent = localeText('GC ms', 'GC ms');
+    executorHeaders[5].textContent = localeText('GC%', 'GC%');
+    executorHeaders[6].textContent = localeText('CPU Efficiency', 'Eficiencia de CPU');
+  }
+
+  const stageHeaders = document.querySelectorAll('#stage-table thead th');
+  if (stageHeaders.length >= 12) {
+    stageHeaders[1].textContent = localeText('Stage Name', 'Nome da Etapa');
+    stageHeaders[2].textContent = localeText('Tasks', 'Tarefas');
+    stageHeaders[3].textContent = localeText('Duration', 'Duracao');
+    stageHeaders[4].textContent = localeText('Input', 'Entrada');
+    stageHeaders[5].textContent = localeText('Shuffle Read', 'Leitura de Shuffle');
+    stageHeaders[6].textContent = localeText('Shuffle Write', 'Escrita de Shuffle');
+    stageHeaders[7].textContent = localeText('Skew Ratio', 'Razao de Skew');
+    stageHeaders[8].textContent = localeText('p95 Task', 'p95 da tarefa');
+    stageHeaders[9].textContent = localeText('CPU Eff', 'Ef. CPU');
+    stageHeaders[10].textContent = localeText('GC%', 'GC%');
+    stageHeaders[11].textContent = localeText('Deser ms', 'Desserializacao ms');
+  }
+
+  updateExpandButton();
+}
+
 function updateLanguage() {
   const t = translations[currentLang] || translations.en;
 
@@ -2146,6 +2431,12 @@ function updateLanguage() {
 
   const submitBtnText = document.getElementById('btn-text');
   if (submitBtnText) submitBtnText.textContent = t.analyzeButton;
+
+  updateStaticAnalysisLanguage();
+  renderHistory();
+  if (currentRenderedData && document.getElementById('results').classList.contains('visible')) {
+    renderResults(currentRenderedData, { skipHistory: true });
+  }
 }
 
 function setStatus(status, msg) {
@@ -2300,7 +2591,7 @@ function updateZoneUI(type, name) {
   console.log('Zone element:', zone, 'Label element:', label);
   if (name) { 
     zone.classList.add('has-file'); 
-    label.textContent = 'Selected: ' + name; 
+    label.textContent = localeText('Selected: ', 'Selecionado: ') + name; 
     console.log('Added has-file class and updated label');
   }
   else { 
@@ -2378,12 +2669,12 @@ function renderHistory() {
   container.innerHTML = analysisHistory.map((item, idx) => `
     <div style="border-bottom: 1px solid var(--border); padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <strong>${item.appName || 'App'}</strong>
+        <strong>${item.appName || localeText('App', 'Aplicacao')}</strong>
         <br><small style="color: var(--text-dim);">${t.processedAtLabel}: ${item.processedAtLocal || new Date(item.timestamp || Date.now()).toLocaleString()}</small>
-        <br><small style="color: var(--text-dim);">Duração: ${item.duration}, Stages: ${item.numStages}</small>
+        <br><small style="color: var(--text-dim);">${localeText('Duration', 'Duracao')}: ${item.duration}, ${localeText('Stages', 'Etapas')}: ${item.numStages}</small>
       </div>
       <div>
-        <button class="btn-dl" type="button" data-history-idx="${idx}">Download Markdown</button>
+        <button class="btn-dl" type="button" data-history-idx="${idx}">${localeText('Download Markdown', 'Baixar Markdown')}</button>
       </div>
     </div>
   `).join('');
@@ -2462,7 +2753,8 @@ const STAGE_MESSAGES = {
     reading_zip:        'Reading ZIP file…',
     zip_loaded:         'Unpacking events…',
     reading_file:       'Processing log files…',
-    aggregating_stages: 'Aggregating stage metrics…',
+    aggregating_stages: 'Aggregating stage metrics...',
+    sparklens_metrics:  'Computing Spark arithmetic metrics...',
     stages_ready:       'Computing performance indicators…',
     building_summary:   'Building performance summary…',
     rendering_report:   'Generating report…',
@@ -2475,7 +2767,8 @@ const STAGE_MESSAGES = {
     reading_zip:        'Lendo arquivo ZIP…',
     zip_loaded:         'Descompactando eventos…',
     reading_file:       'Processando arquivos de log…',
-    aggregating_stages: 'Agregando métricas de stages…',
+    aggregating_stages: 'Agregando metricas de stages...',
+    sparklens_metrics:  'Calculando metricas do Calculo Aritmetico Spark...',
     stages_ready:       'Calculando indicadores de performance…',
     building_summary:   'Construindo resumo de performance…',
     rendering_report:   'Gerando relatório…',
@@ -2591,12 +2884,15 @@ async function submitJob() {
     }
     currentLocalSummary = (reduced && reduced.summary) || null;
     currentLocalSqlExecutionsJson = (reduced && reduced.sqlExecutionsJson) || null;
+    currentLocalSparklensContext = (reduced && reduced.sparklensContext) || null;
+    const sparklensContext = (reduced && reduced.sparklensContext) || null;
     currentReducedReport = reducedReport; // store locally for download — never round-trips to server
 
     setRealProgress(87, stageMessage('report_ready'), 'running');
 
     const payload = {
       reducedReport,
+      sparklensContext,
       pyFilePaths: pyFiles.map(f => f.path).filter(Boolean),
       llmProvider: getSelectedProvider() || '',
       apiKey: document.getElementById('input-key').value || '',
@@ -2612,7 +2908,7 @@ async function submitJob() {
     if (progressCleanup) { progressCleanup(); progressCleanup = null; }
     stopStatusCycle();
     showError(e.message);
-    setStatus('error', 'Upload failed');
+    setStatus('error', localeText('Upload failed', 'Falha no envio'));
   }
 }
 
@@ -2650,8 +2946,8 @@ function startPolling() {
       } else if (data.status === 'error') {
         clearInterval(pollTimer);
         stopStatusCycle();
-        showError(data.error || 'Unknown error during processing');
-        setStatus('error', 'Processing failed');
+        showError(data.error || localeText('Unknown error during processing', 'Erro desconhecido durante o processamento'));
+        setStatus('error', localeText('Processing failed', 'Falha no processamento'));
         stopElapsed();
         hideProgressBar();
       } else if (data.status === 'running') {
@@ -2664,37 +2960,56 @@ function startPolling() {
 }
 
 /* ── Render Results ─────────────────────────────────── */
-function renderResults(data) {
+function renderResults(data, options = {}) {
+  const { skipHistory = false } = options;
+  currentRenderedData = data;
+  const arithmeticName = getArithmeticEngineName();
   const hasLlm = Boolean(data.llm_analysis && data.llm_analysis.trim());
+  const sparklensContext = currentLocalSparklensContext || data.sparklens_context || null;
+  const sparklensScoreDetails = getSparklensScoreDetails(sparklensContext);
+  const llmScoreDetails = getLlmScoreDetails(data.llm_analysis || '');
+  const hasScoreSummary = Boolean(sparklensScoreDetails || (llmScoreDetails && llmScoreDetails.score != null));
+  const hasSparklens = Boolean(sparklensContext && typeof sparklensContext === 'object');
   const legacySummary = document.getElementById('legacy-summary-section');
   const legacyStages = document.getElementById('legacy-stages-section');
+  const scoreSummarySection = document.getElementById('score-summary-section');
+  const scoreSummaryLabel = document.getElementById('results-score-label');
+  const sparklensSection = document.getElementById('sparklens-section');
+  const sparklensLabel = document.getElementById('results-sparklens-label');
   const llmLabel = document.getElementById('results-llm-label');
+  const planLabel = document.getElementById('results-plan-label');
   const exportLabel = document.getElementById('results-export-label');
 
   // AI-first layout: when LLM output exists, keep the experience focused in AI Analysis.
   if (hasLlm) {
     if (legacySummary) legacySummary.style.display = 'none';
     if (legacyStages) legacyStages.style.display = 'none';
-    if (llmLabel) llmLabel.textContent = '02 — AI Analysis';
-    if (exportLabel) exportLabel.textContent = '04 — Export';
+    if (scoreSummaryLabel) scoreSummaryLabel.textContent = sectionLabel('02', 'Overall Score', 'Score Geral');
+    if (sparklensLabel) sparklensLabel.textContent = `03 - ${arithmeticName}`;
+    if (llmLabel) llmLabel.textContent = hasSparklens ? sectionLabel('04', 'AI Component', 'Componente de IA') : sectionLabel('03', 'AI Component', 'Componente de IA');
+    if (planLabel) planLabel.textContent = hasSparklens ? sectionLabel('05', 'SQL Physical Plan', 'Plano Fisico SQL') : sectionLabel('04', 'SQL Physical Plan', 'Plano Fisico SQL');
+    if (exportLabel) exportLabel.textContent = hasSparklens ? sectionLabel('06', 'Export', 'Exportar') : sectionLabel('05', 'Export', 'Exportar');
   } else {
     if (legacySummary) legacySummary.style.display = '';
     if (legacyStages) legacyStages.style.display = '';
-    if (llmLabel) llmLabel.textContent = '04 — AI Analysis';
-    if (exportLabel) exportLabel.textContent = '05 — Export';
+    if (scoreSummaryLabel) scoreSummaryLabel.textContent = sectionLabel('04', 'Overall Score', 'Score Geral');
+    if (sparklensLabel) sparklensLabel.textContent = `05 - ${arithmeticName}`;
+    if (llmLabel) llmLabel.textContent = sectionLabel('06', 'AI Component', 'Componente de IA');
+    if (planLabel) planLabel.textContent = hasSparklens ? sectionLabel('06', 'SQL Physical Plan', 'Plano Fisico SQL') : sectionLabel('04', 'SQL Physical Plan', 'Plano Fisico SQL');
+    if (exportLabel) exportLabel.textContent = hasSparklens ? sectionLabel('07', 'Export', 'Exportar') : sectionLabel('05', 'Export', 'Exportar');
   }
 
   // KPI cards
   const s = data.summary;
   if (s) {
     const cards = [
-      { label: 'App', value: s.app_name, cls: 'accent' },
-      { label: 'Duration', value: fmtMs(s.total_duration_ms), cls: '' },
-      { label: 'Stages', value: s.num_stages, cls: '' },
-      { label: 'Tasks', value: s.num_tasks.toLocaleString(), cls: '' },
-      { label: 'Executors', value: s.executor_count, cls: 'green' },
-      { label: 'Input', value: fmtBytes(s.total_input_bytes), cls: '' },
-      { label: 'Shuffle Read', value: fmtBytes(s.total_shuffle_read_bytes), cls: s.total_shuffle_read_bytes > 1e9 ? 'yellow' : '' },
+      { label: localeText('App', 'Aplicacao'), value: s.app_name, cls: 'accent' },
+      { label: localeText('Duration', 'Duracao'), value: fmtMs(s.total_duration_ms), cls: '' },
+      { label: localeText('Stages', 'Etapas'), value: s.num_stages, cls: '' },
+      { label: localeText('Tasks', 'Tarefas'), value: s.num_tasks.toLocaleString(), cls: '' },
+      { label: localeText('Executors', 'Executores'), value: s.executor_count, cls: 'green' },
+      { label: localeText('Input', 'Entrada'), value: fmtBytes(s.total_input_bytes), cls: '' },
+      { label: localeText('Shuffle Read', 'Leitura de Shuffle'), value: fmtBytes(s.total_shuffle_read_bytes), cls: s.total_shuffle_read_bytes > 1e9 ? 'yellow' : '' },
       { label: 'Spark', value: s.spark_version, cls: '' },
     ];
     const container = document.getElementById('kpi-cards');
@@ -2728,9 +3043,24 @@ function renderResults(data) {
       const cpuCls = cpuEff >= 0.5 ? 'good' : cpuEff >= 0.2 ? 'warn' : 'bad';
       const gcCls  = gcPct < 2 ? 'good' : gcPct < 5 ? 'warn' : 'bad';
       document.getElementById('efficiency-kpis').innerHTML = [
-        { label: 'CPU Efficiency', value: cpuEff.toFixed(3), cls: cpuCls, hint: 'CPU time / wall-clock. <0.2 = I/O-bound' },
-        { label: 'GC Overhead', value: gcPct.toFixed(2) + '%', cls: gcCls, hint: 'JVM GC time as % of run time. >5% is concerning' },
-        { label: 'Deserialize Overhead', value: desrPct.toFixed(2) + '%', cls: '', hint: '% of run time spent deserializing task inputs' },
+        {
+          label: localeText('CPU Efficiency', 'Eficiencia de CPU'),
+          value: cpuEff.toFixed(3),
+          cls: cpuCls,
+          hint: localeText('CPU time / wall-clock. <0.2 = I/O-bound.', 'Tempo de CPU / tempo total. <0.2 costuma indicar gargalo fora de CPU.'),
+        },
+        {
+          label: localeText('GC Overhead', 'Overhead de GC'),
+          value: gcPct.toFixed(2) + '%',
+          cls: gcCls,
+          hint: localeText('JVM GC time as % of run time. >5% is concerning.', 'Tempo de JVM GC como % do tempo total. >5% merece atencao.'),
+        },
+        {
+          label: localeText('Deserialize Overhead', 'Overhead de desserializacao'),
+          value: desrPct.toFixed(2) + '%',
+          cls: '',
+          hint: localeText('% of run time spent deserializing task inputs.', '% do tempo total gasto desserializando entradas das tarefas.'),
+        },
       ].map(k => `
         <div class="eff-card">
           <div class="eff-label">${k.label}</div>
@@ -2765,11 +3095,32 @@ function renderResults(data) {
     }
   }
 
+  if (hasScoreSummary) {
+    if (scoreSummarySection) scoreSummarySection.style.display = '';
+    const scoreSummaryInner = document.getElementById('score-summary-inner');
+    if (scoreSummaryInner) scoreSummaryInner.innerHTML = renderScoreSummary(sparklensScoreDetails, llmScoreDetails);
+  } else if (scoreSummarySection) {
+    scoreSummarySection.style.display = 'none';
+    const scoreSummaryInner = document.getElementById('score-summary-inner');
+    if (scoreSummaryInner) scoreSummaryInner.innerHTML = '';
+  }
+
+  if (hasSparklens) {
+    if (sparklensSection) sparklensSection.style.display = '';
+    const sparklensInner = document.getElementById('sparklens-inner');
+    if (sparklensInner) sparklensInner.innerHTML = renderSparklensInsights(sparklensContext, sparklensScoreDetails);
+  } else if (sparklensSection) {
+    sparklensSection.style.display = 'none';
+    const sparklensInner = document.getElementById('sparklens-inner');
+    if (sparklensInner) sparklensInner.innerHTML = '';
+  }
+
   // LLM analysis
   if (hasLlm) {
+
     document.getElementById('llm-section').style.display = '';
     const llmInner = document.getElementById('llm-inner');
-    llmInner.innerHTML = convertMermaidBlocks(renderLlmAnalysis(data.llm_analysis));
+    llmInner.innerHTML = convertMermaidBlocks(renderLlmAnalysis(data.llm_analysis, llmScoreDetails));
 
     // SQL Physical Plan removed from the LLM card — it is now shown in the dedicated canvas section below.
 
@@ -2781,10 +3132,16 @@ function renderResults(data) {
     document.getElementById('llm-inner').innerHTML = '';
   }
 
-  // Build markdown content entirely on the client — no server round-trip
+  // Build markdown content entirely on the client - no server round-trip
   const mdParts = [];
+  if (hasScoreSummary) {
+    mdParts.push(buildOverallScoreMarkdown(sparklensScoreDetails, llmScoreDetails));
+  }
+  if (hasSparklens) {
+    mdParts.push(buildSparklensMarkdown(sparklensContext, sparklensScoreDetails));
+  }
   if (hasLlm) {
-    mdParts.push('## AI Analysis\n\n' + data.llm_analysis);
+    mdParts.push(`## ${localeText('AI Analysis', 'Analise de IA')}\n\n` + data.llm_analysis);
   } else if (currentReducedReport) {
     mdParts.push(currentReducedReport);
   }
@@ -2797,7 +3154,7 @@ function renderResults(data) {
   dlBar.innerHTML = `
     <button class="btn-dl" type="button" id="btn-dl-md">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download Markdown
+      ${localeText('Download Markdown', 'Baixar Markdown')}
     </button>
   `;
   document.getElementById('btn-dl-md').addEventListener('click', () =>
@@ -2810,9 +3167,6 @@ function renderResults(data) {
   const planExecs   = currentLocalSqlExecutionsJson ? JSON.parse(currentLocalSqlExecutionsJson) : null;
   if (planExecs && planExecs.length > 0 && planRoot && window.SparkPlanViewer) {
     planSection.style.display = '';
-    const planLbl = document.getElementById('results-plan-label');
-    // Re-number label based on layout mode
-    if (planLbl) planLbl.textContent = hasLlm ? '03 — SQL Physical Plan' : '04 — SQL Physical Plan';
     window.SparkPlanViewer.mount(planExecs, planRoot);
   } else if (planSection) {
     planSection.style.display = 'none';
@@ -2827,14 +3181,16 @@ function renderResults(data) {
     jobId: currentJobId,
     timestamp: Date.now(),
     processedAtLocal: new Date().toLocaleString(),
-    appName:        s ? s.app_name                : 'Unknown',
+    appName:        s ? s.app_name                : localeText('Unknown', 'Desconhecido'),
     duration:       s ? fmtMs(s.total_duration_ms)  : '—',
     numStages:      s ? s.num_stages               : 0,
     numTasks:       s ? s.num_tasks                : 0,
     markdownContent: mdContent,
     suggestedFilename,
   };
-  saveHistory(analysis);
+  if (!skipHistory) {
+    saveHistory(analysis);
+  }
   
   // Re-enable button and hide spinner for potential re-analysis
   const btn = document.getElementById('btn-submit');
@@ -2883,8 +3239,1101 @@ function scoreClass(score) {
   return 'bad';
 }
 
-function renderLlmAnalysis(rawText) {
+function toFiniteNumber(value, fallback = null) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function fmtPct(value, digits = 1) {
+  const num = toFiniteNumber(value, null);
+  return num == null ? naLabel() : `${num.toFixed(digits)}%`;
+}
+
+function fmtMinutes(value, digits = 1) {
+  const num = toFiniteNumber(value, null);
+  return num == null ? naLabel() : `${num.toFixed(digits)} min`;
+}
+
+function sparkSeverityFromScore(score) {
+  if (score >= 85) return 'critical';
+  if (score >= 65) return 'high';
+  return 'medium';
+}
+
+function sparkChipClass(value, warnAt, badAt) {
+  const num = toFiniteNumber(value, null);
+  if (num == null) return '';
+  if (num >= badAt) return 'bad';
+  if (num >= warnAt) return 'warn';
+  return 'good';
+}
+
+function getSparklensStages(context) {
+  return Array.isArray(context && context.stages_summary) ? context.stages_summary : [];
+}
+
+function getSparklensStage(context, stageId) {
+  return getSparklensStages(context).find((stage) => Number(stage && stage.stage_id) === Number(stageId)) || null;
+}
+
+function describeSparklensBottleneck(type, stage) {
+  const stageId = stage && stage.stage_id != null ? stage.stage_id : null;
+  const wallMs = toFiniteNumber(stage && stage.wall_ms, 0) || 0;
+  const idealMs = toFiniteNumber(stage && stage.ideal_wall_ms, 0) || 0;
+  const usedPct = toFiniteNumber(stage && stage.one_core_hours && stage.one_core_hours.used_pct, null);
+  const skewRatio = toFiniteNumber(stage && stage.skew && stage.skew.task_skew, null);
+  const gcPct = toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.gc_pct, null);
+  const shufflePct =
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_write_pct, 0) || 0) +
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_read_fetch_pct, 0) || 0);
+
+  if (type === 'low_parallelism') {
+    return {
+      metric: usedPct == null ? naLabel() : localeText(`${fmtPct(usedPct)} core-time usage`, `${fmtPct(usedPct)} de uso do tempo de core`),
+      impact: localeText(
+        `Stage ${stageId} leaves a large part of the cluster idle while wall time remains ${fmtMs(wallMs)}.`,
+        `O Stage ${stageId} deixa uma grande parte do cluster ociosa enquanto o tempo total segue em ${fmtMs(wallMs)}.`
+      ),
+      severity: sparkSeverityFromScore((100 - (usedPct || 0)) + (wallMs > 0 ? 20 : 0)),
+    };
+  }
+  if (type === 'skew') {
+    return {
+      metric: skewRatio == null ? naLabel() : localeText(`${skewRatio.toFixed(2)}x max/median task skew`, `${skewRatio.toFixed(2)}x de skew max/mediana das tasks`),
+      impact: localeText(
+        `A few tasks dominate the tail and delay downstream work in Stage ${stageId}.`,
+        `Poucas tasks dominam a cauda e atrasam o trabalho seguinte no Stage ${stageId}.`
+      ),
+      severity: sparkSeverityFromScore((skewRatio || 0) * 16),
+    };
+  }
+  if (type === 'gc_pressure') {
+    return {
+      metric: gcPct == null ? naLabel() : localeText(`${fmtPct(gcPct)} GC share`, `${fmtPct(gcPct)} de participacao de GC`),
+      impact: localeText(
+        `Executor time is being burned by garbage collection instead of useful work in Stage ${stageId}.`,
+        `O tempo dos executores esta sendo consumido por garbage collection em vez de trabalho util no Stage ${stageId}.`
+      ),
+      severity: sparkSeverityFromScore((gcPct || 0) * 5),
+    };
+  }
+  if (type === 'shuffle_heavy') {
+    return {
+      metric: localeText(`${fmtPct(shufflePct)} shuffle wait/write share`, `${fmtPct(shufflePct)} de participacao de espera/escrita de shuffle`),
+      impact: localeText(
+        `Stage ${stageId} spends too much runtime moving shuffle data instead of computing.`,
+        `O Stage ${stageId} gasta runtime demais movendo dados de shuffle em vez de computar.`
+      ),
+      severity: sparkSeverityFromScore(shufflePct * 2.5),
+    };
+  }
+  return {
+    metric: localeText(`${fmtMs(wallMs)} observed vs ${fmtMs(idealMs)} ideal`, `${fmtMs(wallMs)} observado vs ${fmtMs(idealMs)} ideal`),
+    impact: localeText(
+      `Stage ${stageId} is expensive in wall clock and should be inspected first.`,
+      `O Stage ${stageId} e caro em tempo de parede e deve ser inspecionado primeiro.`
+    ),
+    severity: sparkSeverityFromScore((wallMs > idealMs && wallMs > 0) ? ((wallMs - idealMs) / wallMs) * 100 : 60),
+  };
+}
+
+function buildSparklensInsights(context) {
+  const insights = [];
+  const app = (context && context.app) || {};
+  const cluster = (context && context.cluster) || {};
+  const stages = getSparklensStages(context);
+  const simulations = Array.isArray(context && context.scalability_simulation) ? context.scalability_simulation : [];
+  const hostEntries = Object.entries((context && context.host_analysis) || {});
+
+  function addInsight(score, title, evidence, impact, stageId = null) {
+    insights.push({
+      score,
+      severity: sparkSeverityFromScore(score),
+      title,
+      evidence,
+      impact,
+      stageId,
+    });
+  }
+
+  const clusterUtil = toFiniteNumber(cluster.cluster_utilization_pct, null);
+  if (clusterUtil != null && clusterUtil < 60) {
+    const usedCoreHours = toFiniteNumber(cluster.used_core_hours, 0) || 0;
+    const availableCoreHours = toFiniteNumber(cluster.available_core_hours, 0) || 0;
+    addInsight(
+      clusterUtil < 35 ? 90 : 74,
+      localeText('Cluster underutilization', 'Subutilizacao do cluster'),
+      localeText(
+        `Only ${fmtPct(clusterUtil)} of available core-hours were used (${usedCoreHours.toFixed(3)} / ${availableCoreHours.toFixed(3)} core-hours).`,
+        `Apenas ${fmtPct(clusterUtil)} dos core-hours disponiveis foram usados (${usedCoreHours.toFixed(3)} / ${availableCoreHours.toFixed(3)} core-hours).`
+      ),
+      localeText(
+        'The job is leaving executor capacity idle, which usually points to coordination overhead, low parallelism, or a long tail in a few stages.',
+        'O job esta deixando capacidade dos executores ociosa, o que normalmente aponta para overhead de coordenacao, baixo paralelismo ou uma cauda longa em alguns stages.'
+      )
+    );
+  }
+
+  const driverIdle = toFiniteNumber(app.driver_idle_pct, null);
+  if (driverIdle != null && driverIdle > 18) {
+    addInsight(
+      driverIdle > 35 ? 82 : 66,
+      localeText('Driver and coordination overhead', 'Overhead de driver e coordenacao'),
+      localeText(
+        `${fmtPct(driverIdle)} of application time happened outside active job execution.`,
+        `${fmtPct(driverIdle)} do tempo da aplicacao aconteceu fora da execucao ativa dos jobs.`
+      ),
+      localeText(
+        'A meaningful slice of end-to-end duration is not productive executor work, so scaling executors alone may not fix total runtime.',
+        'Uma parcela relevante da duracao total nao e trabalho produtivo de executor, entao escalar executores sozinho pode nao resolver o runtime total.'
+      )
+    );
+  }
+
+  const lowParallelStage = stages
+    .filter((stage) => (toFiniteNumber(stage && stage.wall_ms, 0) || 0) > 0 && (toFiniteNumber(stage && stage.one_core_hours && stage.one_core_hours.used_pct, 100) || 100) < 70)
+    .sort((a, b) => {
+      const aScore = (toFiniteNumber(a && a.wall_ms, 0) || 0) * (100 - (toFiniteNumber(a && a.one_core_hours && a.one_core_hours.used_pct, 100) || 100));
+      const bScore = (toFiniteNumber(b && b.wall_ms, 0) || 0) * (100 - (toFiniteNumber(b && b.one_core_hours && b.one_core_hours.used_pct, 100) || 100));
+      return bScore - aScore;
+    })[0];
+  if (lowParallelStage) {
+    const usedPct = toFiniteNumber(lowParallelStage.one_core_hours && lowParallelStage.one_core_hours.used_pct, 0) || 0;
+    addInsight(
+      usedPct < 35 ? 88 : 72,
+      localeText('Low effective parallelism', 'Baixo paralelismo efetivo'),
+      localeText(
+        `Stage ${lowParallelStage.stage_id} used only ${fmtPct(usedPct)} of available core time while taking ${fmtMs(lowParallelStage.wall_ms)}.`,
+        `O Stage ${lowParallelStage.stage_id} usou apenas ${fmtPct(usedPct)} do tempo de core disponivel enquanto levou ${fmtMs(lowParallelStage.wall_ms)}.`
+      ),
+      localeText(
+        `Its ideal runtime is ${fmtMs(lowParallelStage.ideal_wall_ms)}, which means there is measurable headroom before adding more hardware.`,
+        `O runtime ideal e ${fmtMs(lowParallelStage.ideal_wall_ms)}, o que indica folga mensuravel antes de adicionar mais hardware.`
+      ),
+      lowParallelStage.stage_id
+    );
+  }
+
+  const skewStage = stages
+    .filter((stage) => (toFiniteNumber(stage && stage.skew && stage.skew.task_skew, 0) || 0) > 3)
+    .sort((a, b) => (toFiniteNumber(b && b.skew && b.skew.task_skew, 0) || 0) - (toFiniteNumber(a && a.skew && a.skew.task_skew, 0) || 0))[0];
+  if (skewStage) {
+    const taskSkew = toFiniteNumber(skewStage.skew && skewStage.skew.task_skew, 0) || 0;
+    addInsight(
+      taskSkew > 5 ? 91 : 76,
+      localeText('Severe task skew', 'Skew severo de tasks'),
+      localeText(
+        `Stage ${skewStage.stage_id} reached ${taskSkew.toFixed(2)}x max/median task runtime (max ${fmtMs(skewStage.skew.max_task_ms)}, median ${fmtMs(skewStage.skew.median_task_ms)}).`,
+        `O Stage ${skewStage.stage_id} chegou a ${taskSkew.toFixed(2)}x no runtime max/mediana das tasks (max ${fmtMs(skewStage.skew.max_task_ms)}, mediana ${fmtMs(skewStage.skew.median_task_ms)}).`
+      ),
+      localeText(
+        'A small number of oversized tasks are controlling stage completion and reducing the payoff of cluster parallelism.',
+        'Um pequeno numero de tasks superdimensionadas esta controlando o termino do stage e reduzindo o retorno do paralelismo do cluster.'
+      ),
+      skewStage.stage_id
+    );
+  }
+
+  const gcStage = stages
+    .filter((stage) => (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.gc_pct, 0) || 0) > 8)
+    .sort((a, b) => (toFiniteNumber(b && b.time_distribution && b.time_distribution.gc_pct, 0) || 0) - (toFiniteNumber(a && a.time_distribution && a.time_distribution.gc_pct, 0) || 0))[0];
+  if (gcStage) {
+    const gcPct = toFiniteNumber(gcStage.time_distribution && gcStage.time_distribution.gc_pct, 0) || 0;
+    addInsight(
+      gcPct > 15 ? 86 : 69,
+      localeText('GC pressure', 'Pressao de GC'),
+      localeText(
+        `Stage ${gcStage.stage_id} spent ${fmtPct(gcPct)} of executor runtime in JVM GC.`,
+        `O Stage ${gcStage.stage_id} gastou ${fmtPct(gcPct)} do runtime dos executores em JVM GC.`
+      ),
+      localeText(
+        'Heap pressure is large enough to steal executor time from useful work and usually correlates with oversized partitions or expensive object churn.',
+        'A pressao de heap e grande o bastante para roubar tempo de executor do trabalho util e normalmente se correlaciona com particoes superdimensionadas ou churn caro de objetos.'
+      ),
+      gcStage.stage_id
+    );
+  }
+
+  const shuffleStage = stages
+    .map((stage) => ({
+      stage,
+      shufflePct:
+        (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_write_pct, 0) || 0) +
+        (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_read_fetch_pct, 0) || 0),
+    }))
+    .filter((item) => item.shufflePct > 25)
+    .sort((a, b) => b.shufflePct - a.shufflePct)[0];
+  if (shuffleStage) {
+    addInsight(
+      shuffleStage.shufflePct > 40 ? 84 : 67,
+      localeText('Shuffle overhead dominates stage time', 'Overhead de shuffle domina o stage'),
+      localeText(
+        `Stage ${shuffleStage.stage.stage_id} spent ${fmtPct(shuffleStage.shufflePct)} of runtime in shuffle read wait and shuffle write time.`,
+        `O Stage ${shuffleStage.stage.stage_id} gastou ${fmtPct(shuffleStage.shufflePct)} do runtime em espera de shuffle read e tempo de shuffle write.`
+      ),
+      localeText(
+        'The stage is paying more for data movement than computation, which is a strong signal for repartitioning, skew fixes, or reducing shuffle volume.',
+        'O stage esta pagando mais por movimentacao de dados do que por computacao, um sinal forte de reparticionamento, correcao de skew ou reducao do volume de shuffle.'
+      ),
+      shuffleStage.stage.stage_id
+    );
+  }
+
+  const spillStage = stages
+    .map((stage) => ({
+      stage,
+      totalSpill:
+        (toFiniteNumber(stage && stage.io && stage.io.spill_disk_bytes, 0) || 0) +
+        (toFiniteNumber(stage && stage.io && stage.io.spill_memory_bytes, 0) || 0),
+    }))
+    .filter((item) => item.totalSpill > 0)
+    .sort((a, b) => b.totalSpill - a.totalSpill)[0];
+  if (spillStage) {
+    addInsight(
+      spillStage.totalSpill > 1073741824 ? 73 : 65,
+      localeText('Spill to disk or memory', 'Spill para disco ou memoria'),
+      localeText(
+        `Stage ${spillStage.stage.stage_id} spilled ${fmtBytes(spillStage.stage.io.spill_disk_bytes || 0)} to disk and ${fmtBytes(spillStage.stage.io.spill_memory_bytes || 0)} to memory.`,
+        `O Stage ${spillStage.stage.stage_id} fez spill de ${fmtBytes(spillStage.stage.io.spill_disk_bytes || 0)} para disco e ${fmtBytes(spillStage.stage.io.spill_memory_bytes || 0)} para memoria.`
+      ),
+      localeText(
+        'Spill introduces extra I/O and usually means partitions are too large for the current executor memory envelope.',
+        'Spill introduz I/O extra e normalmente significa que as particoes estao grandes demais para a memoria atual dos executores.'
+      ),
+      spillStage.stage.stage_id
+    );
+  }
+
+  const currentExecutors = toFiniteNumber(cluster.executor_count, 0) || 0;
+  const scenarioByExecutors = new Map();
+  simulations.forEach((scenario) => {
+    const executorCount = toFiniteNumber(scenario && scenario.executor_count, null);
+    if (executorCount == null) return;
+    const previous = scenarioByExecutors.get(executorCount);
+    if (!previous || (toFiniteNumber(scenario.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER) < (toFiniteNumber(previous.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER)) {
+      scenarioByExecutors.set(executorCount, scenario);
+    }
+  });
+  const baselineScenario =
+    Array.from(scenarioByExecutors.values()).find((scenario) => toFiniteNumber(scenario && scenario.executor_count, 0) === currentExecutors) ||
+    Array.from(scenarioByExecutors.values()).find((scenario) => toFiniteNumber(scenario && scenario.pct_of_current, 0) === 100) ||
+    null;
+  const futureScenario = Array.from(scenarioByExecutors.values())
+    .filter((scenario) => (toFiniteNumber(scenario && scenario.executor_count, 0) || 0) > currentExecutors)
+    .sort((a, b) => (toFiniteNumber(a && a.estimated_ms, 0) || 0) - (toFiniteNumber(b && b.estimated_ms, 0) || 0))[0];
+  if (baselineScenario && futureScenario) {
+    const baselineMs = toFiniteNumber(baselineScenario.estimated_ms, 0) || 0;
+    const futureMs = toFiniteNumber(futureScenario.estimated_ms, 0) || 0;
+    const improvementPct = baselineMs > 0 ? ((baselineMs - futureMs) * 100) / baselineMs : 0;
+    if (improvementPct >= 12) {
+      addInsight(
+        improvementPct >= 25 ? 71 : 65,
+        localeText('Scale-out has measurable payoff', 'Escalar o cluster traz ganho mensuravel'),
+        localeText(
+          `The simulation drops from ${fmtMinutes(baselineScenario.estimated_min)} at ${currentExecutors} executors to ${fmtMinutes(futureScenario.estimated_min)} at ${futureScenario.executor_count} executors (${fmtPct(improvementPct)} faster).`,
+          `A simulacao cai de ${fmtMinutes(baselineScenario.estimated_min)} com ${currentExecutors} executores para ${fmtMinutes(futureScenario.estimated_min)} com ${futureScenario.executor_count} executores (${fmtPct(improvementPct)} mais rapido).`
+        ),
+        localeText(
+          'The workload still has room to benefit from more executor parallelism after the main stage issues are addressed.',
+          'A carga ainda tem espaco para se beneficiar de mais paralelismo de executores depois que os principais problemas de stage forem tratados.'
+        )
+      );
+    } else if (improvementPct >= 0) {
+      addInsight(
+        58,
+        localeText('Scale-out alone has limited payoff', 'Escalar sozinho traz ganho limitado'),
+        localeText(
+          `Even moving from ${currentExecutors} to ${futureScenario.executor_count} executors only changes runtime from ${fmtMinutes(baselineScenario.estimated_min)} to ${fmtMinutes(futureScenario.estimated_min)}.`,
+          `Mesmo saindo de ${currentExecutors} para ${futureScenario.executor_count} executores, o runtime muda apenas de ${fmtMinutes(baselineScenario.estimated_min)} para ${fmtMinutes(futureScenario.estimated_min)}.`
+        ),
+        localeText(
+          'The dominant bottleneck is likely skew, driver overhead, or inefficient stage structure rather than raw cluster size.',
+          'O gargalo dominante provavelmente e skew, overhead de driver ou estrutura ineficiente de stages, e nao tamanho bruto de cluster.'
+        )
+      );
+    }
+  }
+
+  const totalHostRunMs = hostEntries.reduce((sum, [, data]) => sum + (toFiniteNumber(data && data.total_run_ms, 0) || 0), 0);
+  const hottestHost = hostEntries
+    .map(([host, data]) => ({ host, data }))
+    .sort((a, b) => (toFiniteNumber(b.data && b.data.total_run_ms, 0) || 0) - (toFiniteNumber(a.data && a.data.total_run_ms, 0) || 0))[0];
+  if (hottestHost && totalHostRunMs > 0 && hostEntries.length > 1) {
+    const hostShare = ((toFiniteNumber(hottestHost.data && hottestHost.data.total_run_ms, 0) || 0) * 100) / totalHostRunMs;
+    const hostGc = toFiniteNumber(hottestHost.data && hottestHost.data.gc_pct, 0) || 0;
+    if (hostShare > 55 || hostGc > 10) {
+      addInsight(
+        hostShare > 65 ? 78 : 63,
+        localeText('Hot host concentration', 'Concentracao em host hotspot'),
+        localeText(
+          `Host ${hottestHost.host} carries ${fmtPct(hostShare)} of tracked executor runtime with GC at ${fmtPct(hostGc)}.`,
+          `O host ${hottestHost.host} concentra ${fmtPct(hostShare)} do runtime rastreado dos executores com GC em ${fmtPct(hostGc)}.`
+        ),
+        localeText(
+          'Runtime is concentrating on a subset of executors, which often accompanies skewed partitions or uneven data locality.',
+          'O runtime esta se concentrando em um subconjunto de executores, o que costuma acompanhar particoes com skew ou localidade de dados desigual.'
+        )
+      );
+    }
+  }
+
+  return insights.sort((a, b) => b.score - a.score).slice(0, 6);
+}
+
+function computeSparklensHealth(context, insights) {
+  const app = (context && context.app) || {};
+  const cluster = (context && context.cluster) || {};
+  const stages = getSparklensStages(context);
+
+  let score = 100;
+  const clusterUtil = toFiniteNumber(cluster.cluster_utilization_pct, null);
+  const driverIdle = toFiniteNumber(app.driver_idle_pct, null);
+  const maxSkew = stages.reduce((max, stage) => Math.max(max, toFiniteNumber(stage && stage.skew && stage.skew.task_skew, 0) || 0), 0);
+  const maxGc = stages.reduce((max, stage) => Math.max(max, toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.gc_pct, 0) || 0), 0);
+  const maxShuffle = stages.reduce((max, stage) => Math.max(
+    max,
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_write_pct, 0) || 0) +
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_read_fetch_pct, 0) || 0)
+  ), 0);
+  const totalSpill = stages.reduce(
+    (sum, stage) => sum + (toFiniteNumber(stage && stage.io && stage.io.spill_disk_bytes, 0) || 0) + (toFiniteNumber(stage && stage.io && stage.io.spill_memory_bytes, 0) || 0),
+    0
+  );
+
+  if (clusterUtil != null && clusterUtil < 70) score -= Math.min(25, (70 - clusterUtil) * 0.6);
+  if (driverIdle != null && driverIdle > 10) score -= Math.min(18, (driverIdle - 10) * 0.45);
+  if (maxSkew > 1) score -= Math.min(22, (maxSkew - 1) * 3.5);
+  if (maxGc > 5) score -= Math.min(16, (maxGc - 5) * 0.9);
+  if (maxShuffle > 20) score -= Math.min(15, (maxShuffle - 20) * 0.5);
+  if (totalSpill > 0) score -= Math.min(10, Math.log10(totalSpill + 1));
+  if (!insights.length) score = Math.max(score, 92);
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function scoreHeadline(score) {
+  if (score >= 80) return localeText('Healthy baseline', 'Base saudavel');
+  if (score >= 60) return localeText('Mixed performance profile', 'Perfil misto de performance');
+  return localeText('High optimization priority', 'Alta prioridade de otimizacao');
+}
+
+function getArithmeticEngineName() {
+  return currentLang === 'pt' ? 'Calculo Aritmetico Spark' : 'Spark Arithmetic';
+}
+
+const METRIC_TOOLTIPS = {
+  en: {
+    overall_score: 'Weighted health metric for the run. When both components exist, it combines deterministic Spark arithmetic and AI diagnostic severity.',
+    arithmetic_component: 'Deterministic efficiency score derived from observed Spark runtime math. It penalizes idle cluster time, driver idle, skew, GC, shuffle overhead, and spill.',
+    ai_component: 'AI diagnostic score built from bottleneck severity in the structured response. It summarizes how serious the optimization issues are.',
+    cluster_utilization: 'Used core-hours divided by available core-hours. Low values mean the cluster was provisioned but not effectively used.',
+    driver_idle: 'Share of application duration spent outside active Spark job execution. High values usually mean orchestration or driver-side overhead.',
+    max_skew: 'Largest ratio between the slowest task and the median task in a stage. High skew means a few tasks dominate the tail.',
+    max_gc: 'Highest percentage of executor runtime spent in JVM garbage collection in any summarized stage.',
+    max_shuffle_overhead: 'Largest combined percentage of shuffle read wait time plus shuffle write time inside a stage runtime.',
+    total_spill: 'Total bytes spilled to memory and disk. Spill happens when partitions or intermediate data exceed memory capacity.',
+    peak_executors: 'Maximum number of concurrent executors seen during the application lifetime.',
+    total_cores: 'Peak executors multiplied by cores per executor at peak cluster shape.',
+    stages_summarized: 'How many stages entered the deterministic arithmetic summary.',
+    used_core_hours: 'Executor runtime converted to core-hours actually consumed by the application.',
+    host_runtime_share: 'Host runtime share equals host total runtime divided by total runtime across analyzed hosts.',
+    host_gc_share: 'Host GC share equals host JVM GC time divided by host executor runtime.',
+    observed_metric: 'The arithmetic metric that triggered the bottleneck ranking for this stage.',
+    stage_wall_time: 'Observed elapsed wall-clock time between stage start and stage end.',
+    ideal_wall_time: 'Idealized wall-clock estimate if available cluster time were used more efficiently.',
+    scalability_runtime: 'Estimated runtime from the arithmetic simulation for a given executor count.',
+    scalability_delta: 'Gain or loss relative to the baseline executor-count scenario.',
+    scalability_utilization: 'Predicted cluster utilization in the simulated executor-count scenario.',
+  },
+  pt: {
+    overall_score: 'Metrica geral de saude da execucao. Quando os dois componentes existem, ela combina o calculo aritmetico deterministico do Spark com a severidade diagnostica da IA.',
+    arithmetic_component: 'Score deterministico de eficiencia baseado na matematica observada do runtime Spark. Ele perde pontos por cluster ocioso, driver idle, skew, GC, overhead de shuffle e spill.',
+    ai_component: 'Score diagnostico da IA baseado na severidade dos gargalos retornados no JSON estruturado. Resume o quao grave e o potencial de otimizacao encontrado.',
+    cluster_utilization: 'Core-hours usados divididos pelos core-hours disponiveis. Valor baixo significa cluster provisionado, mas pouco aproveitado.',
+    driver_idle: 'Parcela da duracao total da aplicacao gasta fora da execucao ativa dos jobs Spark. Valor alto costuma indicar overhead do driver ou coordenacao.',
+    max_skew: 'Maior razao entre a task mais lenta e a task mediana de um stage. Skew alto significa que poucas tasks seguram o final do stage.',
+    max_gc: 'Maior percentual de tempo de executor gasto em JVM GC em qualquer stage resumido.',
+    max_shuffle_overhead: 'Maior percentual combinado de espera de shuffle read com tempo de shuffle write dentro do runtime de um stage.',
+    total_spill: 'Total de bytes despejados para memoria e disco. Spill ocorre quando particoes ou intermediarios passam da capacidade de memoria.',
+    peak_executors: 'Numero maximo de executores concorrentes observados durante a vida da aplicacao.',
+    total_cores: 'Peak executors multiplicado pelos cores por executor no pico do cluster.',
+    stages_summarized: 'Quantidade de stages que entraram no resumo aritmetico deterministico.',
+    used_core_hours: 'Runtime dos executores convertido em core-hours efetivamente consumidos pela aplicacao.',
+    host_runtime_share: 'Participacao do host no runtime total: runtime do host dividido pelo runtime somado dos hosts analisados.',
+    host_gc_share: 'Participacao do GC no host: tempo de JVM GC do host dividido pelo runtime de executor do host.',
+    observed_metric: 'Metrica aritmetica que colocou esse stage no ranking de gargalos.',
+    stage_wall_time: 'Tempo de parede observado entre o inicio e o fim do stage.',
+    ideal_wall_time: 'Estimativa idealizada de tempo de parede se o tempo de cluster disponivel fosse usado com mais eficiencia.',
+    scalability_runtime: 'Runtime estimado pela simulacao aritmetica para uma determinada quantidade de executores.',
+    scalability_delta: 'Ganho ou perda em relacao ao cenario baseline de executores.',
+    scalability_utilization: 'Utilizacao prevista do cluster no cenario simulado de executores.',
+  },
+};
+
+function metricTooltipText(key) {
+  const langMap = METRIC_TOOLTIPS[currentLang] || METRIC_TOOLTIPS.en;
+  return langMap[key] || METRIC_TOOLTIPS.en[key] || key;
+}
+
+function resolveMetricPopupContent(tipKeyOrContent) {
+  if (Array.isArray(tipKeyOrContent)) return tipKeyOrContent;
+  return [metricTooltipText(tipKeyOrContent)];
+}
+
+function renderMetricPopupContent(tipKeyOrContent) {
+  const lines = resolveMetricPopupContent(tipKeyOrContent).filter((line) => line != null && line !== '');
+  if (!lines.length) return '';
+  if (lines.length === 1) {
+    return `<div class="metric-help-popup-line">${esc(lines[0])}</div>`;
+  }
+  return lines
+    .map((line, index) => `<div class="${index === 0 ? 'metric-help-popup-title' : 'metric-help-popup-line'}">${esc(line)}</div>`)
+    .join('');
+}
+
+function metricHelp(label, tipKeyOrContent) {
+  return `<span class="metric-help" tabindex="0"><span class="metric-help-label">${esc(label)}<span class="metric-help-icon">?</span></span><span class="metric-help-popup">${renderMetricPopupContent(tipKeyOrContent)}</span></span>`;
+}
+
+function metricChip(label, tipKeyOrContent, cls = '') {
+  return `<span class="metric-help metric-help-chip" tabindex="0"><span class="spark-chip ${esc(cls)}">${esc(label)}</span><span class="metric-help-popup">${renderMetricPopupContent(tipKeyOrContent)}</span></span>`;
+}
+
+function metricValueBubble(innerHtml, tipKeyOrContent, extraClass = '') {
+  return `<span class="metric-help metric-help-value ${esc(extraClass)}" tabindex="0">${innerHtml}<span class="metric-help-popup">${renderMetricPopupContent(tipKeyOrContent)}</span></span>`;
+}
+
+function getSparklensScoreDetails(context) {
+  if (!context || typeof context !== 'object') return null;
+
+  const app = context.app || {};
+  const cluster = context.cluster || {};
+  const stages = getSparklensStages(context);
+  const insights = buildSparklensInsights(context);
+  const score = computeSparklensHealth(context, insights);
+  const clusterUtil = toFiniteNumber(cluster.cluster_utilization_pct, null);
+  const driverIdle = toFiniteNumber(app.driver_idle_pct, null);
+  const maxSkew = stages.reduce((max, stage) => Math.max(max, toFiniteNumber(stage && stage.skew && stage.skew.task_skew, 0) || 0), 0);
+  const maxGc = stages.reduce((max, stage) => Math.max(max, toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.gc_pct, 0) || 0), 0);
+  const maxShuffle = stages.reduce((max, stage) => Math.max(
+    max,
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_write_pct, 0) || 0) +
+    (toFiniteNumber(stage && stage.time_distribution && stage.time_distribution.shuffle_read_fetch_pct, 0) || 0)
+  ), 0);
+  const totalSpill = stages.reduce(
+    (sum, stage) => sum + (toFiniteNumber(stage && stage.io && stage.io.spill_disk_bytes, 0) || 0) + (toFiniteNumber(stage && stage.io && stage.io.spill_memory_bytes, 0) || 0),
+    0
+  );
+
+  const penalties = [
+    {
+      label: localeText('Cluster utilization', 'Utilizacao do cluster'),
+      value: fmtPct(clusterUtil),
+      cls: sparkChipClass(100 - (clusterUtil ?? 100), 25, 45),
+      tipKey: 'cluster_utilization',
+      penalty: clusterUtil != null && clusterUtil < 70 ? Math.min(25, (70 - clusterUtil) * 0.6) : 0,
+    },
+    {
+      label: localeText('Driver idle', 'Ociosidade do driver'),
+      value: fmtPct(driverIdle),
+      cls: sparkChipClass(driverIdle, 18, 35),
+      tipKey: 'driver_idle',
+      penalty: driverIdle != null && driverIdle > 10 ? Math.min(18, (driverIdle - 10) * 0.45) : 0,
+    },
+    {
+      label: localeText('Max skew', 'Skew maximo'),
+      value: maxSkew ? `${maxSkew.toFixed(2)}x` : naLabel(),
+      cls: sparkChipClass(maxSkew, 3, 5),
+      tipKey: 'max_skew',
+      penalty: maxSkew > 1 ? Math.min(22, (maxSkew - 1) * 3.5) : 0,
+    },
+    {
+      label: localeText('Max GC', 'GC maximo'),
+      value: fmtPct(maxGc),
+      cls: sparkChipClass(maxGc, 8, 15),
+      tipKey: 'max_gc',
+      penalty: maxGc > 5 ? Math.min(16, (maxGc - 5) * 0.9) : 0,
+    },
+    {
+      label: localeText('Max shuffle overhead', 'Overhead maximo de shuffle'),
+      value: fmtPct(maxShuffle),
+      cls: sparkChipClass(maxShuffle, 25, 40),
+      tipKey: 'max_shuffle_overhead',
+      penalty: maxShuffle > 20 ? Math.min(15, (maxShuffle - 20) * 0.5) : 0,
+    },
+    {
+      label: localeText('Total spill', 'Spill total'),
+      value: fmtBytes(totalSpill),
+      cls: totalSpill > 1073741824 ? 'bad' : totalSpill > 0 ? 'warn' : 'good',
+      tipKey: 'total_spill',
+      penalty: totalSpill > 0 ? Math.min(10, Math.log10(totalSpill + 1)) : 0,
+    },
+  ];
+  const rawScore = Math.max(0, Math.min(100, Math.round(100 - penalties.reduce((sum, item) => sum + item.penalty, 0))));
+  const guardrailApplied = !insights.length && score > rawScore;
+  const factors = penalties.map(({ label, value, cls, tipKey }) => ({ label, value, cls, tipKey }));
+
+  return {
+    type: 'sparklens',
+    score,
+    scoreCls: scoreClass(score),
+    headline: scoreHeadline(score),
+    formula: localeText(
+      'Starts at 100 and subtracts penalties for low cluster utilization, driver idle, skew, GC, shuffle overhead, and spill.',
+      'Comeca em 100 e subtrai penalidades por baixa utilizacao do cluster, ociosidade do driver, skew, GC, overhead de shuffle e spill.'
+    ),
+    explanation: localeText(
+      `${getArithmeticEngineName()} measures observed execution efficiency from deterministic runtime math.`,
+      `${getArithmeticEngineName()} mede a eficiencia observada da execucao com base na matematica deterministica do runtime.`
+    ),
+    app,
+    cluster,
+    stages,
+    insights,
+    factors,
+    penalties,
+    rawScore,
+    guardrailApplied,
+    topInsight: insights[0] || null,
+  };
+}
+
+function getLlmScoreDetails(rawText) {
   const parsed = parseLlmJson(rawText);
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const summary = parsed.summary || {};
+  const bottlenecks = Array.isArray(parsed.bottlenecks) ? parsed.bottlenecks : [];
+  const score = Number.isFinite(summary.score) ? summary.score : null;
+  const counts = { critical: 0, high: 0, medium: 0 };
+  bottlenecks.forEach((item) => {
+    const key = item && item.severity;
+    if (key && Object.prototype.hasOwnProperty.call(counts, key)) {
+      counts[key] += 1;
+    }
+  });
+
+  return {
+    type: 'llm',
+    parsed,
+    summary,
+    score,
+    scoreCls: score == null ? 'warn' : scoreClass(score),
+    headline: score == null ? localeText('AI score unavailable', 'Score da IA indisponivel') : scoreHeadline(score),
+    formula: localeText(
+      'Starts at 100 and applies prompt penalties: -15 per critical bottleneck, -8 per high, and -4 per medium.',
+      'Comeca em 100 e aplica penalidades do prompt: -15 por gargalo critico, -8 por alto e -4 por medio.'
+    ),
+    explanation: localeText(
+      'AI score measures diagnostic severity and optimization opportunity, not raw executor efficiency.',
+      'O score da IA mede severidade diagnostica e oportunidade de otimizacao, nao a eficiencia bruta dos executores.'
+    ),
+    verdict: summary.verdict || localeText('No verdict returned.', 'Nenhum veredito foi retornado.'),
+    gainMin: Number.isFinite(summary.estimated_gain_min) ? summary.estimated_gain_min : null,
+    counts,
+    bottlenecks,
+  };
+}
+
+function getOverallScoreDetails(sparklensDetails, llmDetails) {
+  if (sparklensDetails && llmDetails && llmDetails.score != null) {
+    const score = Math.round((sparklensDetails.score * 0.6) + (llmDetails.score * 0.4));
+    const delta = Math.abs(sparklensDetails.score - llmDetails.score);
+    let interpretation = localeText(
+      'The component scores are aligned: runtime math and AI diagnosis point to the same overall picture.',
+      'Os scores dos componentes estao alinhados: a matematica do runtime e o diagnostico da IA apontam para o mesmo quadro geral.'
+    );
+    if (delta >= 12 && sparklensDetails.score < llmDetails.score) {
+      interpretation = localeText(
+        `${getArithmeticEngineName()} is worse than AI because the observed runtime math is more inefficient than the AI severity alone suggests.`,
+        `${getArithmeticEngineName()} esta pior que a IA porque a matematica observada do runtime mostra mais ineficiencia do que a severidade da IA sozinha sugere.`
+      );
+    } else if (delta >= 12 && llmDetails.score < sparklensDetails.score) {
+      interpretation = localeText(
+        `AI is worse than ${getArithmeticEngineName()} because the model found additional severity or remediation complexity beyond pure runtime efficiency.`,
+        `A IA esta pior que ${getArithmeticEngineName()} porque o modelo encontrou severidade adicional ou maior complexidade de remediacao alem da eficiencia pura do runtime.`
+      );
+    }
+    return {
+      score,
+      scoreCls: scoreClass(score),
+      headline: scoreHeadline(score),
+      formula: localeText(
+        `Overall = 60% ${getArithmeticEngineName()} deterministic score + 40% AI diagnostic score.`,
+        `Geral = 60% score deterministico de ${getArithmeticEngineName()} + 40% score diagnostico da IA.`
+      ),
+      interpretation,
+    };
+  }
+
+  if (sparklensDetails) {
+    return {
+      score: sparklensDetails.score,
+      scoreCls: sparklensDetails.scoreCls,
+      headline: sparklensDetails.headline,
+      formula: localeText(
+        `Overall = 100% ${getArithmeticEngineName()} because no AI component score is available.`,
+        `Geral = 100% ${getArithmeticEngineName()} porque nao ha score do componente de IA disponivel.`
+      ),
+      interpretation: localeText('Only deterministic execution evidence is available for this run.', 'So ha evidencia deterministica de execucao disponivel para esta execucao.'),
+    };
+  }
+
+  if (llmDetails && llmDetails.score != null) {
+    return {
+      score: llmDetails.score,
+      scoreCls: llmDetails.scoreCls,
+      headline: llmDetails.headline,
+      formula: localeText(
+        `Overall = 100% AI because no ${getArithmeticEngineName()} component score is available.`,
+        `Geral = 100% IA porque nao ha score do componente ${getArithmeticEngineName()} disponivel.`
+      ),
+      interpretation: localeText('Only the structured AI diagnostic score is available for this run.', 'So o score diagnostico estruturado da IA esta disponivel para esta execucao.'),
+    };
+  }
+
+  return null;
+}
+
+function formatScorePenalty(value) {
+  return value > 0 ? `-${value.toFixed(1)}` : currentLang === 'pt' ? '-0.0 (sem penalidade)' : '-0.0 (no penalty)';
+}
+
+function getArithmeticScorePopup(details) {
+  const arithmeticName = getArithmeticEngineName();
+  if (!details) {
+    return [
+      arithmeticName,
+      currentLang === 'pt' ? 'Nao ha detalhamento aritmetico disponivel para esta execucao.' : 'No arithmetic breakdown is available for this run.',
+    ];
+  }
+
+  const lines = [
+    `${arithmeticName} ${details.score}/100`,
+    currentLang === 'pt' ? 'Base inicial: 100' : 'Starting base: 100',
+  ];
+
+  (details.penalties || []).forEach((item) => {
+    lines.push(`${item.label}: ${item.value} | ${currentLang === 'pt' ? 'penalidade' : 'penalty'} ${formatScorePenalty(item.penalty)}`);
+  });
+
+  if (details.guardrailApplied) {
+    lines.push(currentLang === 'pt'
+      ? `Ajuste de guardrail: sem insight critico acima do threshold, o score final foi elevado de ${details.rawScore} para ${details.score}.`
+      : `Guardrail adjustment: with no major insight above threshold, the final score was raised from ${details.rawScore} to ${details.score}.`);
+  } else {
+    lines.push(currentLang === 'pt' ? `Score final: ${details.score}/100` : `Final score: ${details.score}/100`);
+  }
+
+  return lines;
+}
+
+function getLlmScorePopup(details) {
+  if (!details || details.score == null) {
+    return [
+      currentLang === 'pt' ? 'Componente de IA' : 'AI Component',
+      currentLang === 'pt' ? 'Nao ha score estruturado da IA para esta execucao.' : 'No structured AI score is available for this run.',
+    ];
+  }
+
+  const criticalPenalty = details.counts.critical * 15;
+  const highPenalty = details.counts.high * 8;
+  const mediumPenalty = details.counts.medium * 4;
+  return [
+    `${currentLang === 'pt' ? 'Componente de IA' : 'AI Component'} ${details.score}/100`,
+    currentLang === 'pt' ? 'Base inicial: 100' : 'Starting base: 100',
+    `Critical: ${details.counts.critical} x -15 = -${criticalPenalty}`,
+    `High: ${details.counts.high} x -8 = -${highPenalty}`,
+    `Medium: ${details.counts.medium} x -4 = -${mediumPenalty}`,
+    currentLang === 'pt' ? `Score final: ${details.score}/100` : `Final score: ${details.score}/100`,
+  ];
+}
+
+function getOverallScorePopup(overall, sparklensDetails, llmDetails) {
+  if (!overall) {
+    return [
+      currentLang === 'pt' ? 'Score Geral' : 'Overall Score',
+      currentLang === 'pt' ? 'Nao ha score consolidado disponivel.' : 'No consolidated score is available.',
+    ];
+  }
+
+  const arithmeticName = getArithmeticEngineName();
+  if (sparklensDetails && llmDetails && llmDetails.score != null) {
+    return [
+      `${currentLang === 'pt' ? 'Score Geral' : 'Overall Score'} ${overall.score}/100`,
+      `60% ${arithmeticName}: ${(sparklensDetails.score * 0.6).toFixed(1)} (${sparklensDetails.score}/100)`,
+      `40% AI: ${(llmDetails.score * 0.4).toFixed(1)} (${llmDetails.score}/100)`,
+      currentLang === 'pt' ? `Resultado arredondado: ${overall.score}/100` : `Rounded result: ${overall.score}/100`,
+    ];
+  }
+
+  if (sparklensDetails) {
+    return [
+      `${currentLang === 'pt' ? 'Score Geral' : 'Overall Score'} ${overall.score}/100`,
+      currentLang === 'pt' ? `100% ${arithmeticName}` : `100% ${arithmeticName}`,
+      currentLang === 'pt' ? 'Nenhum componente de IA estruturado foi retornado para ponderacao.' : 'No structured AI component was returned for weighting.',
+    ];
+  }
+
+  return [
+    `${currentLang === 'pt' ? 'Score Geral' : 'Overall Score'} ${overall.score}/100`,
+    currentLang === 'pt' ? '100% AI' : '100% AI',
+    currentLang === 'pt' ? `Nenhum componente de ${arithmeticName} foi retornado para ponderacao.` : `No ${arithmeticName} component was returned for weighting.`,
+  ];
+}
+
+function renderScoreSummary(sparklensDetails, llmDetails) {
+  const arithmeticName = getArithmeticEngineName();
+  const overall = getOverallScoreDetails(sparklensDetails, llmDetails);
+  if (!overall) {
+    return `<div class="spark-empty">${localeText('No score summary available.', 'Nenhum resumo de score disponivel.')}</div>`;
+  }
+
+  const sparkWeight = sparklensDetails && llmDetails && llmDetails.score != null ? localeText('Weight 60%', 'Peso 60%') : localeText('Weight 100%', 'Peso 100%');
+  const llmWeight = sparklensDetails && llmDetails && llmDetails.score != null ? localeText('Weight 40%', 'Peso 40%') : localeText('Weight 100%', 'Peso 100%');
+  const criticalLabel = localeText('Critical', 'Critico');
+  const highLabel = localeText('High', 'Alto');
+  const mediumLabel = localeText('Medium', 'Medio');
+
+  const cards = [];
+  if (sparklensDetails) {
+    cards.push(`
+      <article class="score-box">
+        <div class="score-box-title">${metricHelp(arithmeticName, 'arithmetic_component')}</div>
+        ${metricValueBubble(`<div class="score-box-value ${sparklensDetails.scoreCls}">${sparklensDetails.score}</div>`, getArithmeticScorePopup(sparklensDetails))}
+        <div class="score-box-desc">${esc(sparklensDetails.explanation)}</div>
+        <div>
+          ${metricChip(sparkWeight, 'arithmetic_component', sparklensDetails.scoreCls)}
+          ${sparklensDetails.factors.map((factor) => metricChip(`${factor.label} ${factor.value}`, factor.tipKey || 'arithmetic_component', factor.cls || '')).join('')}
+        </div>
+      </article>
+    `);
+  }
+  if (llmDetails && llmDetails.score != null) {
+    cards.push(`
+      <article class="score-box">
+        <div class="score-box-title">${metricHelp(localeText('AI Component', 'Componente de IA'), 'ai_component')}</div>
+        ${metricValueBubble(`<div class="score-box-value ${llmDetails.scoreCls}">${llmDetails.score}</div>`, getLlmScorePopup(llmDetails))}
+        <div class="score-box-desc">${esc(llmDetails.explanation)}</div>
+        <div>
+          ${metricChip(llmWeight, 'ai_component', llmDetails.scoreCls)}
+          ${metricChip(`${criticalLabel} ${llmDetails.counts.critical}`, 'ai_component', llmDetails.counts.critical > 0 ? 'bad' : 'good')}
+          ${metricChip(`${highLabel} ${llmDetails.counts.high}`, 'ai_component', llmDetails.counts.high > 0 ? 'warn' : 'good')}
+          ${metricChip(`${mediumLabel} ${llmDetails.counts.medium}`, 'ai_component', '')}
+        </div>
+      </article>
+    `);
+  }
+
+  return `
+    <div class="llm-json-grid">
+      <section class="llm-card">
+        <div class="llm-card-title">${metricHelp(localeText('Overall Score', 'Score Geral'), 'overall_score')}</div>
+        <div class="health-wrap">
+          ${metricValueBubble(`<div class="health-score ${overall.scoreCls}">${overall.score}</div>`, getOverallScorePopup(overall, sparklensDetails, llmDetails))}
+          <div style="flex:1; min-width:240px;">
+            <div><strong>${esc(overall.headline)}</strong></div>
+            <div class="gain-badge">${esc(overall.formula)}</div>
+            <div class="spark-note">${esc(overall.interpretation)}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('Component Breakdown', 'Quebra por Componente')}</div>
+        <div class="score-grid">${cards.join('')}</div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('How To Read It', 'Como Ler')}</div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">${metricHelp(localeText('Overall score', 'Score geral'), 'overall_score')}</div><div>${localeText('Quick health metric for the run. Lower score means higher optimization priority.', 'Metrica rapida de saude da execucao. Quanto menor o score, maior a prioridade de otimizacao.')}</div></div>
+          <div class="kv-item"><div class="k">${metricHelp(localeText(`${arithmeticName} component`, `Componente ${arithmeticName}`), 'arithmetic_component')}</div><div>${esc(sparklensDetails ? sparklensDetails.formula : localeText('Unavailable for this run.', 'Indisponivel para esta execucao.'))}</div></div>
+          <div class="kv-item"><div class="k">${metricHelp(localeText('AI component', 'Componente de IA'), 'ai_component')}</div><div>${esc(llmDetails && llmDetails.score != null ? llmDetails.formula : localeText('Unavailable for this run.', 'Indisponivel para esta execucao.'))}</div></div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function buildOverallScoreMarkdown(sparklensDetails, llmDetails) {
+  const arithmeticName = getArithmeticEngineName();
+  const overall = getOverallScoreDetails(sparklensDetails, llmDetails);
+  if (!overall) return '';
+
+  const lines = [
+    `## ${localeText('Overall Score', 'Score Geral')}`,
+    '',
+    `- ${localeText('Overall score', 'Score geral')}: ${overall.score}/100`,
+    `- ${localeText('Formula', 'Formula')}: ${overall.formula}`,
+    `- ${localeText('Interpretation', 'Interpretacao')}: ${overall.interpretation}`,
+  ];
+
+  if (sparklensDetails) {
+    lines.push(`- ${localeText(`${arithmeticName} component`, `Componente ${arithmeticName}`)}: ${sparklensDetails.score}/100`);
+  }
+  if (llmDetails && llmDetails.score != null) {
+    lines.push(`- ${localeText('AI component', 'Componente de IA')}: ${llmDetails.score}/100`);
+  }
+
+  return lines.join('\n');
+}
+
+function renderSparklensInsights(context, sparklensDetails = null) {
+  if (!context || typeof context !== 'object') {
+    return `<div class="spark-empty">${localeText('No arithmetic context available for this run.', 'Nenhum contexto aritmetico disponivel para esta execucao.')}</div>`;
+  }
+
+  const arithmeticName = getArithmeticEngineName();
+  const details = sparklensDetails || getSparklensScoreDetails(context);
+  const app = details.app || {};
+  const cluster = details.cluster || {};
+  const stages = details.stages || [];
+  const insights = details.insights || [];
+  const healthScore = details.score;
+  const healthCls = details.scoreCls;
+  const topInsight = details.topInsight || null;
+  const topBottlenecks = Array.isArray(context.top_bottlenecks) ? context.top_bottlenecks : [];
+  const simulations = Array.isArray(context.scalability_simulation) ? context.scalability_simulation : [];
+  const hostEntries = Object.entries(context.host_analysis || {})
+    .map(([host, data]) => ({ host, data }))
+    .sort((a, b) => (toFiniteNumber(b.data && b.data.total_run_ms, 0) || 0) - (toFiniteNumber(a.data && a.data.total_run_ms, 0) || 0));
+  const totalHostRunMs = hostEntries.reduce((sum, item) => sum + (toFiniteNumber(item.data && item.data.total_run_ms, 0) || 0), 0);
+
+  const coreKpis = [
+    [localeText('Cluster Utilization', 'Utilizacao do Cluster'), fmtPct(cluster.cluster_utilization_pct), sparkChipClass(100 - (toFiniteNumber(cluster.cluster_utilization_pct, 100) ?? 100), 25, 45), 'cluster_utilization'],
+    [localeText('Driver Idle', 'Ociosidade do Driver'), fmtPct(app.driver_idle_pct), sparkChipClass(toFiniteNumber(app.driver_idle_pct, 0) || 0, 18, 35), 'driver_idle'],
+    [localeText('Peak Executors', 'Pico de Executores'), toFiniteNumber(cluster.executor_count, 0) || naLabel(), '', 'peak_executors'],
+    [localeText('Total Cores', 'Total de Cores'), toFiniteNumber(cluster.total_cores, 0) || naLabel(), '', 'total_cores'],
+    [localeText('Stages Summarized', 'Etapas Resumidas'), stages.length || 0, '', 'stages_summarized'],
+    [localeText('Used Core-Hours', 'Core-Hours Utilizados'), toFiniteNumber(cluster.used_core_hours, 0) != null ? (toFiniteNumber(cluster.used_core_hours, 0) || 0).toFixed(3) : naLabel(), '', 'used_core_hours'],
+  ];
+
+  const insightCards = insights.length
+    ? insights.map((insight) => `
+      <article class="bottleneck-card ${esc(insight.severity)}">
+        <div class="bottleneck-head">
+          <div>
+            <strong>${esc(insight.title)}</strong>
+            ${insight.stageId != null ? `<div class="spark-note">${localeText('Stage', 'Etapa')} ${esc(insight.stageId)}</div>` : ''}
+          </div>
+          <span class="sev-badge ${esc(insight.severity)}">${esc(localizedSeverityLabel(insight.severity))}</span>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">${localeText('Evidence', 'Evidencia')}</div><div>${esc(insight.evidence)}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Impact', 'Impacto')}</div><div>${esc(insight.impact)}</div></div>
+        </div>
+      </article>
+    `).join('')
+    : `<div class="spark-empty">${localeText(`No deterministic issue exceeded the current ${esc(arithmeticName)} thresholds.`, `Nenhum problema deterministico ultrapassou os thresholds atuais de ${esc(arithmeticName)}.`)}</div>`;
+
+  const bottleneckCards = topBottlenecks.length
+    ? topBottlenecks.map((item) => {
+      const stage = getSparklensStage(context, item.stage_id);
+      const detail = describeSparklensBottleneck(item.type, stage);
+      return `
+        <article class="bottleneck-card ${esc(detail.severity)}">
+          <div class="bottleneck-head">
+            <div><strong>#${esc(item.rank)} - ${localeText('Stage', 'Etapa')} ${esc(item.stage_id)} - ${esc(localizedBottleneckType(item.type || 'other'))}</strong></div>
+            <span class="sev-badge ${esc(detail.severity)}">${esc(localizedSeverityLabel(detail.severity))}</span>
+          </div>
+          <div style="margin-bottom:8px;">${esc(item.description || localeText('No description', 'Sem descricao'))}</div>
+          <div class="kv-grid">
+            <div class="kv-item"><div class="k">${metricHelp(localeText('Observed Metric', 'Metrica Observada'), 'observed_metric')}</div><div>${esc(detail.metric)}</div></div>
+            <div class="kv-item"><div class="k">${metricHelp(localeText('Stage Wall Time', 'Tempo de Parede do Stage'), 'stage_wall_time')}</div><div>${stage ? fmtMs(stage.wall_ms) : naLabel()}</div></div>
+            <div class="kv-item"><div class="k">${metricHelp(localeText('Ideal Wall Time', 'Tempo de Parede Ideal'), 'ideal_wall_time')}</div><div>${stage ? fmtMs(stage.ideal_wall_ms) : naLabel()}</div></div>
+            <div class="kv-item"><div class="k">${localeText('Why It Matters', 'Por Que Importa')}</div><div>${esc(detail.impact)}</div></div>
+          </div>
+        </article>
+      `;
+    }).join('')
+    : `<div class="spark-empty">${localeText(`No ${esc(arithmeticName)} bottlenecks were emitted.`, `Nenhum gargalo de ${esc(arithmeticName)} foi emitido.`)}</div>`;
+
+  const scenarioMap = new Map();
+  simulations.forEach((scenario) => {
+    const executorCount = toFiniteNumber(scenario && scenario.executor_count, null);
+    if (executorCount == null) return;
+    const previous = scenarioMap.get(executorCount);
+    if (!previous || (toFiniteNumber(scenario.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER) < (toFiniteNumber(previous.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER)) {
+      scenarioMap.set(executorCount, scenario);
+    }
+  });
+  const uniqueScenarios = Array.from(scenarioMap.values()).sort((a, b) => (toFiniteNumber(a && a.executor_count, 0) || 0) - (toFiniteNumber(b && b.executor_count, 0) || 0));
+  const baselineScenario =
+    uniqueScenarios.find((scenario) => toFiniteNumber(scenario && scenario.pct_of_current, 0) === 100) ||
+    uniqueScenarios.find((scenario) => toFiniteNumber(scenario && scenario.executor_count, 0) === toFiniteNumber(cluster.executor_count, 0)) ||
+    uniqueScenarios[0] ||
+    null;
+  const scenarioRows = uniqueScenarios.slice(0, 6).map((scenario) => {
+    const deltaPct = baselineScenario && toFiniteNumber(baselineScenario.estimated_ms, 0) > 0
+      ? (((toFiniteNumber(baselineScenario.estimated_ms, 0) || 0) - (toFiniteNumber(scenario.estimated_ms, 0) || 0)) * 100) / (toFiniteNumber(baselineScenario.estimated_ms, 0) || 1)
+      : 0;
+    return `
+      <tr>
+        <td>${toFiniteNumber(scenario.executor_count, naLabel())}</td>
+        <td>${fmtMinutes(scenario.estimated_min)}</td>
+        <td>${scenario === baselineScenario ? localeText('baseline', 'base') : fmtPct(deltaPct)}</td>
+        <td>${fmtPct(scenario.cluster_utilization_pct)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const hostCards = hostEntries.length
+    ? hostEntries.slice(0, 3).map(({ host, data }) => {
+      const runMs = toFiniteNumber(data && data.total_run_ms, 0) || 0;
+      const sharePct = totalHostRunMs > 0 ? (runMs * 100) / totalHostRunMs : 0;
+      return `
+        <div class="kv-item">
+          <div class="k">${esc(host)}</div>
+          <div style="margin-bottom:8px;">
+            ${metricChip(`${fmtPct(sharePct)} ${localeText('runtime share', 'do tempo de execucao')}`, 'host_runtime_share', sparkChipClass(sharePct, 45, 60))}
+            ${metricChip(`${fmtPct(data.gc_pct)} GC`, 'host_gc_share', sparkChipClass(toFiniteNumber(data && data.gc_pct, 0) || 0, 8, 15))}
+          </div>
+          <div>${localeText('Tasks', 'Tarefas')}: ${esc((toFiniteNumber(data && data.task_count, 0) || 0).toLocaleString())}</div>
+          <div>${localeText('Runtime', 'Tempo de execucao')}: ${fmtMs(runMs)}</div>
+          <div>${localeText('Disk spill', 'Spill em disco')}: ${fmtBytes(data && data.total_spill_disk_bytes || 0)}</div>
+          <div>${localeText('Shuffle read/write', 'Leitura/escrita de shuffle')}: ${fmtBytes(data && data.total_shuffle_read_bytes || 0)} / ${fmtBytes(data && data.total_shuffle_write_bytes || 0)}</div>
+        </div>
+      `;
+    }).join('')
+    : `<div class="spark-empty">${localeText('No host-level metrics available.', 'Nenhuma metrica por host disponivel.')}</div>`;
+
+  return `
+    <div class="llm-json-grid">
+      <section class="llm-card">
+        <div class="llm-card-title">${metricHelp(`${arithmeticName} Score`, 'arithmetic_component')}</div>
+        <div class="health-wrap">
+          ${metricValueBubble(`<div class="health-score ${healthCls}">${healthScore}</div>`, getArithmeticScorePopup(details))}
+          <div style="flex:1; min-width:220px;">
+            <div><strong>${esc(details.headline)}</strong></div>
+            <div class="gain-badge">${localeText('Component score in overall metric', 'Score do componente na metrica geral')}</div>
+            <div class="spark-note">
+              ${esc(details.formula)} ${localeText('Cluster utilization', 'Utilizacao do cluster')} ${fmtPct(cluster.cluster_utilization_pct)} | ${localeText('Driver idle', 'Ociosidade do driver')} ${fmtPct(app.driver_idle_pct)} | ${stages.length} ${localeText('stages summarized', 'etapas resumidas')}.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('Core Signals', 'Sinais Principais')}</div>
+        <div class="llm-kpis">
+          ${coreKpis.map(([label, value, cls, tipKey]) => `
+            <div class="llm-kpi">
+              <div class="k">${metricHelp(label, tipKey || 'arithmetic_component')}</div>
+              <div class="v">${metricValueBubble(`<span>${esc(value)}</span>`, tipKey || 'arithmetic_component')}</div>
+              ${cls ? `<div class="spark-note">${metricChip(localizedChipLabel(cls), tipKey || 'arithmetic_component', cls)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('Mathematical Insights', 'Insights Matematicos')}</div>
+        <div class="bottleneck-list">${insightCards}</div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText(`Top ${arithmeticName} Bottlenecks`, `Principais Gargalos de ${arithmeticName}`)}</div>
+        <div class="bottleneck-list">${bottleneckCards}</div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('Scalability Simulation', 'Simulacao de Escalabilidade')}</div>
+        <div class="table-wrap" style="margin-bottom:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>${metricHelp(localeText('Executors', 'Executores'), 'peak_executors')}</th>
+                <th>${metricHelp(localeText('Estimated Runtime', 'Runtime Estimado'), 'scalability_runtime')}</th>
+                <th>${metricHelp(localeText('Delta vs Baseline', 'Delta vs Base'), 'scalability_delta')}</th>
+                <th>${metricHelp(localeText('Cluster Utilization', 'Utilizacao do Cluster'), 'scalability_utilization')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${scenarioRows || `<tr><td colspan="4">${localeText('No scalability simulation available.', 'Nenhuma simulacao de escalabilidade disponivel.')}</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="llm-card">
+        <div class="llm-card-title">${localeText('Host Hotspots', 'Hotspots por Host')}</div>
+        <div class="kv-grid">${hostCards}</div>
+      </section>
+    </div>
+  `;
+}
+
+function buildSparklensMarkdown(context, sparklensDetails = null) {
+  if (!context || typeof context !== 'object') return '';
+
+  const arithmeticName = getArithmeticEngineName();
+  const details = sparklensDetails || getSparklensScoreDetails(context);
+  const app = details.app || {};
+  const cluster = details.cluster || {};
+  const insights = details.insights || [];
+  const healthScore = details.score;
+  const topBottlenecks = Array.isArray(context.top_bottlenecks) ? context.top_bottlenecks : [];
+  const simulations = Array.isArray(context.scalability_simulation) ? context.scalability_simulation : [];
+
+  const lines = [
+    `## ${arithmeticName}`,
+    '',
+    `- ${localeText(`${arithmeticName} score`, `Score de ${arithmeticName}`)}: ${healthScore}/100`,
+    `- ${localeText('Formula', 'Formula')}: ${details.formula}`,
+    `- ${localeText('Cluster utilization', 'Utilizacao do cluster')}: ${fmtPct(cluster.cluster_utilization_pct)}`,
+    `- ${localeText('Driver idle', 'Ociosidade do driver')}: ${fmtPct(app.driver_idle_pct)}`,
+    `- ${localeText('Peak executors', 'Pico de executores')}: ${toFiniteNumber(cluster.executor_count, 0) || naLabel()}`,
+    `- ${localeText('Total cores', 'Total de cores')}: ${toFiniteNumber(cluster.total_cores, 0) || naLabel()}`,
+    '',
+    `### ${localeText('Mathematical findings', 'Achados matematicos')}`,
+  ];
+
+  if (insights.length) {
+    insights.forEach((insight, index) => {
+      const stageLabel = insight.stageId != null ? ` ${localeText('Stage', 'Etapa')} ${insight.stageId}.` : '';
+      lines.push(`${index + 1}. ${insight.title}.${stageLabel} ${insight.evidence} ${insight.impact}`);
+    });
+  } else {
+    lines.push(`1. ${localeText(`No deterministic issue exceeded the configured ${arithmeticName} thresholds.`, `Nenhum problema deterministico ultrapassou os thresholds configurados de ${arithmeticName}.`)}`);
+  }
+
+  lines.push('', `### ${localeText('Top bottlenecks', 'Principais gargalos')}`);
+  if (topBottlenecks.length) {
+    topBottlenecks.forEach((item) => {
+      lines.push(`- ${localeText('Stage', 'Etapa')} ${item.stage_id} - ${localizedBottleneckType(item.type)}: ${item.description}`);
+    });
+  } else {
+    lines.push(`- ${localeText(`No ${arithmeticName} bottlenecks were emitted.`, `Nenhum gargalo de ${arithmeticName} foi emitido.`)}`);
+  }
+
+  lines.push('', `### ${localeText('Scalability simulation', 'Simulacao de escalabilidade')}`, '', `| ${localeText('Executors', 'Executores')} | ${localeText('Estimated Runtime', 'Runtime Estimado')} | ${localeText('Cluster Utilization', 'Utilizacao do Cluster')} |`, '| --- | --- | --- |');
+  if (simulations.length) {
+    const scenarioMap = new Map();
+    simulations.forEach((scenario) => {
+      const executorCount = toFiniteNumber(scenario && scenario.executor_count, null);
+      if (executorCount == null) return;
+      const previous = scenarioMap.get(executorCount);
+      if (!previous || (toFiniteNumber(scenario.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER) < (toFiniteNumber(previous.estimated_ms, Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER)) {
+        scenarioMap.set(executorCount, scenario);
+      }
+    });
+    Array.from(scenarioMap.values())
+      .sort((a, b) => (toFiniteNumber(a && a.executor_count, 0) || 0) - (toFiniteNumber(b && b.executor_count, 0) || 0))
+      .slice(0, 6)
+      .forEach((scenario) => {
+        lines.push(`| ${toFiniteNumber(scenario.executor_count, naLabel())} | ${fmtMinutes(scenario.estimated_min)} | ${fmtPct(scenario.cluster_utilization_pct)} |`);
+      });
+  } else {
+    lines.push(`| ${naLabel()} | ${naLabel()} | ${naLabel()} |`);
+  }
+
+  return lines.join('\n');
+}
+
+function renderLlmAnalysis(rawText, llmDetails = null) {
+  const details = llmDetails || getLlmScoreDetails(rawText);
+  const parsed = details ? details.parsed : parseLlmJson(rawText);
   if (!parsed || typeof parsed !== 'object') {
     return mdToHtml(rawText);
   }
@@ -2900,20 +4349,20 @@ function renderLlmAnalysis(rawText) {
   const codeFixes = Array.isArray(actionPlan.code_fixes) ? actionPlan.code_fixes : [];
 
   const coreKpis = [
-    ['Duration Total (min)', kpis.duration_total_min],
-    ['Input Volume (GB)', kpis.input_volume_gb],
-    ['Total Tasks', kpis.total_tasks],
-    ['Avg Data/Task (KB)', kpis.avg_data_per_task_kb],
-    ['Stages with Skew', kpis.stages_with_skew],
-    ['Disk Spill Total (GB)', kpis.disk_spill_total_gb],
-    ['Memory Spill Total (GB)', kpis.memory_spill_total_gb],
-    ['Shuffle Write Total (GB)', kpis.shuffle_write_total_gb],
-    ['Failed/Retried Stages', kpis.stages_with_failure_or_retry],
+    [localeText('Duration Total (min)', 'Duracao Total (min)'), kpis.duration_total_min],
+    [localeText('Input Volume (GB)', 'Volume de Entrada (GB)'), kpis.input_volume_gb],
+    [localeText('Total Tasks', 'Total de Tarefas'), kpis.total_tasks],
+    [localeText('Avg Data/Task (KB)', 'Media de Dados/Task (KB)'), kpis.avg_data_per_task_kb],
+    [localeText('Stages with Skew', 'Etapas com Skew'), kpis.stages_with_skew],
+    [localeText('Disk Spill Total (GB)', 'Spill Total em Disco (GB)'), kpis.disk_spill_total_gb],
+    [localeText('Memory Spill Total (GB)', 'Spill Total em Memoria (GB)'), kpis.memory_spill_total_gb],
+    [localeText('Shuffle Write Total (GB)', 'Escrita total de shuffle (GB)'), kpis.shuffle_write_total_gb],
+    [localeText('Failed/Retried Stages', 'Etapas com falha/retry'), kpis.stages_with_failure_or_retry],
   ];
 
-  const score = Number.isFinite(summary.score) ? summary.score : 0;
-  const scoreCls = scoreClass(score);
-  const gainMin = Number.isFinite(summary.estimated_gain_min) ? summary.estimated_gain_min : null;
+  const score = details && details.score != null ? details.score : (Number.isFinite(summary.score) ? summary.score : 0);
+  const scoreCls = details ? details.scoreCls : scoreClass(score);
+  const gainMin = details && details.gainMin != null ? details.gainMin : (Number.isFinite(summary.estimated_gain_min) ? summary.estimated_gain_min : null);
 
   const stagesRows = stages.map((st) => {
     const ids = Array.isArray(st.bottleneck_ids) ? st.bottleneck_ids : [];
@@ -2932,7 +4381,7 @@ function renderLlmAnalysis(rawText) {
         <td>${st.disk_spill_gb ?? '—'}</td>
         <td>${st.memory_spill_gb ?? '—'}</td>
         <td>${st.fetch_wait_ms ?? '—'}</td>
-        <td><span class="status-pill ${esc(st.status || 'ok')}">${esc(st.status || 'ok')}</span></td>
+        <td><span class="status-pill ${esc(st.status || 'ok')}">${esc(localizedStatusLabel(st.status || 'ok'))}</span></td>
         <td>${links}</td>
       </tr>
     `;
@@ -2945,23 +4394,23 @@ function renderLlmAnalysis(rawText) {
     return `
       <article class="bottleneck-card ${esc(b.severity || 'medium')}" id="bottleneck-${esc(b.id || '')}">
         <div class="bottleneck-head">
-          <div><strong>${esc(b.id || 'B?')} · ${esc(b.title || 'Untitled bottleneck')}</strong></div>
-          <span class="sev-badge ${esc(b.severity || 'medium')}">${esc(b.severity || 'medium')}</span>
+          <div><strong>${esc(b.id || 'B?')} · ${esc(b.title || localeText('Untitled bottleneck', 'Gargalo sem titulo'))}</strong></div>
+          <span class="sev-badge ${esc(b.severity || 'medium')}">${esc(localizedSeverityLabel(b.severity || 'medium'))}</span>
         </div>
         <div class="kv-grid">
-          <div class="kv-item"><div class="k">Type</div><div>${esc(b.type || 'other')}</div></div>
-          <div class="kv-item"><div class="k">Stages Affected</div><div>${esc(affected)}</div></div>
-          <div class="kv-item"><div class="k">Operator</div><div>${esc(b.operator || 'null')}</div></div>
-          <div class="kv-item"><div class="k">Duration (obs/exp)</div><div>${b.duration_observed_s ?? '—'} / ${b.duration_expected_s ?? '—'} s</div></div>
+          <div class="kv-item"><div class="k">${localeText('Type', 'Tipo')}</div><div>${esc(localizedBottleneckType(b.type || 'other'))}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Stages Affected', 'Etapas afetadas')}</div><div>${esc(affected)}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Operator', 'Operador')}</div><div>${esc(b.operator || naLabel())}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Duration (obs/exp)', 'Duracao (obs/exp)')}</div><div>${b.duration_observed_s ?? '—'} / ${b.duration_expected_s ?? '—'} s</div></div>
         </div>
         <div class="kv-grid">
-          <div class="kv-item"><div class="k">Evidence</div><div>${esc(b.evidence || '—')}</div></div>
-          <div class="kv-item"><div class="k">Root Cause</div><div>${esc(b.root_cause || '—')}</div></div>
-          <div class="kv-item"><div class="k">Observed Effect</div><div>${esc(b.observed_effect || '—')}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Evidence', 'Evidencia')}</div><div>${esc(b.evidence || naLabel())}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Root Cause', 'Causa Raiz')}</div><div>${esc(b.root_cause || '—')}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Observed Effect', 'Efeito Observado')}</div><div>${esc(b.observed_effect || '—')}</div></div>
         </div>
         <div class="kv-grid">
-          <div class="kv-item"><div class="k">Code Link</div><div>line ${link.line_start ?? 'null'} - ${link.line_end ?? 'null'} · ${esc(link.function_name || 'null')}</div></div>
-          <div class="kv-item"><div class="k">Code/Log Correlation</div><div>${esc(link.explanation || 'null')}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Code Link', 'Link de Codigo')}</div><div>${localeText('Lines', 'Linhas')} ${link.line_start ?? naLabel()} - ${link.line_end ?? naLabel()} - ${esc(link.function_name || naLabel())}</div></div>
+          <div class="kv-item"><div class="k">${localeText('Code/Log Correlation', 'Correlacao Codigo/Log')}</div><div>${esc(link.explanation || naLabel())}</div></div>
         </div>
         ${link.snippet ? `<div class="code-box">${esc(link.snippet)}</div>` : ''}
       </article>
@@ -2977,14 +4426,14 @@ function renderLlmAnalysis(rawText) {
         <div class="code-box">${esc(cfg.code || '')}</div>
       </div>
     `).join('')
-    : '<div style="color:var(--text-dim)">No cluster configs suggested.</div>';
+    : `<div style="color:var(--text-dim)">${localeText('No cluster configs suggested.', 'Nenhuma configuracao de cluster sugerida.')}</div>`;
 
   const codeFixesHtml = codeFixes.length
     ? codeFixes.map((fix) => `
       <article class="fix-card">
         <div class="fix-head">
-          <div class="fix-title">${esc(fix.bottleneck_id || 'B?')} · ${esc(fix.title || 'Code fix')}</div>
-          <div class="fix-location">line ${fix.line_start ?? 'null'} - ${fix.line_end ?? 'null'} · ${esc(fix.function_name || 'null')}</div>
+          <div class="fix-title">${esc(fix.bottleneck_id || 'B?')} · ${esc(fix.title || localeText('Code fix', 'Correcao de codigo'))}</div>
+          <div class="fix-location">${localeText('Lines', 'Linhas')} ${fix.line_start ?? naLabel()} - ${fix.line_end ?? naLabel()} - ${esc(fix.function_name || naLabel())}</div>
         </div>
         <div class="fix-body">
           <div>${esc(fix.problem_explanation || '')}</div>
@@ -3003,71 +4452,74 @@ function renderLlmAnalysis(rawText) {
               <div class="code-box">${esc(fix.after_code || '')}</div>
             </div>
           </div>
-          <div class="fix-impact"><strong>Expected Gain:</strong> ${esc(fix.expected_gain || 'n/a')}</div>
+          <div class="fix-impact"><strong>${localeText('Expected Gain:', 'Ganho Esperado:')}</strong> ${esc(fix.expected_gain || naLabel())}</div>
         </div>
       </article>
     `).join('')
-    : '<div style="color:var(--text-dim)">No code fixes suggested.</div>';
+    : `<div style="color:var(--text-dim)">${localeText('No code fixes suggested.', 'Nenhuma correcao de codigo sugerida.')}</div>`;
 
   return `
     <div class="llm-json-grid">
       <section class="llm-card">
-        <div class="llm-card-title">Health Summary</div>
+        <div class="llm-card-title">${metricHelp(localeText('AI Component Score', 'Score do Componente de IA'), 'ai_component')}</div>
         <div class="health-wrap">
-          <div class="health-score ${scoreCls}">${score}</div>
+          ${metricValueBubble(`<div class="health-score ${scoreCls}">${score}</div>`, getLlmScorePopup(details))}
           <div style="flex:1; min-width:220px;">
-            <div><strong>${esc(summary.verdict || 'No verdict')}</strong></div>
-            ${gainMin != null ? `<div class="gain-badge">Estimated post-fix: ${gainMin} min</div>` : ''}
+            <div><strong>${esc(details ? details.headline : (summary.verdict || localeText('No verdict', 'Sem veredito')))}</strong></div>
+            <div class="gain-badge">${localeText('Component score in overall metric', 'Score do componente na metrica geral')}</div>
+            ${gainMin != null ? `<div class="spark-note">${localeText('Estimated post-fix runtime:', 'Runtime estimado apos ajuste:')} ${gainMin} min</div>` : ''}
+            <div class="spark-note">${esc(details ? details.formula : localeText('Structured AI score from diagnosed bottleneck severity.', 'Score estruturado da IA a partir da severidade dos gargalos diagnosticados.'))}</div>
             <div style="margin-top:8px; color:var(--text-dim); font-size:0.76rem;">
-              mode: ${esc((parsed.meta && parsed.meta.mode) || '—')} · file: ${esc((parsed.meta && parsed.meta.job_file) || 'null')} · log: ${esc((parsed.meta && parsed.meta.log_file) || '—')}
+              ${localeText('mode:', 'modo:')} ${esc((parsed.meta && parsed.meta.mode) || naLabel())} | ${localeText('file:', 'arquivo:')} ${esc((parsed.meta && parsed.meta.job_file) || naLabel())} | ${localeText('log:', 'log:')} ${esc((parsed.meta && parsed.meta.log_file) || naLabel())}
             </div>
+            ${details ? `<div class="spark-note">${metricChip(`${localeText('Critical', 'Critico')} ${details.counts.critical}`, 'ai_component', details.counts.critical > 0 ? 'bad' : 'good')}${metricChip(`${localeText('High', 'Alto')} ${details.counts.high}`, 'ai_component', details.counts.high > 0 ? 'warn' : 'good')}${metricChip(`${localeText('Medium', 'Medio')} ${details.counts.medium}`, 'ai_component')}</div>` : ''}
           </div>
         </div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Kpis</div>
+        <div class="llm-card-title">${localeText('KPIs', 'KPIs')}</div>
         <div class="llm-kpis">
           ${coreKpis.map(([k, v]) => `<div class="llm-kpi"><div class="k">${esc(k)}</div><div class="v">${v ?? '—'}</div></div>`).join('')}
         </div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Stages</div>
+        <div class="llm-card-title">${localeText('Stages', 'Etapas')}</div>
         <div class="table-wrap" style="margin-bottom:0;">
           <table>
             <thead>
               <tr>
-                <th>ID</th><th>Duration(s)</th><th>Tasks</th><th>Skew</th><th>Shuffle GB</th><th>SW Time(s)</th>
-                <th>Disk Spill(GB)</th><th>Mem Spill(GB)</th><th>Fetch Wait(ms)</th><th>Status</th><th>Bottlenecks</th>
+                <th>ID</th><th>${localeText('Duration(s)', 'Duracao(s)')}</th><th>${localeText('Tasks', 'Tarefas')}</th><th>Skew</th><th>Shuffle GB</th><th>${localeText('SW Time(s)', 'Tempo SW(s)')}</th>
+                <th>${localeText('Disk Spill(GB)', 'Spill em Disco(GB)')}</th><th>${localeText('Mem Spill(GB)', 'Spill em Memoria(GB)')}</th><th>${localeText('Fetch Wait(ms)', 'Espera Fetch(ms)')}</th><th>${localeText('Status', 'Status')}</th><th>${localeText('Bottlenecks', 'Gargalos')}</th>
               </tr>
             </thead>
             <tbody>
-              ${stagesRows || '<tr><td colspan="11">No stage diagnostics.</td></tr>'}
+              ${stagesRows || `<tr><td colspan="11">${localeText('No stage diagnostics.', 'Nenhum diagnostico de stage.')}</td></tr>`}
             </tbody>
           </table>
         </div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Bottlenecks</div>
+        <div class="llm-card-title">${localeText('Bottlenecks', 'Gargalos')}</div>
         <div class="bottleneck-list">
-          ${bottleneckCards || '<div style="color:var(--text-dim)">No bottlenecks detected.</div>'}
+          ${bottleneckCards || `<div style="color:var(--text-dim)">${localeText('No bottlenecks detected.', 'Nenhum gargalo detectado.')}</div>`}
         </div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Action Plan · Cluster Configs</div>
+        <div class="llm-card-title">${localeText('Action Plan - Cluster Configs', 'Plano de Acao: Configuracoes de Cluster')}</div>
         <div class="kv-grid">${clusterConfigHtml}</div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Action Plan · Code Fixes</div>
+        <div class="llm-card-title">${localeText('Action Plan - Code Fixes', 'Plano de Acao: Correcoes de Codigo')}</div>
         <div class="fix-list">${codeFixesHtml}</div>
       </section>
 
       <section class="llm-card">
-        <div class="llm-card-title">Limitations</div>
+        <div class="llm-card-title">${localeText('Limitations', 'Limitacoes')}</div>
         <div>${esc(parsed.limitations || '—')}</div>
       </section>
     </div>
@@ -3086,7 +4538,7 @@ function getSqlPlanLabel(node) {
   if (nodeName) return String(nodeName);
   const simple = node.simpleString || node.desc || node.description || '';
   if (simple) return String(simple).split('(')[0].trim() || String(simple);
-  return 'Operator';
+  return localeText('Operator', 'Operador');
 }
 
 function getSqlPlanDetail(node) {
@@ -3147,10 +4599,10 @@ function renderSqlPlanTree(tree) {
   return `
     <div class="sql-plan-wrap">
       <div class="sql-plan-toolbar">
-        <div class="sql-plan-meta">${stats.nodeCount} nodes · depth ${stats.maxDepth}</div>
+        <div class="sql-plan-meta">${stats.nodeCount} ${localeText('nodes', 'nos')} - ${localeText('depth', 'profundidade')} ${stats.maxDepth}</div>
         <div class="sql-plan-actions">
-          <button type="button" class="sql-plan-btn" data-action="expand-all">Expand all</button>
-          <button type="button" class="sql-plan-btn" data-action="collapse-all">Collapse all</button>
+          <button type="button" class="sql-plan-btn" data-action="expand-all">${localeText('Expand all', 'Expandir tudo')}</button>
+          <button type="button" class="sql-plan-btn" data-action="collapse-all">${localeText('Collapse all', 'Recolher tudo')}</button>
         </div>
       </div>
       <div class="sql-plan-scroll">
@@ -3239,9 +4691,9 @@ function updateExpandButton() {
   }
   btn.style.display = '';
   if (stagesTableExpanded) {
-    btn.textContent = '▼ Collapse (' + totalStagesCount + ' stages)';
+    btn.textContent = localeText('Collapse (', 'Recolher (') + totalStagesCount + ' ' + localeText('stages)', 'etapas)');
   } else {
-    btn.textContent = '▶ Show all ' + totalStagesCount + ' stages';
+    btn.textContent = localeText('Show all ', 'Mostrar todas as ') + totalStagesCount + ' ' + localeText('stages', 'etapas');
   }
 }
 
@@ -3595,7 +5047,7 @@ async function openDocViewer(path, title) {
   const bodyEl = document.getElementById('doc-modal-body');
 
   titleEl.textContent = title;
-  bodyEl.innerHTML = '<p>Carregando documento...</p>';
+  bodyEl.innerHTML = `<p>${localeText('Loading document...', 'Carregando documento...')}</p>`;
   modal.classList.add('open');
 
   try {
@@ -3607,7 +5059,7 @@ async function openDocViewer(path, title) {
     bodyEl.innerHTML = convertMermaidBlocks(mdToHtml(markdown));
     await renderMermaidIn(bodyEl);
   } catch (e) {
-    bodyEl.innerHTML = `<p>Erro ao abrir documento: ${esc(e.message || String(e))}</p>`;
+    bodyEl.innerHTML = `<p>${localeText('Error opening document:', 'Erro ao abrir documento:')} ${esc(e.message || String(e))}</p>`;
   }
 }
 
@@ -3637,7 +5089,7 @@ function toggleKeyVisibility() {
 
 function showError(msg) {
   const el = document.getElementById('error-panel');
-  el.textContent = 'Error: ' + msg;
+  el.textContent = localeText('Error: ', 'Erro: ') + msg;
   el.style.display = '';
 }
 function resetUI() {
@@ -3657,7 +5109,11 @@ function resetUI() {
   document.getElementById('results').classList.remove('visible');
   document.getElementById('kpi-cards').innerHTML = '';
   document.getElementById('stage-tbody').innerHTML = '';
+  document.getElementById('score-summary-inner').innerHTML = '';
+  document.getElementById('score-summary-section').style.display = 'none';
+  document.getElementById('sparklens-inner').innerHTML = '';
   document.getElementById('llm-inner').innerHTML = '';
+  document.getElementById('sparklens-section').style.display = 'none';
   document.getElementById('llm-section').style.display = 'none';
   document.getElementById('dl-bar').innerHTML = '';
   document.getElementById('status-elapsed').textContent = '';
@@ -3667,6 +5123,8 @@ function resetUI() {
   if (execSection) execSection.style.display = 'none';
   currentLocalSummary = null;
   currentLocalSqlExecutionsJson = null;
+  currentLocalSparklensContext = null;
+  currentRenderedData = null;
   // Reset sort state
   currentSortColumn = null;
   currentSortDirection = 'asc';

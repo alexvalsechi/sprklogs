@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 
+from backend.analyzer.sparklens_metrics import build_sparklens_report_from_bytes
 from backend.services.job_store import ReductionProgressStore
 from backend.services.log_reducer import LogReducer
 
@@ -25,12 +26,14 @@ class ReductionService:
         try:
             reducer = LogReducer(output_format="md", compact=compact)
             summary, reduced_report = reducer.reduce(zip_bytes)
+            sparklens_report = build_sparklens_report_from_bytes(zip_bytes)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
         return {
             "summary": summary.model_dump(),
             "reduced_report": reduced_report,
+            "sparklens_context": sparklens_report.get("llm_context"),
         }
 
     def reduce_local_path(
@@ -60,11 +63,14 @@ class ReductionService:
 
             reducer = LogReducer(output_format="md", compact=compact)
             summary, reduced_report = reducer.reduce(zip_bytes, progress_cb=_progress)
+            _progress(86, "sparklens_metrics")
+            sparklens_report = build_sparklens_report_from_bytes(zip_bytes)
             summary_payload = self._serialize_summary(summary)
             return json.dumps({
                 "reduce_job_id": resolved_job_id,
                 "summary": summary_payload,
                 "reduced_report": reduced_report,
+                "sparklens_context": sparklens_report.get("llm_context"),
             })
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc

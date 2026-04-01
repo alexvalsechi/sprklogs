@@ -55,6 +55,7 @@ export async function submitReducedAnalysis(
 ): Promise<SubmitReducedAnalysisResult> {
   const reducedReport = payload?.reducedReport
   const pyFilePaths = payload?.pyFilePaths || []
+  const sparklensContext = payload?.sparklensContext
   const llmProvider = payload?.llmProvider
   const apiKey = payload?.apiKey
   const userId = payload?.userId
@@ -67,6 +68,7 @@ export async function submitReducedAnalysis(
   const form = new FormData()
   form.append('reduced_report', reducedReport)
   form.append('language', language)
+  if (sparklensContext) form.append('sparklens_context', JSON.stringify(sparklensContext))
   if (llmProvider) form.append('llm_provider', llmProvider)
   if (apiKey) form.append('api_key', apiKey)
   if (userId) form.append('user_id', userId)

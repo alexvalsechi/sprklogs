@@ -37,6 +37,7 @@ class LLMAnalyzer:
         reduced_report: str,
         summary: AppSummary,
         py_files: Optional[dict[str, bytes]] = None,
+        sparklens_context: Optional[dict] = None,
         provider: Optional[str] = None,
         api_key: Optional[str] = None,
         language: str = "en",
@@ -45,6 +46,7 @@ class LLMAnalyzer:
         prompt, py_files_provided = build_analysis_prompt(
             reduced_report=reduced_report,
             py_files=py_files,
+            sparklens_context=sparklens_context,
             language=language,
         )
 
