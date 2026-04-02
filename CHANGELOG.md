@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0](https://github.com/alexvalsechi/sprklogs/compare/v0.23.0...v0.24.0) (2026-04-02)
+
+
+### Features
+
+* frontend electron ajust and other functions ([8425176](https://github.com/alexvalsechi/sprklogs/commit/8425176d53978c2e4a87c4f6924d205801b8d33d))
+* frontend electron ajust and other functions ([a5e3cf6](https://github.com/alexvalsechi/sprklogs/commit/a5e3cf64b76702d4a7480e5b8910b038d67fec42))
+
 ## [0.23.0](https://github.com/alexvalsechi/sprklogs/compare/v0.22.0...v0.23.0) (2026-04-01)
 
 
