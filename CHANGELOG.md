@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0](https://github.com/alexvalsechi/sprklogs/compare/v0.24.0...v0.25.0) (2026-04-03)
+
+
+### Features
+
+* enhance log reduction and analysis with stage grouping and outp… ([3c38d11](https://github.com/alexvalsechi/sprklogs/commit/3c38d11aacc60bdad233e8c627ffbd0457acc283))
+* enhance log reduction and analysis with stage grouping and output format options ([9ebad67](https://github.com/alexvalsechi/sprklogs/commit/9ebad677d8592f5c7124da0751365b895e37a4d0))
+
 ## [0.24.0](https://github.com/alexvalsechi/sprklogs/compare/v0.23.0...v0.24.0) (2026-04-02)
 
 
