@@ -60,6 +60,30 @@ class StageMetrics(BaseModel):
         return (self.shuffle_read_bytes + self.shuffle_write_bytes) > 524_288_000
 
 
+class StageGroup(BaseModel):
+    """Aggregated view of stages sharing the same normalized name."""
+    group_name: str
+    stage_ids: list[int]
+    count: int
+    total_tasks: int = 0
+    total_duration_ms: int = 0
+    total_input_bytes: int = 0
+    total_output_bytes: int = 0
+    total_shuffle_read_bytes: int = 0
+    total_shuffle_write_bytes: int = 0
+    total_disk_spill_bytes: int = 0
+    total_memory_spill_bytes: int = 0
+    total_gc_time_ms: int = 0
+    skew_ratio_min: Optional[float] = None
+    skew_ratio_avg: Optional[float] = None
+    skew_ratio_max: Optional[float] = None
+    worst_gc_overhead_pct: float = 0.0
+    worst_cpu_efficiency: Optional[float] = None
+    worst_disk_spill_bytes: int = 0
+    peak_execution_memory_bytes: int = 0
+    anomalies: list[str] = Field(default_factory=list)
+
+
 class AppSummary(BaseModel):
     app_id: str
     app_name: str
@@ -85,6 +109,7 @@ class AppSummary(BaseModel):
     executor_summary: list = Field(default_factory=list)
     job_efficiency_meta: dict = Field(default_factory=dict)
     stages: list[StageMetrics] = Field(default_factory=list)
+    stage_groups: list[StageGroup] = Field(default_factory=list)
 
 
 class JobResult(BaseModel):

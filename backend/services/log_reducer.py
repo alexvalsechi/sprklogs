@@ -22,11 +22,25 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Callable, Iterator, Optional
 
-from backend.models.job import AppSummary, StageMetrics
+from backend.models.job import AppSummary, StageGroup, StageMetrics
 from backend.utils.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Publicly re-export group_stages and _normalize_stage_name for tests
+__all__ = [
+    "LogReducer",
+    "SinglePassHandler",
+    "SummaryBuilderHandler",
+    "StageAccumulator",
+    "MarkdownRenderer",
+    "CompactMarkdownRenderer",
+    "JsonRenderer",
+    "group_stages",
+    "_normalize_stage_name",
+    "_iter_events",
+]
 
 # Callback type: (percent 0-100, stage_key str) -> None
 ProgressCallback = Optional[Callable[[int, str], None]]
@@ -583,6 +597,88 @@ class SinglePassHandler(BaseHandler):
         return ctx
 
 
+# ─── Stage Grouping ──────────────────────────────────────────────────────────
+
+# Regex to strip trailing " at ClassName.method:lineNo" or similar source refs
+_RE_AT_SOURCE = re.compile(r"\s+at\s+\S+$")
+# Regex to strip trailing numeric partition/attempt suffixes like " (4)"
+_RE_TRAILING_PAREN_NUM = re.compile(r"\s*\(\d+\)\s*$")
+
+
+def _normalize_stage_name(name: str) -> str:
+    """Normalize a Spark stage name for grouping purposes.
+
+    Strips source-reference suffixes (`` at Foo.java:42``), trailing
+    parenthesized numbers (``(3)``), and collapses whitespace.
+    """
+    n = _RE_AT_SOURCE.sub("", name)
+    n = _RE_TRAILING_PAREN_NUM.sub("", n)
+    return n.strip()
+
+
+def group_stages(stages: list[StageMetrics]) -> list[StageGroup]:
+    """Group stages by normalized name and compute per-group aggregates.
+
+    Returns groups ordered by first stage_id in each group.
+    """
+    if not stages:
+        return []
+
+    from collections import OrderedDict
+
+    buckets: OrderedDict[str, list[StageMetrics]] = OrderedDict()
+    for s in stages:
+        key = _normalize_stage_name(s.name)
+        buckets.setdefault(key, []).append(s)
+
+    groups: list[StageGroup] = []
+    for gname, members in buckets.items():
+        stage_ids = [m.stage_id for m in members]
+        count = len(members)
+
+        skew_vals = [m.skew_ratio for m in members if m.skew_ratio is not None]
+        gc_vals = [m.gc_overhead_pct for m in members if m.gc_overhead_pct is not None]
+        cpu_vals = [m.cpu_efficiency for m in members if m.cpu_efficiency is not None]
+
+        # Detect anomalies within the group
+        anomalies: list[str] = []
+        for m in members:
+            if m.has_skew:
+                anomalies.append(f"skew={m.skew_ratio:.1f}x in stage {m.stage_id}")
+            if m.has_spill:
+                disk_mb = m.disk_bytes_spilled / (1024 * 1024)
+                anomalies.append(f"disk_spill={disk_mb:.0f}MB in stage {m.stage_id}")
+            if (m.gc_overhead_pct or 0) > 5.0:
+                anomalies.append(f"gc={m.gc_overhead_pct:.1f}% in stage {m.stage_id}")
+            if m.cpu_efficiency is not None and m.cpu_efficiency < 0.1 and m.num_tasks >= 10:
+                anomalies.append(f"low_cpu={m.cpu_efficiency:.3f} in stage {m.stage_id}")
+
+        groups.append(StageGroup(
+            group_name=gname,
+            stage_ids=stage_ids,
+            count=count,
+            total_tasks=sum(m.num_tasks for m in members),
+            total_duration_ms=sum(m.duration_ms for m in members),
+            total_input_bytes=sum(m.input_bytes for m in members),
+            total_output_bytes=sum(m.output_bytes for m in members),
+            total_shuffle_read_bytes=sum(m.shuffle_read_bytes for m in members),
+            total_shuffle_write_bytes=sum(m.shuffle_write_bytes for m in members),
+            total_disk_spill_bytes=sum(m.disk_bytes_spilled for m in members),
+            total_memory_spill_bytes=sum(m.memory_bytes_spilled for m in members),
+            total_gc_time_ms=sum(m.gc_time_ms for m in members),
+            skew_ratio_min=round(min(skew_vals), 2) if skew_vals else None,
+            skew_ratio_avg=round(sum(skew_vals) / len(skew_vals), 2) if skew_vals else None,
+            skew_ratio_max=round(max(skew_vals), 2) if skew_vals else None,
+            worst_gc_overhead_pct=round(max(gc_vals), 2) if gc_vals else 0.0,
+            worst_cpu_efficiency=round(min(cpu_vals), 3) if cpu_vals else None,
+            worst_disk_spill_bytes=max(m.disk_bytes_spilled for m in members),
+            peak_execution_memory_bytes=max(m.peak_execution_memory_bytes for m in members),
+            anomalies=anomalies,
+        ))
+
+    return groups
+
+
 class SummaryBuilderHandler(BaseHandler):
     """Assembles the final AppSummary from all gathered data."""
 
@@ -621,6 +717,7 @@ class SummaryBuilderHandler(BaseHandler):
             executor_summary=ctx.get("executor_summary", []),
             job_efficiency_meta=ctx.get("job_efficiency_meta", {}),
             stages=stages,
+            stage_groups=group_stages(stages),
         )
         return ctx
 
@@ -713,32 +810,84 @@ class MarkdownRenderer(BaseRenderer):
                         f"gc={ex['gc_pct']:.2f}%, cpu_eff={ex['cpu_efficiency']:.3f}"
                     )
 
-        lines += [
-            "",
-            "## Stage Breakdown",
-            "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W "
-            "| SW Time | Fetch Wait | Spill Mem | Spill Disk | Peak Mem "
-            "| Skew | CPU Eff | GC% | Deser ms |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-        ]
-        for s in summary.stages:
-            skew_flag = " ⚠️" if s.has_skew else ""
-            spill_disk_flag = " 💾" if s.has_spill else ""
-            cpu_eff = getattr(s, "cpu_efficiency", None)
-            gc_pct = getattr(s, "gc_overhead_pct", None)
-            deser_ms = getattr(s, "deserialize_time_ms", None)
-            lines.append(
-                f"| {s.stage_id} | {s.name[:35]} | {s.num_tasks} "
-                f"| {fmt_ms(s.duration_ms)} | {fmt_bytes(s.input_bytes)} "
-                f"| {fmt_bytes(s.shuffle_read_bytes)} | {fmt_bytes(s.shuffle_write_bytes)} "
-                f"| {fmt_ms(s.shuffle_write_time_ms)} | {fmt_ms(s.fetch_wait_time_ms)} "
-                f"| {fmt_bytes(s.memory_bytes_spilled)} | {fmt_bytes(s.disk_bytes_spilled)}{spill_disk_flag} "
-                f"| {fmt_bytes(s.peak_execution_memory_bytes)} "
-                f"| {s.skew_ratio}{skew_flag} "
-                f"| {cpu_eff if cpu_eff is not None else 'n/a'} "
-                f"| {gc_pct if gc_pct is not None else 'n/a'} "
-                f"| {deser_ms if deser_ms is not None else 'n/a'} |"
-            )
+        # ── Stage Groups — collapsed view for multi-stage groups
+        groups = summary.stage_groups or []
+        multi_groups = [g for g in groups if g.count > 1]
+        solo_stages_in_groups = {
+            g.stage_ids[0] for g in groups if g.count == 1
+        }
+
+        if multi_groups:
+            lines += ["", "## Stage Groups (repeated operations)"]
+            for g in multi_groups:
+                ids_str = ",".join(str(i) for i in g.stage_ids)
+                flags = ""
+                if g.anomalies:
+                    flags = " ⚠️"
+                lines += [
+                    f"### \"{g.group_name}\" ×{g.count} stages (IDs: {ids_str}){flags}",
+                    f"| Metric | Total | Per-Stage Avg |",
+                    f"|---|---|---|",
+                    f"| Tasks | {g.total_tasks:,} | {g.total_tasks // g.count:,} |",
+                    f"| Duration | {fmt_ms(g.total_duration_ms)} | {fmt_ms(g.total_duration_ms // g.count)} |",
+                    f"| Input | {fmt_bytes(g.total_input_bytes)} | {fmt_bytes(g.total_input_bytes // g.count)} |",
+                    f"| Shuffle Read | {fmt_bytes(g.total_shuffle_read_bytes)} | {fmt_bytes(g.total_shuffle_read_bytes // g.count)} |",
+                    f"| Shuffle Write | {fmt_bytes(g.total_shuffle_write_bytes)} | {fmt_bytes(g.total_shuffle_write_bytes // g.count)} |",
+                ]
+                if g.total_disk_spill_bytes > 0:
+                    lines.append(
+                        f"| Disk Spill | {fmt_bytes(g.total_disk_spill_bytes)} "
+                        f"| {fmt_bytes(g.total_disk_spill_bytes // g.count)} |"
+                    )
+                if g.skew_ratio_avg is not None:
+                    lines.append(
+                        f"| Skew Ratio | min={g.skew_ratio_min}× avg={g.skew_ratio_avg}× "
+                        f"max={g.skew_ratio_max}× | — |"
+                    )
+                if g.worst_gc_overhead_pct > 5.0:
+                    lines.append(
+                        f"| Worst GC Overhead | {g.worst_gc_overhead_pct:.2f}% | — |"
+                    )
+                if g.anomalies:
+                    lines.append("")
+                    lines.append(f"**Anomalies ({len(g.anomalies)}):**")
+                    for a in g.anomalies[:10]:  # cap displayed anomalies
+                        lines.append(f"- {a}")
+                lines.append("")
+
+        # ── Individual Stage Breakdown for solo stages
+        solo_stages = [s for s in summary.stages if s.stage_id in solo_stages_in_groups]
+        # If no groups were formed (e.g., all unique names), show all stages
+        if not groups:
+            solo_stages = summary.stages
+
+        if solo_stages:
+            lines += [
+                "",
+                "## Stage Breakdown",
+                "| Stage | Name | Tasks | Duration | Input | Shuffle R | Shuffle W "
+                "| SW Time | Fetch Wait | Spill Mem | Spill Disk | Peak Mem "
+                "| Skew | CPU Eff | GC% | Deser ms |",
+                "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+            ]
+            for s in solo_stages:
+                skew_flag = " ⚠️" if s.has_skew else ""
+                spill_disk_flag = " 💾" if s.has_spill else ""
+                cpu_eff = getattr(s, "cpu_efficiency", None)
+                gc_pct = getattr(s, "gc_overhead_pct", None)
+                deser_ms = getattr(s, "deserialize_time_ms", None)
+                lines.append(
+                    f"| {s.stage_id} | {s.name[:35]} | {s.num_tasks} "
+                    f"| {fmt_ms(s.duration_ms)} | {fmt_bytes(s.input_bytes)} "
+                    f"| {fmt_bytes(s.shuffle_read_bytes)} | {fmt_bytes(s.shuffle_write_bytes)} "
+                    f"| {fmt_ms(s.shuffle_write_time_ms)} | {fmt_ms(s.fetch_wait_time_ms)} "
+                    f"| {fmt_bytes(s.memory_bytes_spilled)} | {fmt_bytes(s.disk_bytes_spilled)}{spill_disk_flag} "
+                    f"| {fmt_bytes(s.peak_execution_memory_bytes)} "
+                    f"| {s.skew_ratio}{skew_flag} "
+                    f"| {cpu_eff if cpu_eff is not None else 'n/a'} "
+                    f"| {gc_pct if gc_pct is not None else 'n/a'} "
+                    f"| {deser_ms if deser_ms is not None else 'n/a'} |"
+                )
 
         if summary.sql_plan_tree:
             lines += [
@@ -747,57 +896,53 @@ class MarkdownRenderer(BaseRenderer):
                 "(interactive rendering available in desktop UI)",
             ]
 
+        # ── Anomaly summary — consolidated from all stages (grouped + solo)
+        all_anomalies: list[str] = []
+        for g in groups:
+            all_anomalies.extend(g.anomalies)
+
         skewed = [s for s in summary.stages if s.has_skew]
-        if skewed:
-            lines += ["", "## ⚠️ Skewed Stages Detected"]
-            for s in skewed:
-                lines.append(f"- **Stage {s.stage_id}** ({s.name}): skew ratio = {s.skew_ratio}×")
-
         spilled = [s for s in summary.stages if s.has_spill]
-        if spilled:
-            lines += ["", "## 💾 Stages with Disk Spill"]
-            for s in spilled:
-                disk = fmt_bytes(s.disk_bytes_spilled)
-                mem = fmt_bytes(s.memory_bytes_spilled)
-                lines.append(f"- **Stage {s.stage_id}** ({s.name}): disk spill = {disk}, memory spill = {mem}")
-
         heavy_shuffle = [s for s in summary.stages if s.has_heavy_shuffle]
-        if heavy_shuffle:
-            lines += ["", "## 🔀 Stages with Heavy Shuffle"]
-            for s in heavy_shuffle:
-                lines.append(
-                    f"- **Stage {s.stage_id}** ({s.name}): "
-                    f"shuffle read = {fmt_bytes(s.shuffle_read_bytes)}, "
-                    f"shuffle write = {fmt_bytes(s.shuffle_write_bytes)}, "
-                    f"SW time = {fmt_ms(s.shuffle_write_time_ms)}, "
-                    f"fetch wait = {fmt_ms(s.fetch_wait_time_ms)}"
-                )
-
-        # ── Low CPU efficiency stages (potential I/O-bound bottlenecks)
         low_cpu = [
             s for s in summary.stages
             if getattr(s, "cpu_efficiency", None) is not None
             and s.cpu_efficiency < 0.1
             and s.num_tasks >= 10
         ]
-        if low_cpu:
-            lines += ["", "## 🐢 Stages with Low CPU Efficiency (< 0.10)"]
-            for s in low_cpu:
-                lines.append(
-                    f"- **Stage {s.stage_id}** ({s.name}): "
-                    f"cpu_eff={s.cpu_efficiency:.3f}, tasks={s.num_tasks}, "
-                    f"duration={fmt_ms(s.duration_ms)}, "
-                    f"fetch_wait={fmt_ms(s.fetch_wait_time_ms)}"
-                )
+
+        if skewed or spilled or heavy_shuffle or low_cpu:
+            lines += ["", "## ⚠️ Anomaly Summary"]
+            if skewed:
+                lines.append(f"- **Skewed stages** ({len(skewed)}): "
+                    + ", ".join(f"Stage {s.stage_id} ({s.skew_ratio}×)" for s in skewed))
+            if spilled:
+                lines.append(f"- **Disk spill** ({len(spilled)}): "
+                    + ", ".join(f"Stage {s.stage_id} ({fmt_bytes(s.disk_bytes_spilled)})" for s in spilled))
+            if heavy_shuffle:
+                lines.append(f"- **Heavy shuffle** ({len(heavy_shuffle)}): "
+                    + ", ".join(f"Stage {s.stage_id}" for s in heavy_shuffle))
+            if low_cpu:
+                lines.append(f"- **Low CPU efficiency** ({len(low_cpu)}): "
+                    + ", ".join(f"Stage {s.stage_id} ({s.cpu_efficiency:.3f})" for s in low_cpu))
 
         return "\n".join(lines)
 
 
 class CompactMarkdownRenderer(MarkdownRenderer):
-    """Strategy variant: shorter output, top-5 stages only."""
+    """Strategy variant: shows only groups and top-5 anomalous stages."""
     def render(self, summary: AppSummary) -> str:
         full = super().render(summary)
-        return full[:3000] + "\n\n*(truncated — compact mode)*" if len(full) > 3000 else full
+        # Keep full output if reasonably sized; truncate intelligently otherwise
+        if len(full) <= 5000:
+            return full
+        # Find the Anomaly Summary section and keep it
+        anomaly_idx = full.find("## ⚠️ Anomaly Summary")
+        if anomaly_idx > 0:
+            header = full[:3000]
+            anomaly_section = full[anomaly_idx:]
+            return header + "\n\n...\n\n" + anomaly_section
+        return full[:5000] + "\n\n*(truncated — compact mode)*"
 
 
 class JsonRenderer(BaseRenderer):

@@ -37,13 +37,19 @@ def main() -> int:
     parser.add_argument("--zip", required=True, help="Path to ZIP file")
     parser.add_argument("--out", required=True, help="Path to output reduced report")
     parser.add_argument("--compact", action="store_true", help="Use compact reducer output")
+    parser.add_argument(
+        "--format",
+        choices=["md", "json"],
+        default="md",
+        help="Output format: md (markdown, default) or json (structured)",
+    )
     args = parser.parse_args()
 
     zip_path = Path(args.zip)
     if not zip_path.exists():
         raise FileNotFoundError(f"ZIP not found: {zip_path}")
 
-    reducer = LogReducer(output_format="md", compact=args.compact)
+    reducer = LogReducer(output_format=args.format, compact=args.compact)
     summary, reduced_report = reducer.reduce(zip_path.read_bytes())
 
     out_path = Path(args.out)

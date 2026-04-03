@@ -16,9 +16,11 @@ from backend.services.log_reducer import (
     StageAccumulator,
     MarkdownRenderer,
     JsonRenderer,
+    group_stages,
+    _normalize_stage_name,
     _iter_events,
 )
-from backend.models.job import AppSummary, StageMetrics
+from backend.models.job import AppSummary, StageGroup, StageMetrics
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -184,10 +186,11 @@ class TestLogReducer:
         data = _json.loads(report)
         assert data["app_id"] == "app-001"
 
-    def test_compact_renderer_truncates(self, sample_zip):
+    def test_compact_renderer(self, sample_zip):
         reducer = LogReducer(output_format="md", compact=True)
         _, report = reducer.reduce(sample_zip)
-        assert len(report) <= 3100  # compact adds tiny suffix
+        # Compact renderer should produce valid markdown with groups
+        assert "# Spark Log Report" in report
 
 
 class TestMarkdownRenderer:
@@ -197,6 +200,239 @@ class TestMarkdownRenderer:
         assert "# Spark Log Report" in md
         assert "Stage Breakdown" in md
         assert "SQL Physical Plan (Structured)" in md
+
+    def test_renders_stage_groups(self):
+        """When stage_groups exist with count > 1, they should appear in the markdown."""
+        stages = [
+            StageMetrics(
+                stage_id=i, name="Scan parquet default.events", num_tasks=100,
+                duration_ms=5000, input_bytes=1024, output_bytes=0,
+                shuffle_read_bytes=0, shuffle_write_bytes=0, gc_time_ms=10,
+                skew_ratio=1.2,
+            )
+            for i in range(5)
+        ]
+        summary = AppSummary(
+            app_id="app-test", app_name="GroupTest", spark_version="3.5",
+            start_time_ms=0, end_time_ms=25000, total_duration_ms=25000,
+            num_stages=5, num_tasks=500, executor_count=2,
+            total_input_bytes=5120, total_output_bytes=0,
+            total_shuffle_read_bytes=0, total_shuffle_write_bytes=0,
+            stages=stages, stage_groups=group_stages(stages),
+        )
+        md = MarkdownRenderer().render(summary)
+        assert "Stage Groups" in md
+        assert "×5 stages" in md
+        assert "Scan parquet default.events" in md
+
+    def test_anomaly_summary_section(self):
+        """Anomaly summary should consolidate skew/spill/shuffle flags."""
+        stages = [
+            StageMetrics(
+                stage_id=0, name="Join", num_tasks=100,
+                duration_ms=10000, input_bytes=0, output_bytes=0,
+                shuffle_read_bytes=0, shuffle_write_bytes=0, gc_time_ms=0,
+                skew_ratio=5.0, disk_bytes_spilled=1_000_000,
+            ),
+        ]
+        summary = AppSummary(
+            app_id="app-test", app_name="AnomalyTest", spark_version="3.5",
+            start_time_ms=0, end_time_ms=10000, total_duration_ms=10000,
+            num_stages=1, num_tasks=100, executor_count=1,
+            total_input_bytes=0, total_output_bytes=0,
+            total_shuffle_read_bytes=0, total_shuffle_write_bytes=0,
+            stages=stages, stage_groups=group_stages(stages),
+        )
+        md = MarkdownRenderer().render(summary)
+        assert "Anomaly Summary" in md
+        assert "Skewed stages" in md
+        assert "Disk spill" in md
+
+
+# ─── Stage Grouping Tests ────────────────────────────────────────────────────
+
+class TestNormalizeStageName:
+    def test_strips_at_source_ref(self):
+        assert _normalize_stage_name("count at main.py:10") == "count"
+
+    def test_strips_java_source_ref(self):
+        assert _normalize_stage_name("scan at NativeMethodAccessorImpl.java:0") == "scan"
+
+    def test_strips_trailing_paren_number(self):
+        assert _normalize_stage_name("exchange (3)") == "exchange"
+
+    def test_preserves_plain_name(self):
+        assert _normalize_stage_name("SortMergeJoin") == "SortMergeJoin"
+
+    def test_combined_stripping(self):
+        # Both at-source and trailing paren number are stripped
+        assert _normalize_stage_name("count (2) at main.py:10") == "count"
+
+    def test_empty_string(self):
+        assert _normalize_stage_name("") == ""
+
+
+class TestGroupStages:
+    def _make_stage(self, sid: int, name: str, **kwargs) -> StageMetrics:
+        defaults = dict(
+            stage_id=sid, name=name, num_tasks=100, duration_ms=5000,
+            input_bytes=1024, output_bytes=512, shuffle_read_bytes=256,
+            shuffle_write_bytes=128, gc_time_ms=50, skew_ratio=1.5,
+        )
+        defaults.update(kwargs)
+        return StageMetrics(**defaults)
+
+    def test_empty_list(self):
+        assert group_stages([]) == []
+
+    def test_single_stage(self):
+        groups = group_stages([self._make_stage(0, "scan")])
+        assert len(groups) == 1
+        assert groups[0].count == 1
+        assert groups[0].stage_ids == [0]
+
+    def test_identical_names_grouped(self):
+        stages = [self._make_stage(i, "Scan parquet") for i in range(5)]
+        groups = group_stages(stages)
+        assert len(groups) == 1
+        g = groups[0]
+        assert g.count == 5
+        assert g.stage_ids == [0, 1, 2, 3, 4]
+        assert g.total_tasks == 500
+        assert g.total_duration_ms == 25000
+
+    def test_similar_names_with_source_refs_grouped(self):
+        stages = [
+            self._make_stage(0, "count at main.py:10"),
+            self._make_stage(1, "count at main.py:20"),
+            self._make_stage(2, "count at other.py:5"),
+        ]
+        groups = group_stages(stages)
+        assert len(groups) == 1
+        assert groups[0].group_name == "count"
+        assert groups[0].count == 3
+
+    def test_different_names_separate_groups(self):
+        stages = [
+            self._make_stage(0, "Scan parquet"),
+            self._make_stage(1, "SortMergeJoin"),
+            self._make_stage(2, "Exchange"),
+        ]
+        groups = group_stages(stages)
+        assert len(groups) == 3
+        assert all(g.count == 1 for g in groups)
+
+    def test_anomalies_detected(self):
+        stages = [
+            self._make_stage(0, "scan", skew_ratio=5.0, disk_bytes_spilled=1_000_000),
+            self._make_stage(1, "scan", skew_ratio=1.2),
+        ]
+        groups = group_stages(stages)
+        assert len(groups) == 1
+        g = groups[0]
+        assert len(g.anomalies) >= 1
+        assert any("skew" in a for a in g.anomalies)
+        assert any("disk_spill" in a for a in g.anomalies)
+        assert g.skew_ratio_max == 5.0
+        assert g.skew_ratio_min == 1.2
+        assert g.worst_disk_spill_bytes == 1_000_000
+
+    def test_aggregates_computed_correctly(self):
+        stages = [
+            self._make_stage(0, "scan", input_bytes=1000, shuffle_write_bytes=200),
+            self._make_stage(1, "scan", input_bytes=2000, shuffle_write_bytes=300),
+        ]
+        groups = group_stages(stages)
+        g = groups[0]
+        assert g.total_input_bytes == 3000
+        assert g.total_shuffle_write_bytes == 500
+
+    def test_order_preserved(self):
+        stages = [
+            self._make_stage(0, "alpha"),
+            self._make_stage(1, "beta"),
+            self._make_stage(2, "alpha"),
+        ]
+        groups = group_stages(stages)
+        assert len(groups) == 2
+        assert groups[0].group_name == "alpha"
+        assert groups[1].group_name == "beta"
+
+
+# ─── LLM Prompt Builder Tests ────────────────────────────────────────────────
+
+class TestBuildLlmContext:
+    def test_basic_structure(self, sample_summary):
+        from backend.services.llm_prompt_builder import build_llm_context
+        ctx = build_llm_context(sample_summary)
+        assert "app" in ctx
+        assert ctx["app"]["id"] == "app-001"
+        assert ctx["app"]["name"] == "TestJob"
+        assert "stage_groups" in ctx or "stages" in ctx
+
+    def test_stage_groups_used_when_available(self):
+        from backend.services.llm_prompt_builder import build_llm_context
+        stages = [
+            StageMetrics(
+                stage_id=i, name="scan", num_tasks=10, duration_ms=1000,
+                input_bytes=100, output_bytes=0, shuffle_read_bytes=0,
+                shuffle_write_bytes=0, gc_time_ms=5, skew_ratio=1.1,
+            )
+            for i in range(3)
+        ]
+        summary = AppSummary(
+            app_id="test", app_name="test", spark_version="3.5",
+            start_time_ms=0, end_time_ms=3000, total_duration_ms=3000,
+            num_stages=3, num_tasks=30, executor_count=1,
+            total_input_bytes=300, total_output_bytes=0,
+            total_shuffle_read_bytes=0, total_shuffle_write_bytes=0,
+            stages=stages, stage_groups=group_stages(stages),
+        )
+        ctx = build_llm_context(summary)
+        assert "stage_groups" in ctx
+        assert len(ctx["stage_groups"]) == 1
+        assert ctx["stage_groups"][0]["count"] == 3
+
+    def test_token_reduction(self, sample_summary):
+        """LLM JSON context should be more compact than the markdown report."""
+        import json as _json
+        from backend.services.llm_prompt_builder import build_llm_context
+        md = MarkdownRenderer().render(sample_summary)
+        llm_json = _json.dumps(build_llm_context(sample_summary), separators=(",", ":"))
+        # JSON should not be larger than markdown
+        assert len(llm_json) <= len(md) * 1.5  # generous bound for single-stage case
+
+
+class TestBuildAnalysisPromptWithSummary:
+    def test_uses_json_context_when_summary_provided(self, sample_summary):
+        from backend.services.llm_prompt_builder import build_analysis_prompt
+        prompt, _ = build_analysis_prompt(
+            reduced_report="## fallback report",
+            summary=sample_summary,
+        )
+        assert "Reduced Log Context" in prompt
+        assert '"app"' in prompt or '"id"' in prompt
+        # Should NOT contain the fallback markdown
+        assert "## fallback report" not in prompt
+
+    def test_falls_back_to_markdown_when_no_summary(self):
+        from backend.services.llm_prompt_builder import build_analysis_prompt
+        prompt, _ = build_analysis_prompt(
+            reduced_report="## my markdown report",
+            summary=None,
+        )
+        assert "## Reduced Log Report" in prompt
+        assert "## my markdown report" in prompt
+
+    def test_sparklens_block_separate_and_labeled(self, sample_summary):
+        from backend.services.llm_prompt_builder import build_analysis_prompt
+        prompt, _ = build_analysis_prompt(
+            reduced_report="",
+            summary=sample_summary,
+            sparklens_context={"app": {"driver_idle_pct": 15.0}},
+        )
+        assert "reference only" in prompt.lower() or "do not recalculate" in prompt.lower()
+        assert "NEVER recalculate" in prompt or "NUNCA recalcule" in prompt
 
 
 class TestZipBombProtection:

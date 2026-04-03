@@ -4,6 +4,7 @@ from backend.services.llm_prompt_builder import build_analysis_prompt
 def test_build_analysis_prompt_includes_sparklens_guidance_and_json():
     prompt, py_files_provided = build_analysis_prompt(
         reduced_report="## Reduced report",
+        summary=None,
         sparklens_context={
             "app": {"driver_idle_pct": 38.4},
             "cluster": {"cluster_utilization_pct": 42.1},
@@ -21,6 +22,7 @@ def test_build_analysis_prompt_includes_sparklens_guidance_and_json():
 def test_build_analysis_prompt_omits_sparklens_section_when_not_provided():
     prompt, _ = build_analysis_prompt(
         reduced_report="## Reduced report",
+        summary=None,
         sparklens_context=None,
         language="en",
     )

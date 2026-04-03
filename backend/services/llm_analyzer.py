@@ -45,6 +45,7 @@ class LLMAnalyzer:
         adapter = self._get_adapter(provider, api_key)
         prompt, py_files_provided = build_analysis_prompt(
             reduced_report=reduced_report,
+            summary=summary,
             py_files=py_files,
             sparklens_context=sparklens_context,
             language=language,
