@@ -38,6 +38,13 @@ class ReductionService:
         if not zip_bytes:
             raise HTTPException(status_code=422, detail="zip_file is empty")
 
+        # Validate ZIP magic signature before processing
+        if len(zip_bytes) < 2 or zip_bytes[:2] not in (b"PK", b"\x50\x4b"):
+            raise HTTPException(
+                status_code=422,
+                detail="File is not a valid ZIP archive (invalid magic signature)",
+            )
+
         try:
             reducer = LogReducer(output_format="md", compact=compact)
             summary, reduced_report = reducer.reduce(zip_bytes)
@@ -77,6 +84,14 @@ class ReductionService:
             _progress(2, "reading_zip")
             # Async file read to avoid blocking the event loop
             zip_bytes = await _async_read_file(file_path)
+
+            # Validate ZIP magic signature before processing
+            if len(zip_bytes) < 2 or zip_bytes[:2] not in (b"PK", b"\x50\x4b"):
+                raise HTTPException(
+                    status_code=422,
+                    detail="File is not a valid ZIP archive (invalid magic signature)",
+                )
+
             _progress(5, "zip_loaded")
 
             reducer = LogReducer(output_format="md", compact=compact)
