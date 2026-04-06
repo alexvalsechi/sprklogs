@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.26.0](https://github.com/alexvalsechi/sprklogs/compare/v0.25.0...v0.26.0) (2026-04-06)
+
+
+### Features
+
+* - Created .qwen/settings.json to define permissions for Bash commands. ([eb04a38](https://github.com/alexvalsechi/sprklogs/commit/eb04a38e19260e61fbcc63cf328f98328b5a3c13))
+
+
+### Bug Fixes
+
+* ensure all JSX values are strings in PipelineView ([e8fb682](https://github.com/alexvalsechi/sprklogs/commit/e8fb682d314b5c728e604c0d48f8f0006fcb09f0))
+* resolve timerId scoping error in progress poll ([3dd4cd5](https://github.com/alexvalsechi/sprklogs/commit/3dd4cd50af3ba1ee282925386b48ab251d2c7d1e))
+* revert to Blob for FormData pyspark_files upload ([44a0e21](https://github.com/alexvalsechi/sprklogs/commit/44a0e216551005246f8df29bb4466d20cae1e53c))
+* use middleware for cache headers instead of StaticFiles param ([b8e7b51](https://github.com/alexvalsechi/sprklogs/commit/b8e7b5111545f19a51ac7e190ed0fe42e0f51557))
+
+
+### Performance Improvements
+
+* apply performance optimizations across backend and desktop ([6b1f8cb](https://github.com/alexvalsechi/sprklogs/commit/6b1f8cb9b498407eefa0a8a42875d324ba89af23))
+
 ## [0.25.0](https://github.com/alexvalsechi/sprklogs/compare/v0.24.0...v0.25.0) (2026-04-03)
 
 
