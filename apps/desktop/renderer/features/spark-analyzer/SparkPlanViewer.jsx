@@ -20,7 +20,7 @@ const NODE_H = 80;
 const HGAP   = 20;
 const VGAP   = 52;
 
-// ─── Node type classification ────────────────────────────────────
+// ─── Node type classification with cache ────────────────────────────
 const NODE_TYPES = [
   { test: /^(Scan|.*TableScan)/i,               type: 'Scan',      color: '#22c55e' },
   { test: /Join/i,                               type: 'Join',      color: '#3b82f6' },
@@ -32,10 +32,20 @@ const NODE_TYPES = [
 ];
 const DEFAULT_TYPE  = { type: 'Op', color: '#64748b' };
 
+// Cache for classifyNode results
+const classifyCache = new Map();
+
 function classifyNode(nodeName = '') {
-  for (const nt of NODE_TYPES) {
-    if (nt.test.test(nodeName)) return nt;
+  if (classifyCache.has(nodeName)) {
+    return classifyCache.get(nodeName);
   }
+  for (const nt of NODE_TYPES) {
+    if (nt.test.test(nodeName)) {
+      classifyCache.set(nodeName, nt);
+      return nt;
+    }
+  }
+  classifyCache.set(nodeName, DEFAULT_TYPE);
   return DEFAULT_TYPE;
 }
 
@@ -107,11 +117,19 @@ function preprocessTree(node, depth = 0, callCount = { n: 0 }) {
 
 function computeSubtreeWidth(node) {
   if (!node) return NODE_W;
+  // Return cached value if available
+  if (node._subtreeWidth !== undefined) return node._subtreeWidth;
+
   const kids = node.children || [];
-  if (kids.length === 0) return NODE_W;
+  if (kids.length === 0) {
+    node._subtreeWidth = NODE_W;
+    return NODE_W;
+  }
   const childSum = kids.reduce((s, c) => s + computeSubtreeWidth(c), 0);
   const spacing  = HGAP * (kids.length - 1);
-  return Math.max(NODE_W, childSum + spacing);
+  const result = Math.max(NODE_W, childSum + spacing);
+  node._subtreeWidth = result;
+  return result;
 }
 
 function assignPositions(node, x, depth, out) {
@@ -348,7 +366,7 @@ const LEGEND_ITEMS = [
 
 // ─── React components ────────────────────────────────────────────
 
-function NodeDetailPanel({ node, onClose }) {
+const NodeDetailPanel = React.memo(function NodeDetailPanel({ node, onClose }) {
   if (!node) return null;
   const { color } = classifyNode(node.nodeName);
   return (
@@ -444,9 +462,9 @@ function NodeDetailPanel({ node, onClose }) {
       </div>
     </div>
   );
-}
+});
 
-function Legend() {
+const Legend = React.memo(function Legend() {
   return (
     <div style={{
       position: 'absolute', bottom: 12, left: 12, zIndex: 5,
@@ -465,9 +483,9 @@ function Legend() {
       ))}
     </div>
   );
-}
+});
 
-function StatsBar({ stats, style }) {
+const StatsBar = React.memo(function StatsBar({ stats, style }) {
   if (!stats) return null;
   const typesSorted = Object.entries(stats.byType).sort((a, b) => b[1] - a[1]);
   return (
@@ -490,7 +508,7 @@ function StatsBar({ stats, style }) {
       })}
     </div>
   );
-}
+});
 
 // ─── Main Canvas component ───────────────────────────────────────
 
@@ -709,9 +727,26 @@ function collectUniqueSources(executions) {
 // ─── Unified Pipeline View ───────────────────────────────────────
 
 function PipelineView({ executions, onOpen }) {
+  if (!executions || !Array.isArray(executions) || executions.length === 0) {
+    return (
+      <div style={{
+        background: BG, width: '100%', height: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: '"DM Sans", sans-serif', color: 'rgba(255,255,255,0.4)',
+      }}>
+        <span style={{ fontFamily: '"Inconsolata",monospace', fontSize: 12 }}>
+          Nenhuma execução encontrada
+        </span>
+      </div>
+    );
+  }
+
   // Group executions by stage type
   const groups = { init: [], ddl: [], compute: [], write: [] };
-  for (const ex of executions) groups[classifyExecution(ex)].push(ex);
+  for (const ex of executions) {
+    const execType = classifyExecution(ex);
+    if (groups[execType]) groups[execType].push(ex);
+  }
 
   const sources = collectUniqueSources(executions);
 
@@ -808,6 +843,8 @@ function PipelineView({ executions, onOpen }) {
                     // Execution card
                     const nc  = countNodes(item.sparkPlanInfo);
                     const { color } = STAGE_META[classifyExecution(item)] || { color: stage.color };
+                    const nodeName = String(item.sparkPlanInfo?.nodeName || '—');
+                    const desc = item.description ? String(item.description).slice(0, 40) : null;
                     return (
                       <div key={item.executionId} style={{
                         background: '#161616', border: `1px solid ${color}25`,
@@ -825,13 +862,13 @@ function PipelineView({ executions, onOpen }) {
                           marginBottom: 4, wordBreak: 'break-word',
                           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                         }}>
-                          {item.sparkPlanInfo?.nodeName || '—'}
+                          {nodeName}
                         </div>
-                        {item.description && (
+                        {desc && (
                           <div style={{
                             fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: '"Inconsolata",monospace',
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>{item.description.slice(0, 40)}</div>
+                          }}>{desc}</div>
                         )}
                         <div style={{
                           marginTop: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between',

@@ -247,7 +247,17 @@ class StageAccumulator:
     def dur_p95(self) -> int:
         if not self._reservoir:
             return 0
-        s = sorted(self._reservoir)
+        # Use bisect to maintain sorted order efficiently
+        # For small lists, sorted() is fast enough; for large ones,
+        # we could use a sorted list with bisect.insort
+        if len(self._reservoir) <= 1000:
+            s = sorted(self._reservoir)
+        else:
+            # For large reservoirs, use approximate selection
+            import random
+            # Sample and sort for better performance
+            sample = random.sample(self._reservoir, min(1000, len(self._reservoir)))
+            s = sorted(sample)
         return s[int(len(s) * 0.95)]
 
     @property
@@ -332,13 +342,16 @@ def _select_sql_executions(all_execs: list, max_kept: int = 30) -> list:
     selected: list = []
     seen_root: dict[str, int] = {}
 
+    # Sort once by node count (descending)
+    sorted_execs = sorted(annotated, key=lambda x: -x["_nc"])
+
     # Pass 1 — always keep write/insert and large plans (>100 nodes)
-    for ex in sorted(annotated, key=lambda x: -x["_nc"]):
+    for ex in sorted_execs:
         if ex["_write"] or ex["_nc"] > 100:
             selected.append(ex)
 
     # Pass 2 — fill remainder with deduplicated samples of smaller plans
-    for ex in sorted(annotated, key=lambda x: -x["_nc"]):
+    for ex in sorted_execs:
         if len(selected) >= max_kept:
             break
         if ex in selected:
@@ -385,7 +398,11 @@ class SinglePassHandler(BaseHandler):
         stage_names: dict[int, str] = {}
         stage_info: dict[int, dict] = {}   # sid → Stage Info dict from StageCompleted
 
+        # Cache events for reuse by Sparklens (avoids double-pass)
+        events_cache: list[dict] = []
+
         for ev in _iter_events(zip_bytes, progress_cb):
+            events_cache.append(ev)
             etype = ev.get("Event", "")
 
             if etype == "SparkListenerApplicationStart":
@@ -590,6 +607,9 @@ class SinglePassHandler(BaseHandler):
 
         stages.sort(key=lambda s: s.stage_id)
         ctx["stages"] = stages
+
+        # Cache events for reuse (avoids double-pass in Sparklens)
+        ctx["_events_cache"] = events_cache
 
         if progress_cb:
             progress_cb(70, "stages_ready")
@@ -973,6 +993,7 @@ class LogReducer:
         builder = SummaryBuilderHandler()
         single.set_next(builder)
         self._chain = single
+        self._cached_events: list[dict] | None = None
 
     def reduce(
         self,
@@ -980,6 +1001,8 @@ class LogReducer:
         progress_cb: ProgressCallback = None,
     ) -> tuple[AppSummary, str]:
         ctx = self._chain.handle({"zip_bytes": zip_bytes, "progress_cb": progress_cb})
+        # Cache the ctx for potential reuse (e.g. Sparklens report)
+        self._cached_events = ctx.get("_events_cache")
         if progress_cb:
             progress_cb(80, "rendering_report")
         summary: AppSummary = ctx["summary"]

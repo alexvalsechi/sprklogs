@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import time
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -118,9 +119,11 @@ class LLMClientFactory:
     """
     Factory + Singleton: creates and caches adapter instances.
     Same (provider, key) pair returns the same instance.
+    Uses LRU eviction to prevent unbounded memory growth.
     """
 
-    _instances: dict[tuple[str, str], BaseLLMAdapter] = {}
+    _instances: OrderedDict[tuple[str, str], BaseLLMAdapter] = OrderedDict()
+    _max_instances = 20  # Limit cache size to prevent memory leaks
 
     @classmethod
     def get(
@@ -132,8 +135,16 @@ class LLMClientFactory:
             return NoOpAdapter()
 
         cache_key = (provider.lower(), api_key)
-        if cache_key not in cls._instances:
-            cls._instances[cache_key] = cls._build(provider, api_key)
+        if cache_key in cls._instances:
+            # Move to end (most recently used)
+            cls._instances.move_to_end(cache_key)
+            return cls._instances[cache_key]
+
+        # Evict oldest if at capacity
+        while len(cls._instances) >= cls._max_instances:
+            cls._instances.popitem(last=False)
+
+        cls._instances[cache_key] = cls._build(provider, api_key)
         return cls._instances[cache_key]
 
     @classmethod

@@ -32,21 +32,47 @@ export async function reduceZipViaPath(
   return (await res.json()) as ReduceBackendResponse
 }
 
+/**
+ * Progress polling with exponential backoff.
+ * Starts at 500ms, doubles up to 5s max interval.
+ */
 export function startProgressPoll(
   apiBaseUrl: string,
   reduceJobId: string,
   sender: Electron.WebContents,
 ): ReturnType<typeof setInterval> {
-  return setInterval(async () => {
-    try {
-      const res = await fetch(`${apiBaseUrl}/api/reduce-progress/${reduceJobId}`)
-      if (!res.ok) return
-      const data = (await res.json()) as ReduceProgressData
-      sender.send('reduce-progress', data)
-    } catch {
-      // Swallow transient polling errors; the next tick retries.
-    }
-  }, 500)
+  let intervalMs = 500
+  const MAX_INTERVAL = 5000
+  let timerId: ReturnType<typeof setInterval> | null = null
+
+  function scheduleNext() {
+    if (timerId !== null) clearInterval(timerId)
+    timerId = setInterval(async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/reduce-progress/${reduceJobId}`)
+        if (!res.ok) return
+        const data = (await res.json()) as ReduceProgressData
+        sender.send('reduce-progress', data)
+
+        const percent = data.percent ?? 0
+        if (percent >= 100) {
+          if (timerId !== null) clearInterval(timerId)
+          return
+        }
+
+        // Exponential backoff: double interval when progress stalls
+        if (percent > 5) {
+          intervalMs = Math.min(intervalMs * 2, MAX_INTERVAL)
+          scheduleNext()
+        }
+      } catch {
+        // Swallow transient polling errors; the next tick retries.
+      }
+    }, intervalMs)
+  }
+
+  scheduleNext()
+  return timerId!
 }
 
 export async function submitReducedAnalysis(

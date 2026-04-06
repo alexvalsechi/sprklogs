@@ -182,6 +182,15 @@ class TokenManager:
         if self._is_expired(key):
             self._store.pop(key, None)
             self._expires_at.pop(key, None)
+
+    def cleanup_all_expired(self) -> int:
+        """Remove all expired tokens. Returns number of removed tokens."""
+        with self._lock:
+            expired_keys = [key for key in self._expires_at if self._is_expired(key)]
+            for key in expired_keys:
+                self._store.pop(key, None)
+                self._expires_at.pop(key, None)
+            return len(expired_keys)
     
     def store_token(self, user_id: str, provider: str, token_data: Dict[str, Any]) -> None:
         """Store token securely in-memory with TTL."""

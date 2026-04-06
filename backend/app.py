@@ -81,7 +81,27 @@ def landing_page():
 
 
 if HAS_FRONTEND:
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+    app.mount(
+        "/",
+        StaticFiles(directory=str(FRONTEND_DIR), html=True),
+        name="frontend",
+    )
+
+    # Add cache headers via middleware (StaticFiles doesn't support headers param
+    # in all Starlette versions). Only apply to static frontend files, not API.
+    from fastapi import Request
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class CacheControlMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+            path = request.url.path
+            # Only cache static frontend files, not API routes
+            if not path.startswith("/api") and not path.startswith("/docs") and not path.startswith("/openapi"):
+                response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=86400"
+            return response
+
+    app.add_middleware(CacheControlMiddleware)
 
 
 if __name__ == "__main__":

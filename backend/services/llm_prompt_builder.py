@@ -250,11 +250,18 @@ def build_analysis_prompt(
             try:
                 text = content.decode("utf-8", errors="replace")
                 line_count = text.count("\n") + 1
+                # Truncate large files to avoid excessive token usage
+                MAX_LINES = 500
+                if line_count > MAX_LINES:
+                    lines = text.split("\n")[:MAX_LINES]
+                    text = "\n".join(lines)
+                    text += f"\n# ... (truncated, showing first {MAX_LINES} of {line_count} lines)"
                 logger.info(
-                    "Embedding py_file in prompt: %s — %d bytes, %d lines (complete, not summarized)",
+                    "Embedding py_file in prompt: %s — %d bytes, %d lines%s",
                     fname,
                     len(content),
-                    line_count,
+                    min(line_count, MAX_LINES),
+                    " (truncated)" if line_count > MAX_LINES else "",
                 )
                 prompt_parts.append(f"\n### {fname}\n```python\n{text}\n```")
             except Exception:

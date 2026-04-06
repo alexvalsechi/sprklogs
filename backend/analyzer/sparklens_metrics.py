@@ -3,6 +3,7 @@ Deterministic Spark event-log metrics inspired by Sparklens.
 """
 from __future__ import annotations
 
+import functools
 import heapq
 import io
 import json
@@ -82,7 +83,9 @@ def get_max_concurrent_executors(executor_events: list[dict]) -> int:
     return peak
 
 
-def estimate_stage_wall_clock(task_run_times_ms: list[int], new_total_cores: int) -> int:
+@functools.lru_cache(maxsize=1024)
+def estimate_stage_wall_clock(task_run_times_tuple: tuple[int, ...], new_total_cores: int) -> int:
+    task_run_times_ms = list(task_run_times_tuple)
     if not task_run_times_ms:
         return 0
     if new_total_cores <= 0:
@@ -134,7 +137,7 @@ def estimate_app_wall_clock(
             stage = stages.get(stage_id)
             if not stage:
                 continue
-            stage_estimates[stage_id] = estimate_stage_wall_clock(stage.get("task_run_times", []), new_cores)
+            stage_estimates[stage_id] = estimate_stage_wall_clock(tuple(stage.get("task_run_times", [])), new_cores)
         estimated_job_total += _critical_path(stage_estimates, stages, job.get("stage_ids", []))
     return driver_ms + estimated_job_total
 
@@ -791,5 +794,14 @@ def build_sparklens_report(zip_path: str) -> dict:
     return _process_events(_parse_events_from_zip_file(zip_path))
 
 
-def build_sparklens_report_from_bytes(zip_bytes: bytes) -> dict:
+def build_sparklens_report_from_bytes(zip_bytes: bytes, events=None) -> dict:
+    """Build Sparklens report from ZIP bytes.
+
+    If *events* is provided (an iterable of already-parsed event dicts),
+    they are used directly instead of re-parsing the ZIP.  This avoids a
+    full second pass when the caller has already iterated the events (e.g.
+    the LogReducer single-pass handler).
+    """
+    if events is not None:
+        return _process_events(events)
     return _process_events(_parse_events_from_zip_bytes(zip_bytes))

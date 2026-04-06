@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "sourceMap": true
+    "sourceMap": false
   },
   "include": ["main/**/*.ts", "preload/**/*.ts"],
   "exclude": ["node_modules", "dist", "renderer"]

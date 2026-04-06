@@ -3,6 +3,7 @@ Application service for local ZIP reduction flows.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import uuid
@@ -10,9 +11,23 @@ from typing import Optional
 
 from fastapi import HTTPException
 
-from backend.analyzer.sparklens_metrics import build_sparklens_report_from_bytes
+from backend.analyzer.sparklens_metrics import (
+    build_sparklens_report_from_bytes,
+)
 from backend.services.job_store import ReductionProgressStore
 from backend.services.log_reducer import LogReducer
+
+
+async def _async_read_file(path: str) -> bytes:
+    """Read file asynchronously to avoid blocking the event loop."""
+    try:
+        import aiofiles
+        async with aiofiles.open(path, "rb") as fh:
+            return await fh.read()
+    except ImportError:
+        # Fallback to sync if aiofiles is not available
+        with open(path, "rb") as fh:
+            return fh.read()
 
 
 class ReductionService:
@@ -26,7 +41,10 @@ class ReductionService:
         try:
             reducer = LogReducer(output_format="md", compact=compact)
             summary, reduced_report = reducer.reduce(zip_bytes)
-            sparklens_report = build_sparklens_report_from_bytes(zip_bytes)
+            # Reuse already-parsed events from reducer instead of re-reading ZIP
+            sparklens_report = build_sparklens_report_from_bytes(
+                zip_bytes, events=reducer._cached_events
+            )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -36,7 +54,7 @@ class ReductionService:
             "sparklens_context": sparklens_report.get("llm_context"),
         }
 
-    def reduce_local_path(
+    async def reduce_local_path(
         self,
         file_path: str,
         compact: bool,
@@ -57,14 +75,17 @@ class ReductionService:
 
         try:
             _progress(2, "reading_zip")
-            with open(file_path, "rb") as fh:
-                zip_bytes = fh.read()
+            # Async file read to avoid blocking the event loop
+            zip_bytes = await _async_read_file(file_path)
             _progress(5, "zip_loaded")
 
             reducer = LogReducer(output_format="md", compact=compact)
             summary, reduced_report = reducer.reduce(zip_bytes, progress_cb=_progress)
             _progress(86, "sparklens_metrics")
-            sparklens_report = build_sparklens_report_from_bytes(zip_bytes)
+            # Reuse already-parsed events from reducer instead of re-reading ZIP
+            sparklens_report = build_sparklens_report_from_bytes(
+                zip_bytes, events=reducer._cached_events
+            )
             summary_payload = self._serialize_summary(summary)
             return json.dumps({
                 "reduce_job_id": resolved_job_id,

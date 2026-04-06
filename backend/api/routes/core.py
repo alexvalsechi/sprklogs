@@ -83,12 +83,12 @@ def get_status(job_id: str):
 
 
 @router.post("/reduce-local-path")
-def reduce_local_path(
+async def reduce_local_path(
     file_path: str = Form(..., description="Absolute path to the Spark event log ZIP on disk"),
     reduce_job_id: Optional[str] = Form(default=None, description="Client-supplied tracking ID"),
     compact: bool = Form(default=False),
 ):
-    payload = _reduction_service.reduce_local_path(
+    payload = await _reduction_service.reduce_local_path(
         file_path=file_path,
         compact=compact,
         reduce_job_id=reduce_job_id,
