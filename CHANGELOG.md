@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.27.0](https://github.com/alexvalsechi/sprklogs/compare/v0.26.0...v0.27.0) (2026-04-06)
+
+
+### Features
+
+* add ZIP magic signature validation to ReductionService ([c2358d1](https://github.com/alexvalsechi/sprklogs/commit/c2358d12c8407c0194095f57db77cb53db7a4636))
+* add ZIP magic signature validation to ReductionService ([bd92286](https://github.com/alexvalsechi/sprklogs/commit/bd922869499f6c47303fcc67fcd3235303fb6ef5))
+
+
+### Bug Fixes
+
+* update release-please action to v4.4.0 and disable labeling ([d5cb878](https://github.com/alexvalsechi/sprklogs/commit/d5cb8784a605af16c20f40e7f36371a3314493c4))
+* update release-please action to v4.4.0 and disable labeling ([6727b9e](https://github.com/alexvalsechi/sprklogs/commit/6727b9e10f81df7266dbbd22ad0d75ce3390345f))
+
 ## [0.26.0](https://github.com/alexvalsechi/sprklogs/compare/v0.25.0...v0.26.0) (2026-04-06)
 
 
