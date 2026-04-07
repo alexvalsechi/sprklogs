@@ -29,7 +29,7 @@ You bring the ZIP. SprkLogs delivers the diagnosis.
   <img src="apps/web/spark-history-server.png" alt="Spark History Server" width="100%" />
   <br />
   <br />
-  <img src="apps/web/sprklogs-how-to-use.gif" alt="SprkLogs demo" width="100%" />
+  <img src="apps/web/sprklogs-demo.gif" alt="SprkLogs demo" width="100%" />
 </div>
 
 ---
