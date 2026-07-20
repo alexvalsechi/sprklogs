@@ -14,9 +14,9 @@
     "check": "node -e \"require('./package.json'); console.log('desktop package ok')\"",
     "build:inject-token": "node scripts/inject-token.js",
     "pack:win": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win --dir",
-    "pack:win:debug": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win --dir -c.win.signAndEditExecutable=false",
+    "pack:win:debug": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win --dir --config.win.signAndEditExecutable=false",
     "dist:win": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win nsis --publish never",
-    "dist:win:local": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win nsis --publish never -c.win.signAndEditExecutable=false"
+    "dist:win:local": "npm run build:backend:win && npm run build && npm run build:inject-token && npm run build:renderer && npx electron-builder --win nsis --publish never --config.win.signAndEditExecutable=false"
   },
   "dependencies": {
     "@log-sparkui/ipc-types": "file:../../packages/ipc-types",

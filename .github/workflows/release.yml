@@ -115,6 +115,7 @@ jobs:
           -Version ${{ steps.release.outputs.version }}
           -Target nsis
           -SkipInstall
+          -DisableExecutableSigning
 
       - name: Replace only missing or corrupted assets
         shell: powershell

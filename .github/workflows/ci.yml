@@ -167,3 +167,4 @@ jobs:
           -Version 0.0.0-pr.${{ github.event.pull_request.number }}
           -Target nsis
           -SkipInstall
+          -DisableExecutableSigning

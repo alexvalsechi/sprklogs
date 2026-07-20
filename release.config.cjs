@@ -8,7 +8,7 @@ module.exports = {
       '@semantic-release/exec',
       {
         prepareCmd:
-          'powershell -NoProfile -ExecutionPolicy Bypass -File ./infra/scripts/package-desktop-win.ps1 -Version ${nextRelease.version} -Target nsis -SkipInstall',
+          'powershell -NoProfile -ExecutionPolicy Bypass -File ./infra/scripts/package-desktop-win.ps1 -Version ${nextRelease.version} -Target nsis -SkipInstall -DisableExecutableSigning',
       },
     ],
     [
