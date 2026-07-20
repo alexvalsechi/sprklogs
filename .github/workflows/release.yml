@@ -21,7 +21,7 @@ jobs:
   publish:
     name: Calculate version, build and publish
     if: github.event_name == 'push'
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout full history
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -54,7 +54,7 @@ jobs:
   repair-assets:
     name: Repair assets for an existing release
     if: github.event_name == 'workflow_dispatch'
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout full history
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
