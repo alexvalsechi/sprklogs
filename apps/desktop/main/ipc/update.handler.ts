@@ -61,12 +61,33 @@ function normalise(tag: string): string {
   return tag.trim().replace(/^v/i, '')
 }
 
+function parseVersion(tag: string): [number, number, number] | null {
+  const match = normalise(tag).match(/^(\d+)\.(\d+)\.(\d+)$/)
+  if (!match) return null
+  return [Number(match[1]), Number(match[2]), Number(match[3])]
+}
+
+function isNewerVersion(latest: string, current: string): boolean {
+  const latestParts = parseVersion(latest)
+  const currentParts = parseVersion(current)
+  if (!latestParts || !currentParts) return false
+
+  return latestParts.some((part, index) => {
+    const currentPart = currentParts[index]
+    if (part === currentPart) return false
+    return part > currentPart &&
+      latestParts.slice(0, index).every((value, previousIndex) =>
+        value === currentParts[previousIndex],
+      )
+  })
+}
+
 export function registerUpdateHandlers(): void {
   ipcMain.handle('check-for-updates', async (): Promise<UpdateCheckResult> => {
     const currentVersion = app.getVersion()
     const latestTag      = await fetchLatestTag()
     const latestVersion  = normalise(latestTag)
-    const hasUpdate      = latestVersion !== normalise(currentVersion)
+    const hasUpdate      = isNewerVersion(latestVersion, currentVersion)
     return { hasUpdate, latestVersion, currentVersion, releaseUrl: RELEASES_URL }
   })
 }
