@@ -37,6 +37,26 @@ function Invoke-Checked {
   }
 }
 
+function Get-Sha256 {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $stream = [System.IO.File]::OpenRead($Path)
+  try {
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $bytes = $algorithm.ComputeHash($stream)
+      return ([System.BitConverter]::ToString($bytes)).Replace('-', '')
+    } finally {
+      $algorithm.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
 function Ensure-FromNpmTarball {
   param(
     [Parameter(Mandatory = $true)]
@@ -200,8 +220,8 @@ if ($Target -eq 'nsis') {
     throw "Missing expected installer: $installer"
   }
 
-  $hash = Get-FileHash -LiteralPath $installer -Algorithm SHA256
-  $checksumLines = "$($hash.Hash)  $($installer | Split-Path -Leaf)"
+  $hash = Get-Sha256 -Path $installer
+  $checksumLines = "$hash  $($installer | Split-Path -Leaf)"
   $checksumPath = Join-Path $desktopDist 'checksums.txt'
   Set-Content -LiteralPath $checksumPath -Value $checksumLines -Encoding utf8
   Write-Host "[package-desktop] Checksums written to $checksumPath"

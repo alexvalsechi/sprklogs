@@ -124,6 +124,22 @@ jobs:
           REPAIR_TAG: ${{ inputs.repair_tag }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
+          function Get-Sha256([string]$Path) {
+            $stream = [System.IO.File]::OpenRead($Path)
+            try {
+              $algorithm = [System.Security.Cryptography.SHA256]::Create()
+              try {
+                return ([System.BitConverter]::ToString(
+                  $algorithm.ComputeHash($stream)
+                )).Replace('-', '')
+              } finally {
+                $algorithm.Dispose()
+              }
+            } finally {
+              $stream.Dispose()
+            }
+          }
+
           $remoteDir = Join-Path $env:RUNNER_TEMP 'published-assets'
           New-Item -ItemType Directory -Path $remoteDir -Force | Out-Null
 
@@ -137,8 +153,7 @@ jobs:
             $remoteAsset = Join-Path $remoteDir $asset.Name
             $remoteMatches = $LASTEXITCODE -eq 0 -and
               (Test-Path -LiteralPath $remoteAsset) -and
-              ((Get-FileHash -LiteralPath $remoteAsset -Algorithm SHA256).Hash -eq
-                (Get-FileHash -LiteralPath $asset.FullName -Algorithm SHA256).Hash)
+              ((Get-Sha256 $remoteAsset) -eq (Get-Sha256 $asset.FullName))
 
             if ($remoteMatches) {
               Write-Host "$($asset.Name) is already valid; keeping the published asset."
