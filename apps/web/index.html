@@ -1736,7 +1736,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   async function hydrateExeLinks() {
     const repoInfo = detectPagesRepository();
     if (!repoInfo) {
-      setExeLinks('exe.openRelease', `https://github.com/${fallbackGithubRepo}/releases/tag/master-latest`, false);
+      setExeLinks('exe.openRelease', `https://github.com/${fallbackGithubRepo}/releases`, false);
       return;
     }
 
@@ -1766,24 +1766,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         if (latestReleaseWithExe.html_url) {
           setExeLinks('exe.openRelease', latestReleaseWithExe.html_url, false);
-          return;
-        }
-      }
-
-      // Fallback to the rolling release when no .exe was found in recent releases.
-      const fallbackTagApi = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/releases/tags/master-latest`;
-      const fallbackRes = await fetch(fallbackTagApi, {
-        headers: { Accept: 'application/vnd.github+json' }
-      });
-      if (fallbackRes.ok) {
-        const fallbackRelease = await fallbackRes.json();
-        const fallbackExe = findExeAsset(fallbackRelease);
-        if (fallbackExe?.browser_download_url) {
-          setExeLinks('exe.download', fallbackExe.browser_download_url, false);
-          return;
-        }
-        if (fallbackRelease?.html_url) {
-          setExeLinks('exe.openRelease', fallbackRelease.html_url, false);
           return;
         }
       }

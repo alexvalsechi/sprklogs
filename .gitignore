@@ -5,7 +5,12 @@ __pycache__/
 *.egg-info/
 dist/
 .pytest_cache/
+pytest-cache-files-*/
 .mypy_cache/
+.turbo/
+**/.turbo/
+.tmp/actionlint-*/
+.tmp/pyinstaller/
 /tmp/sparkui_uploads/
 node_modules/
 desktop/node_modules/

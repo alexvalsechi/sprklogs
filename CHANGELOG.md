@@ -1,5 +1,9 @@
 # Changelog
 
+This file preserves the release history generated through version 0.31.0.
+Newer release notes are generated automatically from Conventional Commits and
+published on [GitHub Releases](https://github.com/alexvalsechi/sprklogs/releases).
+
 ## [0.31.0](https://github.com/alexvalsechi/sprklogs/compare/v0.30.0...v0.31.0) (2026-04-09)
 
 

@@ -34,7 +34,7 @@ npm run test
 
 ## Development Workflow
 
-1. Create a branch from `main`:
+1. Create a branch from `master`:
 
 ```bash
 git checkout -b feature/your-feature
@@ -68,12 +68,14 @@ npm run lint
 npm run test
 ```
 
-5. Commit with a clear, descriptive message and open a Pull Request.
+5. Commit with a Conventional Commit message and open a Pull Request against
+   `master`.
 
 ## Commit Messages
 
-Use clear, descriptive commit messages, preferably following Conventional
-Commits:
+Commit messages must follow Conventional Commits. When using squash merge, the
+Pull Request title becomes the final commit message and must follow the same
+format:
 
 - `feat:` for new functionality
 - `fix:` for bug fixes
@@ -82,11 +84,20 @@ Commits:
 - `test:` for test-only changes
 - `chore:` for maintenance tasks
 
+Release versions are calculated automatically after a merge into `master`:
+
+- `fix:` creates a patch release.
+- `feat:` creates a minor release.
+- `BREAKING CHANGE:` in the commit body, or `!` after the type, creates a
+  major release.
+- `docs:`, `chore:`, `refactor:`, and `test:` do not create a release.
+
 Examples:
 
 - `feat: add stage filter to diagnosis table`
 - `fix: prevent crash when zip has missing event log`
 - `docs: clarify desktop local build steps`
+- `feat!: replace the analysis response format`
 
 ## Running Tests
 

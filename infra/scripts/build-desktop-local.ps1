@@ -4,171 +4,69 @@ param(
   [switch]$DebugUnpacked
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Resolve-Path (Join-Path $scriptDir "..\..")
+$repoRoot = (Resolve-Path (Join-Path $scriptDir '..\..')).Path
+$packageScript = Join-Path $scriptDir 'package-desktop-win.ps1'
+$desktopPackage = Join-Path $repoRoot 'apps\desktop\package.json'
+
 Set-Location $repoRoot
 
-Write-Host "Repo root: $repoRoot"
-
-$pythonCmd = "python"
-try {
-  $null = & py -3.11 --version
-  if ($LASTEXITCODE -eq 0) {
-    $pythonCmd = "py -3.11"
-  }
-} catch {
-  # Keep default python command when Python launcher is unavailable.
-}
-
-Write-Host "Using Python command: $pythonCmd"
-
 if (-not $SkipInstall) {
-  Write-Host "Running npm ci..."
+  Write-Host '[build-desktop-local] Installing npm dependencies'
   npm ci
   if ($LASTEXITCODE -ne 0) {
-    throw "npm ci failed"
+    throw "npm ci failed with exit code $LASTEXITCODE"
   }
 }
 
-Write-Host "Building Python backend executable..."
-& powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot "infra/scripts/build-python.ps1")
-if ($LASTEXITCODE -ne 0) {
-  throw "backend build failed"
-}
-
-function Ensure-FromNpmTarball {
-  param(
-    [string]$PackageName,
-    [string]$Version,
-    [string]$FileInTar,
-    [string]$Destination
-  )
-
-  if (Test-Path $Destination) {
-    Write-Host "OK: already exists $Destination"
-    return
-  }
-
-  $tgz = "$PackageName-$Version.tgz"
-  Write-Host "Downloading $PackageName@$Version via npm pack..."
-  npm pack "$PackageName@$Version"
-
-  if (-not (Test-Path $tgz)) {
-    throw "Failed to download $tgz"
-  }
-
-  tar -xzf $tgz "$FileInTar"
-  $extractedPath = $FileInTar -replace '^package/', 'package\\'
-  if (-not (Test-Path $extractedPath)) {
-    throw "Failed to extract $FileInTar from $tgz"
-  }
-
-  New-Item -ItemType Directory -Path (Split-Path $Destination -Parent) -Force | Out-Null
-  Copy-Item $extractedPath $Destination -Force
-
-  Remove-Item $tgz -Force -ErrorAction SilentlyContinue
-  Remove-Item package -Recurse -Force -ErrorAction SilentlyContinue
-  Write-Host "OK: restored $Destination"
-}
-
-Write-Host "Ensuring electron-builder native binaries..."
-Ensure-FromNpmTarball -PackageName "7zip-bin" -Version "5.2.0" -FileInTar "package/win/x64/7za.exe" -Destination "node_modules/7zip-bin/win/x64/7za.exe"
-Ensure-FromNpmTarball -PackageName "app-builder-bin" -Version "4.0.0" -FileInTar "package/win/x64/app-builder.exe" -Destination "node_modules/app-builder-bin/win/x64/app-builder.exe"
-
-$sevenZipIndex = "node_modules/7zip-bin/index.js"
-if (Test-Path $sevenZipIndex) {
-  $indexContent = @(
-    '"use strict"'
-    'const path = require("path")'
-    'const fs = require("fs")'
-    ''
-    'function getPath() {'
-    '  if (process.platform === "darwin") {'
-    '    const p = path.join(__dirname, "mac", process.arch, "7za")'
-    '    return fs.existsSync(p) ? p : "7za"'
-    '  }'
-    '  if (process.platform === "win32") {'
-    '    const bundled = path.join(__dirname, "win", process.arch, "7za.exe")'
-    '    if (fs.existsSync(bundled)) {'
-    '      return bundled'
-    '    }'
-    '    const system7z = "C:\\Program Files\\7-Zip\\7z.exe"'
-    '    return fs.existsSync(system7z) ? system7z : bundled'
-    '  }'
-    '  const p = path.join(__dirname, "linux", process.arch, "7za")'
-    '  return fs.existsSync(p) ? p : "7za"'
-    '}'
-    ''
-    'exports.path7za = getPath()'
-    'exports.path7x = path.join(__dirname, "7x.sh")'
-  ) -join "`n"
-  Set-Content -Path $sevenZipIndex -Value $indexContent -Encoding utf8 -Force
-}
-
-$builder7za = "node_modules/builder-util/out/7za.js"
-if (Test-Path $builder7za) {
-  $patchedBuilder7za = @(
-    '"use strict";'
-    'Object.defineProperty(exports, "__esModule", { value: true });'
-    'exports.getPath7x = exports.getPath7za = void 0;'
-    'const _7zip_bin_1 = require("7zip-bin");'
-    'const fs = require("fs");'
-    'const fs_extra_1 = require("fs-extra");'
-    'async function getPath7za() {'
-    '    if (fs.existsSync(_7zip_bin_1.path7za)) {'
-    '        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7za, 0o755);'
-    '    }'
-    '    return _7zip_bin_1.path7za;'
-    '}'
-    'exports.getPath7za = getPath7za;'
-    'async function getPath7x() {'
-    '    if (fs.existsSync(_7zip_bin_1.path7x)) {'
-    '        await (0, fs_extra_1.chmod)(_7zip_bin_1.path7x, 0o755);'
-    '    }'
-    '    return _7zip_bin_1.path7x;'
-    '}'
-    'exports.getPath7x = getPath7x;'
-  ) -join "`n"
-  Set-Content -Path $builder7za -Value $patchedBuilder7za -Encoding utf8 -Force
-}
-
-Write-Host "Verifying paths..."
-node -e "const fs=require('fs'); const p7='node_modules/7zip-bin/win/x64/7za.exe'; const pab='node_modules/app-builder-bin/win/x64/app-builder.exe'; console.log('7za path:', p7, 'exists:', fs.existsSync(p7)); console.log('app-builder path:', pab, 'exists:', fs.existsSync(pab));"
+$version = (Get-Content -LiteralPath $desktopPackage -Raw | ConvertFrom-Json).version
+$builtPackage = $false
 
 if (-not $SkipDist) {
-  Write-Host "Running desktop dist build..."
-  npm run dist:win --workspace @log-sparkui/desktop
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $packageScript `
+    -Version $version `
+    -Target nsis `
+    -SkipInstall `
+    -DisableExecutableSigning
   if ($LASTEXITCODE -ne 0) {
-    throw "desktop dist build failed"
+    throw "desktop installer build failed with exit code $LASTEXITCODE"
   }
+  $builtPackage = $true
 }
 
 if ($DebugUnpacked) {
-  Write-Host "Running desktop unpacked build for runtime debug..."
-  npm run pack:win:debug --workspace @log-sparkui/desktop
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $packageScript `
+    -Version $version `
+    -Target dir `
+    -SkipInstall `
+    -DisableExecutableSigning
   if ($LASTEXITCODE -ne 0) {
-    throw "desktop unpacked debug build failed"
+    throw "desktop unpacked build failed with exit code $LASTEXITCODE"
   }
+  $builtPackage = $true
 
-  $unpackedDir = "apps/desktop/dist/win-unpacked"
-  $backendExe = Join-Path $unpackedDir "resources/backend/server.exe"
-  if (-not (Test-Path $backendExe)) {
-    throw "Missing packaged backend executable at $backendExe"
-  }
-
-  $desktopExe = Get-ChildItem -Path $unpackedDir -Filter *.exe |
-    Where-Object { $_.Name -notlike "*unins*" } |
+  $unpackedDir = Join-Path $repoRoot 'apps\desktop\dist\win-unpacked'
+  $desktopExe = Get-ChildItem -LiteralPath $unpackedDir -Filter '*.exe' -File |
+    Where-Object { $_.Name -notlike '*unins*' } |
     Select-Object -First 1
 
   if (-not $desktopExe) {
     throw "No desktop executable found in $unpackedDir"
   }
 
-  Write-Host "Starting unpacked app: $($desktopExe.FullName)"
+  Write-Host "[build-desktop-local] Starting $($desktopExe.FullName)"
   Start-Process -FilePath $desktopExe.FullName -WorkingDirectory $unpackedDir
 }
 
-Write-Host "Done."
+if (-not $builtPackage) {
+  Write-Host '[build-desktop-local] Building backend only'
+  npm run build:backend:win --workspace '@log-sparkui/desktop'
+  if ($LASTEXITCODE -ne 0) {
+    throw "backend build failed with exit code $LASTEXITCODE"
+  }
+}
+
+Write-Host '[build-desktop-local] Done'
